@@ -1,0 +1,116 @@
+<Window x:Class="LbpArchiveToolkit.CustomDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Alert" Width="480" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        FontFamily="Segoe UI" Topmost="False">
+    
+    <Window.Resources>
+        <SolidColorBrush x:Key="BgPrimary" Color="#19132B"/> 
+        <SolidColorBrush x:Key="BgCard" Color="#2D2447"/>
+        <SolidColorBrush x:Key="BgCardDarker" Color="#221A35"/>
+        <SolidColorBrush x:Key="FgPrimary" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="FgSecondary" Color="#B7AEDB"/>
+        <SolidColorBrush x:Key="BorderSubtle" Color="#453868"/>
+        
+        <SolidColorBrush x:Key="LbpOrange" Color="#FFB703"/>
+        <SolidColorBrush x:Key="LbpPink" Color="#F72585"/>
+        <SolidColorBrush x:Key="LbpCyan" Color="#4CC9F0"/>
+        <SolidColorBrush x:Key="LbpEmerald" Color="#06D6A0"/>
+
+        <!-- The Standard BubbleButton -->
+        <Style x:Key="BubbleButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="20"> 
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#3D325C"/>
+                                <Setter Property="Foreground" Value="#6A5C8C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Primary Action (Yes / OK) -->
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{StaticResource LbpCyan}"/>
+            <Setter Property="Foreground" Value="#002D3D"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Margin" Value="15,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#7EE0FA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Secondary Action (No) -->
+        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{StaticResource LbpPink}"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Margin" Value="15,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF4A9F"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PopitCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Uses PopitCard so the dialog floats naturally with the dropshadow inside the transparent window -->
+    <Border Style="{StaticResource PopitCard}" Margin="25" Padding="25">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Title Header -->
+                <RowDefinition Height="Auto"/> <!-- Separator -->
+                <RowDefinition Height="Auto"/> <!-- Content Body -->
+                <RowDefinition Height="Auto"/> <!-- Button Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header Area -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock x:Name="txtTitle" Foreground="{StaticResource LbpOrange}" FontSize="22" FontWeight="Black" VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <!-- 2. Separator Line -->
+            <Rectangle Grid.Row="1" Fill="{StaticResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
+
+            <!-- 3. Message Body -->
+            <ScrollViewer Grid.Row="2" MaxHeight="300" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,30">
+                <TextBlock x:Name="txtMessage" Foreground="{StaticResource FgPrimary}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24"/>
+            </ScrollViewer>
+
+            <!-- 4. Footer Buttons -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="btnNo" Content="NO" Style="{StaticResource BtnSecondary}" Click="BtnNo_Click"/>
+                <Button x:Name="btnYes" Content="YES" Style="{StaticResource BtnPrimary}" Click="BtnYes_Click"/>
+                <Button x:Name="btnOk" Content="OK" Style="{StaticResource BtnPrimary}" Click="BtnOk_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

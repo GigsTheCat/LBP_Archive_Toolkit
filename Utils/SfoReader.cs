@@ -1,0 +1,68 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using LbpArchiveToolkit.Models;
+
+namespace LbpArchiveToolkit.Utils
+{
+    public static class SfoReader
+    {
+        public static SfoData GetLevelData(string sfoFilePath)
+        {
+            var result = new SfoData();
+            if (!File.Exists(sfoFilePath)) return result;
+
+            try
+            {
+                using (FileStream fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read))
+                using (BinaryReader br = new BinaryReader(fs))
+                {
+                    // Check Magic Header: "\0PSF"
+                    byte[] magic = br.ReadBytes(4);
+                    if (!magic.SequenceEqual(new byte[] { 0x00, 0x50, 0x53, 0x46 })) 
+                        return result;
+
+                    br.ReadUInt32(); // Version
+                    uint keyTableStart = br.ReadUInt32();
+                    uint dataTableStart = br.ReadUInt32();
+                    uint entriesCount = br.ReadUInt32();
+
+                    var entries = new List<(ushort keyOffset, uint dataOffset, uint dataLen)>();
+                    for (int i = 0; i < entriesCount; i++)
+                    {
+                        ushort keyOffset = br.ReadUInt16();
+                        br.ReadUInt16(); // data format
+                        uint dataLen = br.ReadUInt32();
+                        br.ReadUInt32(); // max data len
+                        uint dataOffset = br.ReadUInt32();
+                        entries.Add((keyOffset, dataOffset, dataLen));
+                    }
+
+                    // Loop through all entries and look for both SUB_TITLE and DETAIL
+                    foreach (var entry in entries)
+                    {
+                        fs.Position = keyTableStart + entry.keyOffset;
+                        List<byte> keyBytes = new List<byte>();
+                        byte b;
+                        while ((b = br.ReadByte()) != 0) keyBytes.Add(b);
+                        string key = Encoding.UTF8.GetString(keyBytes.ToArray());
+
+                        if (key == "SUB_TITLE" || key == "DETAIL")
+                        {
+                            fs.Position = dataTableStart + entry.dataOffset;
+                            byte[] dataBytes = br.ReadBytes((int)entry.dataLen);
+                            string decodedText = Encoding.UTF8.GetString(dataBytes).TrimEnd('\0');
+
+                            if (key == "SUB_TITLE") result.Title = decodedText;
+                            else if (key == "DETAIL") result.Description = decodedText;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return result;
+        }
+    }
+}

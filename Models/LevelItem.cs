@@ -1,0 +1,25 @@
+using System.ComponentModel;
+
+namespace LbpArchiveToolkit.Models
+{
+    public class LevelItem : INotifyPropertyChanged
+    {
+        public long Id { get; set; }
+        private string? _saved;
+        public string? Saved { get => _saved; set { _saved = value; OnPropertyChanged(nameof(Saved)); } }
+        public string? Game { get; set; }
+        public string? Date { get; set; }
+        public string? Creator { get; set; }
+        public string? LevelName { get; set; }
+        public int Plays { get; set; }
+        public int Hearts { get; set; }
+        public string? Genre { get; set; }
+        public string? Hash { get; set; }
+        public string? IconHash { get; set; }
+        public string? Description { get; set; }
+        public List<string> Labels { get; set; } = new List<string>();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+}
