@@ -12,6 +12,8 @@ This app allows you to search the archive for levels to download and backup. It 
 
 <img width="1520" height="960" alt="image" src="https://github.com/user-attachments/assets/79556557-b31a-4e91-b702-e4bba0dec3a9" />
 
+# Notes
+Currently Windows only. 
 
 # Credits
 Some code is heavily based on / reverse engineered from [lbp_archive_dl](https://github.com/uhwot/lbp_archive_dl), but also with several improvements / fixes.
