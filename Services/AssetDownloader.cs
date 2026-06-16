@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Channels;
 using Microsoft.Data.Sqlite;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
@@ -15,27 +16,18 @@ namespace LbpArchiveToolkit.Services
 {
     /// <summary>
     /// Orchestrates the fetching of LBP level assets via HTTP or Local Archives. 
-    /// Manages concurrency, rate-limiting, and recursive dependency discovery.
+    /// Manages concurrency, rate-limiting, and flat dependency queue processing.
     /// </summary>
     public static class AssetDownloader
     {
-        #region State & Constants
-
         private static volatile Task _globalRateLimitTask = Task.CompletedTask;
         private static readonly object _rateLimitLock = new object();
         
         private static DateTime _lastRequestTime = DateTime.MinValue;
-        private static readonly object _pacingLock = new object();
+        private static readonly System.Threading.Lock _pacingLock = new();
 
         private static readonly ConcurrentDictionary<string, Func<string, string, string, string, string>> _pathBuilderCache = new();
 
-        #endregion
-
-        #region Public API
-
-        /// <summary>
-        /// Clears internal path caches and resets network pacing timers.
-        /// </summary>
         public static void CleanupLocalArchives()
         {
             _pathBuilderCache.Clear();
@@ -43,9 +35,6 @@ namespace LbpArchiveToolkit.Services
             _lastRequestTime = DateTime.MinValue;
         }
 
-        /// <summary>
-        /// Extracts a specific resource from a local archive folder based on its SHA1 hash.
-        /// </summary>
         public static async Task<byte[]?> ExtractLocalArchiveToMemoryAsync(string hash, string baseDir, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(baseDir) || hash.Length < 4) return null;
@@ -68,17 +57,14 @@ namespace LbpArchiveToolkit.Services
             });
 
             string exactPath = pathBuilder(baseDir, part1, part2, hash);
-            if (File.Exists(exactPath)) return await File.ReadAllBytesAsync(exactPath, token);
+            if (File.Exists(exactPath)) return await File.ReadAllBytesAsync(exactPath, token).ConfigureAwait(false);
 
             string flatPath = Path.Combine(baseDir, part1, part2, hash);
-            if (exactPath != flatPath && File.Exists(flatPath)) return await File.ReadAllBytesAsync(flatPath, token);
+            if (exactPath != flatPath && File.Exists(flatPath)) return await File.ReadAllBytesAsync(flatPath, token).ConfigureAwait(false);
 
             return null;
         }
 
-        /// <summary>
-        /// The main entry point for archiving a level. Downloads dependencies, builds the save file, and writes to disk.
-        /// </summary>
         public static async Task<(bool Success, string ErrorMessage)> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
         {
             if (string.IsNullOrEmpty(lvl.Hash)) return (false, "Level hash is missing or empty.");
@@ -91,42 +77,63 @@ namespace LbpArchiveToolkit.Services
 
             int maxConcurrent = ConfigManager.MaxParallelDownloads > 0 ? ConfigManager.MaxParallelDownloads : 10;
             using var semaphore = new SemaphoreSlim(maxConcurrent);
-            var ctx = new DownloadContext(client, token, semaphore, progress);
+
+            var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+            {
+                SingleReader = false,
+                SingleWriter = false
+            });
+
+            var ctx = new DownloadContext(client, token, semaphore, progress, channel.Writer);
 
             try
             {
                 string rootHash = lvl.Hash.ToLowerInvariant();
-                ctx.AddDiscoveredHash(rootHash);
+                bool isRootGuid = rootHash.Length <= 8;
+
+                if (!isRootGuid)
+                {
+                    ctx.AddDiscoveredHash(rootHash);
+                    ctx.IncrementPending();
+                    channel.Writer.TryWrite(rootHash);
+                }
                 
                 string iconHashStr = "";
                 if (!string.IsNullOrEmpty(lvl.IconHash))
                 {
                     iconHashStr = lvl.IconHash.ToLowerInvariant();
-                    ctx.AddDiscoveredHash(iconHashStr);
+                    if (iconHashStr.Length > 8)
+                    {
+                        ctx.AddDiscoveredHash(iconHashStr);
+                        ctx.IncrementPending();
+                        channel.Writer.TryWrite(iconHashStr);
+                    }
                 }
 
                 ctx.ReportProgress("Starting extraction...");
 
                 await Task.Run(async () =>
                 {
-                    var mainTask = DownloadAssetRecursiveAsync(rootHash, ctx);
-                    var iconTask = string.IsNullOrEmpty(iconHashStr) ? Task.CompletedTask : DownloadAssetRecursiveAsync(iconHashStr, ctx);
-                    
-                    await Task.WhenAll(mainTask, iconTask);
-                });
+                    int workerCount = Math.Min(maxConcurrent, 4);
+                    Task[] workers = new Task[workerCount];
+                    for (int i = 0; i < workerCount; i++)
+                    {
+                        workers[i] = ProcessQueueAsync(channel.Reader, ctx);
+                    }
+                    await Task.WhenAll(workers).ConfigureAwait(false);
+                }).ConfigureAwait(false);
 
                 if (token.IsCancellationRequested) return (false, "Extraction was cancelled.");
 
-                byte[] rootHashBytes = SaveDataBuilder.StringToByteArray(lvl.Hash);
-                if (!ctx.Resources.ContainsKey(rootHashBytes)) 
+                if (!isRootGuid && !ctx.Resources.ContainsKey(rootHash)) 
                 {
-                    return (false, "The root level file could not be fetched (Likely missing).");
+                    return (false, "The root level file could not be fetched (Likely missing from server).");
                 }
 
                 ctx.ReportProgress("Encrypting and building save archive...");
 
-                var sortedResources = new SortedDictionary<byte[], byte[]>(ctx.Resources, new SaveDataBuilder.ByteArrayComparer());
-                await SaveDataBuilder.BuildAndWriteSaveDataAsync(lvl, slotInfo, sortedResources, backupDir, client, token);
+                var sortedResources = new SortedDictionary<string, byte[]>(ctx.Resources, StringComparer.OrdinalIgnoreCase);
+                await SaveDataBuilder.BuildAndWriteSaveDataAsync(lvl, slotInfo, sortedResources, backupDir, client, token).ConfigureAwait(false);
 
                 ctx.ReportProgress("Finished successfully!");
                 return (true, string.Empty);
@@ -139,9 +146,55 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        #endregion
+        private static async Task ProcessQueueAsync(ChannelReader<string> reader, DownloadContext ctx)
+        {
+            try
+            {
+                await foreach (var currentHash in reader.ReadAllAsync(ctx.Token).ConfigureAwait(false))
+                {
+                    if (ctx.Token.IsCancellationRequested) break;
 
-        #region Extraction Orchestration
+                    bool isLocal = ConfigManager.DownloadServer.ToLowerInvariant() == "local";
+                    bool success = false;
+                    byte[]? fileData = null; 
+
+                    if (isLocal)
+                    {
+                        try
+                        {
+                            fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ConfigManager.LocalArchivePath ?? "", ctx.Token).ConfigureAwait(false);
+                            success = fileData != null; 
+                        }
+                        catch (OperationCanceledException) { break; }
+                    }
+                    else
+                    {
+                        (success, fileData) = await FetchFileWithRetriesAsync(currentHash, ctx).ConfigureAwait(false);
+                    }
+
+                    if (ctx.Token.IsCancellationRequested) break;
+
+                    if (success && fileData != null)
+                    {
+                        ctx.AddResource(currentHash, fileData);
+
+                        var deps = SaveDataBuilder.GetDependenciesFast(fileData);
+                        foreach (var dep in deps)
+                        {
+                            if (ctx.AddDiscoveredHash(dep))
+                            {
+                                ctx.IncrementPending();
+                                ctx.QueueWriter.TryWrite(dep);
+                            }
+                        }
+                    }
+
+                    ctx.IncrementProcessed();
+                    ctx.DecrementPending();
+                }
+            }
+            catch (OperationCanceledException) { }
+        }
 
         private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo)
         {
@@ -156,15 +209,24 @@ namespace LbpArchiveToolkit.Services
                 using var r = cmd.ExecuteReader();
                 if (r.Read())
                 {
-                    try { if (!r.IsDBNull(0)) slotInfo.MinPlayers = r.GetInt32(0); } catch { }
-                    try { if (!r.IsDBNull(1)) slotInfo.MaxPlayers = r.GetInt32(1); } catch { }
-                    try { if (!r.IsDBNull(2)) slotInfo.LevelType = r.GetInt32(2); } catch { }
-                    try { if (!r.IsDBNull(3)) slotInfo.Shareable = r.GetBoolean(3); } catch { }
-                    try { if (!r.IsDBNull(4)) slotInfo.InitiallyLocked = r.GetBoolean(4); } catch { }
-                    try { if (!r.IsDBNull(5)) slotInfo.BackgroundGuid = (uint)r.GetInt64(5); } catch { }
-                    try { if (!r.IsDBNull(6)) slotInfo.IsSubLevel = r.GetBoolean(6); } catch { }
-                    try { if (!r.IsDBNull(7)) slotInfo.IsAdventurePlanet = r.GetBoolean(7); } catch { }
-                    try { if (!r.IsDBNull(8)) slotInfo.Labels = LabelParser.ParseLabelHashes((byte[])r.GetValue(8)); } catch { }
+                    try { if (!r.IsDBNull(0)) slotInfo.MinPlayers = Convert.ToInt32(r.GetValue(0)); } catch { }
+                    try { if (!r.IsDBNull(1)) slotInfo.MaxPlayers = Convert.ToInt32(r.GetValue(1)); } catch { }
+                    try 
+                    { 
+                        if (!r.IsDBNull(2)) 
+                        {
+                            if (int.TryParse(r.GetValue(2).ToString(), out int parsedType))
+                            {
+                                slotInfo.LevelType = parsedType;
+                            }
+                        } 
+                    } catch { }
+                    try { if (!r.IsDBNull(3)) slotInfo.Shareable = Convert.ToBoolean(r.GetValue(3)); } catch { }
+                    try { if (!r.IsDBNull(4)) slotInfo.InitiallyLocked = Convert.ToBoolean(r.GetValue(4)); } catch { }
+                    try { if (!r.IsDBNull(5)) slotInfo.BackgroundGuid = Convert.ToUInt32(r.GetValue(5)); } catch { }
+                    try { if (!r.IsDBNull(6)) slotInfo.IsSubLevel = Convert.ToBoolean(r.GetValue(6)); } catch { }
+                    try { if (!r.IsDBNull(7)) slotInfo.IsAdventurePlanet = Convert.ToBoolean(r.GetValue(7)); } catch { }
+                    try { if (!r.IsDBNull(8)) slotInfo.Labels = LabelParser.ParseLabelHashes(r.GetFieldValue<byte[]>(8)); } catch { }
                 }
             } 
             catch { } 
@@ -183,67 +245,6 @@ namespace LbpArchiveToolkit.Services
             };
         }
 
-        #endregion
-
-        #region Network & Downloading
-
-        private static async Task DownloadAssetRecursiveAsync(string currentHash, DownloadContext ctx)
-        {
-            await Task.Yield();
-            if (ctx.Token.IsCancellationRequested) return;
-
-            bool isLocal = ConfigManager.DownloadServer.ToLowerInvariant() == "local";
-            bool success = false;
-            byte[]? fileData = null; 
-
-            if (isLocal)
-            {
-                await ctx.Semaphore.WaitAsync(ctx.Token);
-                try
-                {
-                    fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ConfigManager.LocalArchivePath ?? "", ctx.Token);
-                    success = fileData != null; 
-                }
-                catch (OperationCanceledException) { return; }
-                finally { ctx.Semaphore.Release(); }
-            }
-            else
-            {
-                (success, fileData) = await FetchFileWithRetriesAsync(currentHash, ctx);
-            }
-
-            if (ctx.Token.IsCancellationRequested) return;
-
-            if (success && fileData != null)
-            {
-                ctx.AddResource(currentHash, fileData);
-
-                var deps = SaveDataBuilder.GetDependenciesFast(fileData);
-                var newDeps = new List<string>();
-
-                foreach (var dep in deps)
-                {
-                    if (ctx.AddDiscoveredHash(dep))
-                    {
-                        newDeps.Add(dep);
-                    }
-                }
-
-                var tasks = new List<Task>();
-                foreach (var dep in newDeps)
-                {
-                    tasks.Add(DownloadAssetRecursiveAsync(dep, ctx)); 
-                }
-                
-                ctx.IncrementProcessed();
-                await Task.WhenAll(tasks);
-            }
-            else
-            {
-                ctx.IncrementProcessed();
-            }
-        }
-
         private static async Task<(bool success, byte[]? data)> FetchFileWithRetriesAsync(string currentHash, DownloadContext ctx)
         {
             int maxRetries = 5;
@@ -252,7 +253,7 @@ namespace LbpArchiveToolkit.Services
             byte[]? fileData = null;
             string url = GetDownloadUrl(currentHash, ConfigManager.DownloadServer);
 
-            await ctx.Semaphore.WaitAsync(ctx.Token);
+            await ctx.Semaphore.WaitAsync(ctx.Token).ConfigureAwait(false);
             try
             {
                 while (!success && currentTry < maxRetries)
@@ -265,7 +266,7 @@ namespace LbpArchiveToolkit.Services
                         ctx.IncrementRetryingThreads();
                         ctx.ReportProgress("Server Paused: Global rate limit active...");
                         
-                        try { await activeDelayTask; } 
+                        try { await activeDelayTask.ConfigureAwait(false); } 
                         catch (OperationCanceledException) { break; }
                         finally { ctx.DecrementRetryingThreads(); }
                         
@@ -300,7 +301,7 @@ namespace LbpArchiveToolkit.Services
 
                     if (waitTimeMs > 0)
                     {
-                        try { await Task.Delay(waitTimeMs, ctx.Token); }
+                        try { await Task.Delay(waitTimeMs, ctx.Token).ConfigureAwait(false); }
                         catch (OperationCanceledException) { break; }
                     }
 
@@ -308,11 +309,11 @@ namespace LbpArchiveToolkit.Services
 
                     try
                     {
-                        using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token);
+                        using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token).ConfigureAwait(false);
                         
                         if (response.IsSuccessStatusCode)
                         {
-                            fileData = await response.Content.ReadAsByteArrayAsync(ctx.Token);
+                            fileData = await response.Content.ReadAsByteArrayAsync(ctx.Token).ConfigureAwait(false);
                             string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
                             
                             if (computedHash == currentHash) success = true;
@@ -354,7 +355,7 @@ namespace LbpArchiveToolkit.Services
                         ctx.IncrementRetryingThreads();
                         ctx.ReportProgress($"Retrying ({currentTry}/{maxRetries}): {failReason}. Waiting {delayMs / 1000}s...");
                         
-                        try { await Task.Delay(delayMs, ctx.Token); } 
+                        try { await Task.Delay(delayMs, ctx.Token).ConfigureAwait(false); } 
                         catch (OperationCanceledException) { break; }
                         finally { ctx.DecrementRetryingThreads(); }
                     }
@@ -391,7 +392,8 @@ namespace LbpArchiveToolkit.Services
             public readonly HttpClient Client;
             public readonly CancellationToken Token;
             public readonly SemaphoreSlim Semaphore;
-            public readonly ConcurrentDictionary<byte[], byte[]> Resources = new(new SaveDataBuilder.ByteArrayComparer());
+            public readonly ChannelWriter<string> QueueWriter;
+            public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.OrdinalIgnoreCase);
 
             private readonly IProgress<(int processed, int total, string message)>? _progress;
             private readonly HashSet<string> _downloadedHashes = new(StringComparer.OrdinalIgnoreCase);
@@ -400,18 +402,18 @@ namespace LbpArchiveToolkit.Services
             private int _totalDiscovered;
             private int _totalProcessed;
             private int _retryingThreads;
+            private int _pendingItems;
 
             private long _lastReportTime = 0;
             private readonly object _reportLock = new();
 
-            public int TotalDiscovered => _totalDiscovered;
-
-            public DownloadContext(HttpClient client, CancellationToken token, SemaphoreSlim semaphore, IProgress<(int, int, string)>? progress)
+            public DownloadContext(HttpClient client, CancellationToken token, SemaphoreSlim semaphore, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter)
             {
                 Client = client;
                 Token = token;
                 Semaphore = semaphore;
                 _progress = progress;
+                QueueWriter = queueWriter;
             }
 
             public bool AddDiscoveredHash(string hash)
@@ -429,8 +431,20 @@ namespace LbpArchiveToolkit.Services
 
             public void AddResource(string hashStr, byte[] data)
             {
-                byte[] hashBytes = SaveDataBuilder.StringToByteArray(hashStr);
-                Resources[hashBytes] = data;
+                Resources[hashStr] = data;
+            }
+
+            public void IncrementPending()
+            {
+                Interlocked.Increment(ref _pendingItems);
+            }
+
+            public void DecrementPending()
+            {
+                if (Interlocked.Decrement(ref _pendingItems) == 0)
+                {
+                    QueueWriter.TryComplete(); 
+                }
             }
 
             public void IncrementProcessed()
@@ -471,7 +485,5 @@ namespace LbpArchiveToolkit.Services
                 _progress.Report((processed, discovered, status));
             }
         }
-
-        #endregion
     }
 }

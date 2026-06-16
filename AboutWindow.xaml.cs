@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Navigation;
 
@@ -13,6 +14,23 @@ namespace LbpArchiveToolkit
         public AboutWindow()
         {
             InitializeComponent();
+
+            var attr = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            if (attr != null)
+            {
+                string versionStr = attr.InformationalVersion;
+                int plusIndex = versionStr.IndexOf('+');
+                if (plusIndex > 0)
+                {
+                    versionStr = versionStr.Substring(0, plusIndex);
+                }
+                txtVersion.Text = $"Version {versionStr}";
+            }
+            else
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                txtVersion.Text = $"Version {version?.ToString()}";
+            }
         }
 
         

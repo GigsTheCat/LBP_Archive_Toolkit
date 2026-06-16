@@ -40,14 +40,19 @@ namespace LbpArchiveToolkit.Utils
         };
 
         private static readonly uint[] LabelHashes;
+        private static readonly string[] FriendlyLabelNames;
         private static readonly HashSet<uint> Lbp2ValidHashes = new HashSet<uint>();
 
         static LabelParser()
         {
             LabelHashes = new uint[LabelTags.Length];
+            FriendlyLabelNames = new string[LabelTags.Length];
+
             for (int i = 0; i < LabelTags.Length; i++)
             {
                 LabelHashes[i] = CalculateLams(LabelTags[i]);
+                // Pre-compute the friendly formatted names exactly once
+                FriendlyLabelNames[i] = LabelTags[i].Replace("LABEL_", "").Replace("_", " ");
             }
 
             // Pre-calculate LBP2 specific hashes
@@ -64,10 +69,11 @@ namespace LbpArchiveToolkit.Utils
             var labels = new List<uint>();
             for (int i = 0; i < LabelHashes.Length; i++)
             {
-                int byteIndex = i / 8;
+                // Calculate from the END of the array because it is Big-Endian
+                int byteIndex = (blob.Length - 1) - (i / 8); 
                 int bitIndex = i % 8;
 
-                if (byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
+                if (byteIndex >= 0 && byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
                 {
                     labels.Add(LabelHashes[i]);
                 }
@@ -80,13 +86,14 @@ namespace LbpArchiveToolkit.Utils
             var labels = new List<string>();
             for (int i = 0; i < LabelTags.Length; i++)
             {
-                int byteIndex = i / 8;
+                // Calculate from the END of the array because it is Big-Endian
+                int byteIndex = (blob.Length - 1) - (i / 8); 
                 int bitIndex = i % 8;
 
-                if (byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
+                if (byteIndex >= 0 && byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
                 {
-                    string friendlyName = LabelTags[i].Replace("LABEL_", "").Replace("_", " ");
-                    labels.Add(friendlyName);
+                    // Directly access the pre-computed string cache
+                    labels.Add(FriendlyLabelNames[i]);
                 }
             }
             return labels;

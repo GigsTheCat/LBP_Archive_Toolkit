@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
+using System.Diagnostics;
 using Microsoft.Win32;
+using Microsoft.Data.Sqlite;
 using LbpArchiveToolkit.Configuration;
 
 namespace LbpArchiveToolkit
@@ -54,6 +56,32 @@ namespace LbpArchiveToolkit
 
         #region File & Folder Browsing
 
+         private bool _promptedForDb = false;
+ 
+         private void CheckFtsSupport(string dbPath)
+         {
+             if (_promptedForDb || !File.Exists(dbPath)) return;
+             
+             try
+             {
+                 using var conn = new SqliteConnection($"Data Source={dbPath}");
+                 conn.Open();
+                 using var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn);
+                 bool hasFts = System.Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
+                 if (!hasFts)
+                 {
+                     _promptedForDb = true;
+                     bool download = CustomDialog.Show(this, "The selected database does not support FTS5 hardware acceleration. Searching will be much slower.\n\nWould you like to download the newer, faster version?", "Outdated Database", isYesNo: true);
+                     if (download)
+                     {
+                         Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
+                     }
+                 }
+             }
+             catch { }
+         }
+ 
+
         private void BtnBrowseDb_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog 
@@ -65,6 +93,7 @@ namespace LbpArchiveToolkit
             if (dialog.ShowDialog() == true) 
             {
                 txtDbPath.Text = dialog.FileName;
+                CheckFtsSupport(dialog.FileName);
             }
         }
 
@@ -168,7 +197,13 @@ namespace LbpArchiveToolkit
                 return;
             }
 
-            ConfigManager.DatabasePath = txtDbPath.Text;
+            if (txtDbPath.Text != ConfigManager.DatabasePath)
+            {
+                CheckFtsSupport(txtDbPath.Text);
+            }
+    
+
+                ConfigManager.DatabasePath = txtDbPath.Text;
             ConfigManager.BackupDirectory = txtBackupDir.Text;
             ConfigManager.LocalArchivePath = txtLocalArchive.Text;
             ConfigManager.DownloadServer = (cmbServer.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "bonsai";

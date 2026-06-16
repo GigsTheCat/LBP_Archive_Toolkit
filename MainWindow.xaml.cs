@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +19,7 @@ using LbpArchiveToolkit.Services;
 using LbpArchiveToolkit.Utils;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Threading;
 
 namespace LbpArchiveToolkit
 {
@@ -30,7 +31,7 @@ namespace LbpArchiveToolkit
         #region State & Dependencies
 
         private DatabaseService _dbService;
-        private readonly ObservableCollection<LevelItem> _resultsList = new();
+        private List<LevelItem> _resultsList = new();
         private readonly HashSet<string> _savedLevels = new();
         
         private readonly Stack<SearchState> _searchHistory = new();
@@ -136,6 +137,42 @@ namespace LbpArchiveToolkit
                 }
             }
         }
+
+         private async void Window_Loaded(object sender, RoutedEventArgs e)
+         {
+             await CheckForUpdatesAsync();
+         }
+
+         private async Task CheckForUpdatesAsync()
+         {
+             try
+             {
+                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
+                 var response = await _httpClient.GetStringAsync(url);
+                 var json = JsonNode.Parse(response);
+                 string? tag = json?["tag_name"]?.ToString();
+                 
+                 if (!string.IsNullOrEmpty(tag))
+                 {
+                     string versionStr = tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag.Substring(1) : tag;
+                     if (Version.TryParse(versionStr, out Version? latestVersion))
+                     {
+                         var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                         if (currentVersion != null && latestVersion > currentVersion)
+                         {
+                             if (!this.IsVisible) return;
+                             
+                             bool update = CustomDialog.Show(this, $"A new version of LBP Archive Toolkit is available ({latestVersion}).\n\nWould you like to download it now?", "Update Available", isYesNo: true);
+                             if (update)
+                             {
+                             Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
+                             }
+                         }
+                     }
+                 }
+             }
+             catch { /* Silently fail if no internet or API limit reached */ }
+         }
 
         private void SaveWindowPosition()
         {
@@ -277,16 +314,14 @@ namespace LbpArchiveToolkit
             {
                 var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels);
 
-                _resultsList.Clear();
                 progressBar.IsIndeterminate = false;
                 progressBar.Maximum = results.Count;
+                progressBar.Value = results.Count; // Update once, avoiding the loop penalty
 
-                for (int i = 0; i < results.Count; i++)
-                {
-                    _resultsList.Add(results[i]);
-                    if (i % 50 == 0) progressBar.Value = i; 
-                }
-
+                // Direct reference assignment, skipping O(N) array copy
+                _resultsList = results;
+                
+                dgResults.ItemsSource = _resultsList;
                 txtStatus.Text = $"Found {results.Count} results for '{keyword}'.";
 
                 _currentSearch = new SearchState
@@ -297,7 +332,7 @@ namespace LbpArchiveToolkit
                     LimitIndex = limitFilterIdx,
                     Exact = exact,
                     SearchDesc = searchDesc,
-                    Results = new List<LevelItem>(results)
+                    Results = new List<LevelItem>(results) // Copy just for history immutability
                 };
 
                 btnBack.IsEnabled = _searchHistory.Count > 0;
@@ -366,11 +401,8 @@ namespace LbpArchiveToolkit
             chkExact.IsChecked = state.Exact;
             chkSearchDesc.IsChecked = state.SearchDesc;
 
-            _resultsList.Clear();
-            foreach (var item in state.Results)
-            {
-                _resultsList.Add(item);
-            }
+            _resultsList = state.Results.ToList();
+            dgResults.ItemsSource = _resultsList;
 
             if (state.SelectedItem != null)
             {
@@ -469,15 +501,11 @@ namespace LbpArchiveToolkit
             doc.Blocks.Add(para);
         }
 
-        /// <summary>
-        /// Attempts to fetch the level's icon image. Prioritizes local disk if configured, falling back to a web request.
-        /// Aborts cleanly if the user selects a new level before the request finishes.
-        /// </summary>
         private async Task LoadIconAsync(string? hash)
         {
             iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
 
-            if (string.IsNullOrEmpty(hash))
+            if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
                 txtIconStatus.Text = "No Icon Available";
                 return;
@@ -495,7 +523,6 @@ namespace LbpArchiveToolkit
 
             try
             {
-                byte[]? imageBytes = null;
                 bool useLocalArchive = ConfigManager.DownloadServer.ToLower() == "local" && !string.IsNullOrWhiteSpace(ConfigManager.LocalArchivePath);
 
                 if (useLocalArchive)
@@ -506,31 +533,41 @@ namespace LbpArchiveToolkit
 
                         if (rawResource != null)
                         {
-                            imageBytes = await Task.Run(() =>
+                            byte[] pngBytes = await Task.Run(() =>
                             {
                                 byte[] ddsData = TextureDecoder.DecodeLbpTexture(rawResource);
-                                return TextureDecoder.ConvertDdsToPng(ddsData);
+                                return TextureDecoder.ConvertDdsToPngCentered(ddsData);
                             });
+
+                            if (_currentIconRequestId != expectedRequestId) return;
+
+                            var bmp = new BitmapImage();
+                            bmp.BeginInit();
+                            bmp.CacheOption = BitmapCacheOption.OnLoad;
+                            bmp.StreamSource = new MemoryStream(pngBytes);
+                            bmp.EndInit();
+                            bmp.Freeze();
+
+                            iconEllipse.Fill = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            txtIconStatus.Text = "";
+                            return; 
                         }
                     }
                     catch { /* Fallback to web request */ }
                 }
 
-                if (imageBytes == null)
-                {
-                    imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
-                }
+                byte[] imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
 
                 if (_currentIconRequestId != expectedRequestId) return;
 
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.StreamSource = new MemoryStream(imageBytes);
-                bitmap.EndInit();
-                bitmap.Freeze(); 
+                var webBmp = new BitmapImage();
+                webBmp.BeginInit();
+                webBmp.CacheOption = BitmapCacheOption.OnLoad;
+                webBmp.StreamSource = new MemoryStream(imageBytes);
+                webBmp.EndInit();
+                webBmp.Freeze(); 
 
-                iconEllipse.Fill = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                iconEllipse.Fill = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
                 txtIconStatus.Text = "";
             }
             catch
@@ -610,8 +647,6 @@ namespace LbpArchiveToolkit
                     finally
                     {
                         AssetDownloader.CleanupLocalArchives();
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
                     }
                 }
                 
@@ -686,10 +721,6 @@ namespace LbpArchiveToolkit
             }
         }
 
-        /// <summary>
-        /// Clears the cached list of previously downloaded levels and updates the DataGrid visually.
-        /// Typically invoked from the SettingsWindow.
-        /// </summary>
         public void ClearSavedLevels()
         {
             _savedLevels.Clear();
@@ -713,7 +744,7 @@ namespace LbpArchiveToolkit
                 foreach (var item in state.Results) item.Saved = string.Empty;
             }
 
-            dgResults.Items.Refresh();
+            dgResults.Items.Refresh(); // Safely triggers visual layout rebuilds
         }
 
         #endregion
@@ -733,7 +764,7 @@ namespace LbpArchiveToolkit
 
         private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == 0x0024) // WM_GETMINMAXINFO
+            if (msg == 0x0024) 
             {
                 WmGetMinMaxInfo(hwnd, lParam);
                 handled = true;

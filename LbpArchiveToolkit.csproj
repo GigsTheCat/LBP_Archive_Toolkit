@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <AssemblyName>LBP Archive Toolkit</AssemblyName>
     <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
@@ -26,7 +26,6 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.8" />
     <PackageReference Include="Pfim" Version="0.11.4" />
     <EmbeddedResource Include="Assets/MissingIcon.png" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.9" />
   </ItemGroup>
 
 </Project>

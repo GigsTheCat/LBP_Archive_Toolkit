@@ -4,7 +4,7 @@
         Title="LBP Archive Toolkit" 
         Height="960" Width="1520" 
         MinHeight="720" MinWidth="1250"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen" Loaded="Window_Loaded"
         FontFamily="Segoe UI"
         WindowStyle="None" BorderThickness="0"
         AllowsTransparency="True" Background="Transparent">

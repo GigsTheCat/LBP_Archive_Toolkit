@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.InteropServices;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Pfim;
 
 namespace LbpArchiveToolkit.Utils
@@ -14,11 +12,6 @@ namespace LbpArchiveToolkit.Utils
     /// </summary>
     public static class TextureDecoder
     {
-        #region Public API
-
-        /// <summary>
-        /// Reads and decompresses the chunked Zlib/Deflate payloads found in LBP TEX/GTF files.
-        /// </summary>
         public static byte[] DecodeLbpTexture(byte[] resourceData)
         {
             using var ms = new MemoryStream(resourceData);
@@ -37,7 +30,7 @@ namespace LbpArchiveToolkit.Utils
             br.ReadUInt16(); 
             ushort numChunks = BigEndianUInt16(br);
             
-            var chunkInfos = new List<(ushort comp, ushort decomp)>();
+            var chunkInfos = new System.Collections.Generic.List<(ushort comp, ushort decomp)>();
             int totalDecompSize = 0;
             
             for (int i = 0; i < numChunks; i++)
@@ -55,24 +48,30 @@ namespace LbpArchiveToolkit.Utils
             {
                 var info = chunkInfos[i];
                 
-                // If chunk is not compressed, read directly into final buffer (Zero Allocation)
                 if (info.comp == info.decomp)
                 {
                     br.Read(finalData, currentPos, info.comp);
                 }
                 else
                 {
-                    // If compressed, route payload through Zlib Stream
-                    byte[] deflatedData = br.ReadBytes(info.comp);
-                    using var msIn = new MemoryStream(deflatedData);
-                    using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
-                    
-                    int bytesRead = 0;
-                    while (bytesRead < info.decomp)
+                    byte[] deflatedData = System.Buffers.ArrayPool<byte>.Shared.Rent(info.comp);
+                    try
                     {
-                        int r = zlib.Read(finalData, currentPos + bytesRead, info.decomp - bytesRead);
-                        if (r == 0) break;
-                        bytesRead += r;
+                        br.Read(deflatedData, 0, info.comp);
+                        using var msIn = new MemoryStream(deflatedData, 0, info.comp);
+                        using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
+                        
+                        int bytesRead = 0;
+                        while (bytesRead < info.decomp)
+                        {
+                            int r = zlib.Read(finalData, currentPos + bytesRead, info.decomp - bytesRead);
+                            if (r == 0) break;
+                            bytesRead += r;
+                        }
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<byte>.Shared.Return(deflatedData);
                     }
                 }
                 currentPos += info.decomp;
@@ -81,52 +80,73 @@ namespace LbpArchiveToolkit.Utils
             return finalData;
         }
 
-        /// <summary>
-        /// Translates decoded raw DDS bytes into a strictly formatted PNG tailored for the PS3 XMB UI.
-        /// </summary>
-        public static byte[] ConvertDdsToPng(byte[] ddsData)
+        public static byte[] ConvertDdsToPngCentered(byte[] ddsData)
         {
             using var ddsStream = new MemoryStream(ddsData);
             using var pfimImage = Pfimage.FromStream(ddsStream);
 
-            // Determine correct native Windows pixel format based on Pfim's decode
-            PixelFormat format = pfimImage.Format == Pfim.ImageFormat.Rgba32 
-                ? PixelFormat.Format32bppArgb 
-                : PixelFormat.Format24bppRgb;
+            int canvasWidth = 320;
+            int canvasHeight = 176;
+            int targetBytesPerPixel = 4;
+            int canvasStride = canvasWidth * targetBytesPerPixel;
+            byte[] canvasPixels = new byte[canvasHeight * canvasStride];
 
-            // 1. Load raw DDS bytes instantly into a Bitmap via direct memory copying
-            using var sourceBmp = new Bitmap(pfimImage.Width, pfimImage.Height, format);
-            var bmpData = sourceBmp.LockBits(new Rectangle(0, 0, sourceBmp.Width, sourceBmp.Height), ImageLockMode.WriteOnly, format);
-            Marshal.Copy(pfimImage.Data, 0, bmpData.Scan0, pfimImage.DataLen);
-            sourceBmp.UnlockBits(bmpData);
+            int srcBytesPerPixel = pfimImage.Format == Pfim.ImageFormat.Rgba32 ? 4 : 3;
+            int srcStride = pfimImage.Stride;
 
-            // 2. Create the strict 320x176 PS3 XMB standard canvas
-            using var finalBmp = new Bitmap(320, 176, PixelFormat.Format32bppArgb);
-            using var g = Graphics.FromImage(finalBmp);
+            int offsetX = (canvasWidth - pfimImage.Width) / 2;
+            int offsetY = (canvasHeight - pfimImage.Height) / 2;
+
+            int startY = Math.Max(0, offsetY);
+            int endY = Math.Min(canvasHeight, offsetY + pfimImage.Height);
+            int startX = Math.Max(0, offsetX);
+            int endX = Math.Min(canvasWidth, offsetX + pfimImage.Width);
+
+            for (int y = startY; y < endY; y++)
+            {
+                int srcY = y - offsetY;
+                int srcXOffset = startX - offsetX;
+
+                int srcOffset = (srcY * srcStride) + (srcXOffset * srcBytesPerPixel);
+                int destOffset = (y * canvasStride) + (startX * targetBytesPerPixel);
+
+                if (srcBytesPerPixel == 4)
+                {
+                    int bytesToCopy = (endX - startX) * targetBytesPerPixel;
+                    Buffer.BlockCopy(pfimImage.Data, srcOffset, canvasPixels, destOffset, bytesToCopy);
+                }
+                else
+                {
+                    for (int x = startX; x < endX; x++)
+                    {
+                        int sOff = srcOffset + ((x - startX) * srcBytesPerPixel);
+                        int dOff = destOffset + ((x - startX) * targetBytesPerPixel);
+
+                        canvasPixels[dOff] = pfimImage.Data[sOff];
+                        canvasPixels[dOff + 1] = pfimImage.Data[sOff + 1];
+                        canvasPixels[dOff + 2] = pfimImage.Data[sOff + 2];
+                        canvasPixels[dOff + 3] = 255;
+                    }
+                }
+            }
+
+            var format = PixelFormats.Bgra32;
+            var bitmapSource = BitmapSource.Create(canvasWidth, canvasHeight, 96, 96, format, null, canvasPixels, canvasStride);
+            bitmapSource.Freeze(); 
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
             
-            // 3. Fill with transparent background and draw original centered
-            g.Clear(Color.Transparent);
-            int x = (320 - sourceBmp.Width) / 2;
-            int y = (176 - sourceBmp.Height) / 2;
-            g.DrawImage(sourceBmp, x, y, sourceBmp.Width, sourceBmp.Height);
-
-            // 4. Save directly out to PNG format
-            using var ms = new MemoryStream();
-            finalBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            using var outStream = new MemoryStream();
+            encoder.Save(outStream);
             
-            return ms.ToArray();
+            return outStream.ToArray();
         }
-
-        #endregion
-
-        #region Internal Utilities
 
         private static ushort BigEndianUInt16(BinaryReader br)
         {
             byte[] b = br.ReadBytes(2);
             return (ushort)((b[0] << 8) | b[1]);
         }
-
-        #endregion
     }
 }

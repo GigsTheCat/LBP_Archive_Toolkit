@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
+using Microsoft.Win32.SafeHandles;
 
 namespace LbpArchiveToolkit.Services
 {
@@ -84,12 +86,24 @@ namespace LbpArchiveToolkit.Services
         /// <summary>
         /// Generates the necessary SLT container, encrypts the assets into FAR4 chunks, and writes the SFO/PFD metadata.
         /// </summary>
-        public static async Task BuildAndWriteSaveDataAsync(LevelItem lvl, SlotInfo slotInfo, SortedDictionary<byte[], byte[]> resources, string backupDir, HttpClient client, CancellationToken token)
+        public static async Task BuildAndWriteSaveDataAsync(LevelItem lvl, SlotInfo slotInfo, SortedDictionary<string, byte[]> resources, string backupDir, HttpClient client, CancellationToken token)
         {
-            byte[] rootHashBytes = StringToByteArray(lvl.Hash!);
+            string rootHashStr = lvl.Hash!.ToLowerInvariant();
+            bool isRootGuid = rootHashStr.Length <= 8;
 
             uint head = 0; ushort branchId = 0; ushort branchRev = 0;
-            ParseResrcRevision(resources[rootHashBytes], out head, out branchId, out branchRev);
+
+            if (!isRootGuid && resources.ContainsKey(rootHashStr))
+            {
+                ParseResrcRevision(resources[rootHashStr], out head, out branchId, out branchRev);
+            }
+            else
+            {
+                // Fallback to safe defaults for GUID-based built-in levels
+                if (slotInfo.GameVersion == 3) { head = 0x010503e2; }
+                else if (slotInfo.GameVersion == 2) { head = 0x3b6; }
+                else { head = 0x272; }
+            }
 
             if (ConfigManager.ForceLbp3Backups)
             {
@@ -103,7 +117,10 @@ namespace LbpArchiveToolkit.Services
 
             byte[] sltBytes = MakeSlotList(head, branchId, branchRev, slotInfo);
             byte[] sltHash = SHA1.HashData(sltBytes);
-            resources[sltHash] = sltBytes;
+            
+            // Add slot file to resources utilizing the fast OrdinalIgnoreCase dict
+            string sltHashStr = Convert.ToHexStringLower(sltHash);
+            resources[sltHashStr] = sltBytes;
 
             string hexId = lvl.Id.ToString("X8");
             string bkpDirName = slotInfo.IsAdventurePlanet 
@@ -113,39 +130,39 @@ namespace LbpArchiveToolkit.Services
             string bkpPath = Path.Combine(backupDir, bkpDirName);
             Directory.CreateDirectory(bkpPath);
 
-            await SaveLevelIconAsync(lvl.IconHash, resources, bkpPath, client, token);
+            await SaveLevelIconAsync(lvl.IconHash, resources, bkpPath, client, token).ConfigureAwait(false);
 
-            await Task.Run(() => MakeSaveArchive(head, branchId, branchRev, sltHash, resources, bkpPath));
+            await Task.Run(() => MakeSaveArchive(head, branchId, branchRev, sltHash, resources, bkpPath)).ConfigureAwait(false);
 
             byte[] sfo = MakeSfo(lvl.LevelName ?? "", bkpDirName, lvl.Creator ?? "", lvl.Description ?? "", slotInfo.GameVersion);
-            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "PARAM.SFO"), sfo, token);
+            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "PARAM.SFO"), sfo, token).ConfigureAwait(false);
 
             byte[] pfd = MakePfd((ulong)(slotInfo.GameVersion == 3 ? 4 : 3), sfo, bkpPath);
-            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "PARAM.PFD"), pfd, token);
+            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "PARAM.PFD"), pfd, token).ConfigureAwait(false);
         }
 
         #endregion
 
         #region PlayStation Save Generation
 
-        private static async Task SaveLevelIconAsync(string? iconHash, SortedDictionary<byte[], byte[]> resources, string bkpPath, HttpClient client, CancellationToken token)
+        private static async Task SaveLevelIconAsync(string? iconHash, SortedDictionary<string, byte[]> resources, string bkpPath, HttpClient client, CancellationToken token)
         {
             bool iconSaved = false;
+            bool isIconGuid = !string.IsNullOrEmpty(iconHash) && iconHash.Length <= 8;
 
-            if (!string.IsNullOrEmpty(iconHash))
+            if (!string.IsNullOrEmpty(iconHash) && !isIconGuid)
             {
+                string iconHashStr = iconHash.ToLowerInvariant();
                 try 
                 {
-                    byte[] iconHashBytes = StringToByteArray(iconHash);
-                    
-                    if (resources.TryGetValue(iconHashBytes, out byte[]? iconResrc) && iconResrc != null)
+                    if (resources.TryGetValue(iconHashStr, out byte[]? iconResrc) && iconResrc != null)
                     {
                         await Task.Run(() => 
                         {
                             byte[] ddsData = TextureDecoder.DecodeLbpTexture(iconResrc);
-                            byte[] pngBytes = TextureDecoder.ConvertDdsToPng(ddsData);
+                            byte[] pngBytes = TextureDecoder.ConvertDdsToPngCentered(ddsData);
                             File.WriteAllBytes(Path.Combine(bkpPath, "ICON0.PNG"), pngBytes);
-                        });
+                        }).ConfigureAwait(false);
                         iconSaved = true;
                     }
                 } 
@@ -153,10 +170,10 @@ namespace LbpArchiveToolkit.Services
                 { 
                     try 
                     {
-                        byte[]? pngData = await client.GetByteArrayAsync($"https://zaprit.fish/icon/{iconHash}", token);
+                        byte[]? pngData = await client.GetByteArrayAsync($"https://zaprit.fish/icon/{iconHash}", token).ConfigureAwait(false);
                         if (pngData != null)
                         {
-                            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "ICON0.PNG"), pngData, token);
+                            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "ICON0.PNG"), pngData, token).ConfigureAwait(false);
                             iconSaved = true;
                         }
                     } catch { } 
@@ -169,16 +186,18 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        private static void MakeSaveArchive(uint head, ushort branchId, ushort branchRev, byte[] sltHash, SortedDictionary<byte[], byte[]> hashes, string bkpDir)
+        private static void MakeSaveArchive(uint head, ushort branchId, ushort branchRev, byte[] sltHash, SortedDictionary<string, byte[]> hashes, string bkpDir)
         {
             using var arc = new MemoryStream();
             var entries = new List<(byte[] hash, uint offset, uint size)>();
-            
+
             foreach (var kvp in hashes)
             {
                 uint offset = (uint)arc.Position;
                 arc.Write(kvp.Value, 0, kvp.Value.Length);
-                entries.Add((kvp.Key, offset, (uint)kvp.Value.Length));
+
+                byte[] hashBytes = StringToByteArray(kvp.Key);
+                entries.Add((hashBytes, offset, (uint)kvp.Value.Length));
             }
 
             uint pad = (uint)(arc.Position % 4);
@@ -215,7 +234,7 @@ namespace LbpArchiveToolkit.Services
             }
 
             byte[] hashinateKey = new byte[] { 0x2A, 0xFD, 0xA3, 0xCA, 0x86, 0x02, 0x19, 0xB3, 0xE6, 0x8A, 0xFF, 0xCC, 0x82, 0xC7, 0x6B, 0x8A, 0xFE, 0x0A, 0xD8, 0x13, 0x5F, 0x60, 0x47, 0x5B, 0xDF, 0x5D, 0x37, 0xBC, 0x57, 0x1C, 0xB5, 0xE7, 0x96, 0x75, 0xD5, 0x28, 0xA2, 0xFA, 0x90, 0xED, 0xDF, 0xA3, 0x45, 0xB4, 0x1F, 0xF9, 0x1F, 0x25, 0xE7, 0x42, 0x45, 0x3B, 0x2B, 0xB5, 0x3E, 0x16, 0xC9, 0x58, 0x19, 0x7B, 0xE7, 0x18, 0xC0, 0x80 };
-            
+
             int finalLength = (int)arc.Length;
             byte[] mac = HMACSHA1.HashData(hashinateKey, new ReadOnlySpan<byte>(buffer.Array!, buffer.Offset, finalLength));
 
@@ -224,26 +243,37 @@ namespace LbpArchiveToolkit.Services
 
             int chunkSize = 0x240000;
             int numChunks = (finalLength + chunkSize - 1) / chunkSize;
-            byte[][] encryptedChunks = new byte[numChunks][];
 
             Parallel.For(0, numChunks, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, i =>
             {
                 int start = i * chunkSize;
                 int len = Math.Min(chunkSize, finalLength - start);
-                byte[] chunk = new byte[len];
-                Array.Copy(buffer.Array!, buffer.Offset + start, chunk, 0, len);
 
-                int xxteaEnd = len;
-                if (i == numChunks - 1) xxteaEnd -= 4;
+                byte[] chunk = System.Buffers.ArrayPool<byte>.Shared.Rent(len);
+                try
+                {
+                    Array.Copy(buffer.Array!, buffer.Offset + start, chunk, 0, len);
 
-                XxteaEncrypt(chunk, xxteaEnd);
-                encryptedChunks[i] = chunk;
+                    int xxteaEnd = len;
+                    if (i == numChunks - 1) xxteaEnd -= 4;
+
+                    XxteaEncrypt(chunk, xxteaEnd);
+
+                    using SafeFileHandle handle = File.OpenHandle(
+                    Path.Combine(bkpDir, i.ToString()), 
+                    FileMode.Create, 
+                    FileAccess.Write, 
+                    FileShare.None, 
+                    FileOptions.Asynchronous);
+
+                    // Writes the exact Span length directly to the disk via the OS kernel
+                    RandomAccess.Write(handle, chunk.AsSpan(0, len), 0);
+                }
+                finally
+                {
+                    System.Buffers.ArrayPool<byte>.Shared.Return(chunk);
+                }
             });
-
-            for (int i = 0; i < numChunks; i++)
-            {
-                File.WriteAllBytes(Path.Combine(bkpDir, i.ToString()), encryptedChunks[i]);
-            }
         }
 
         private static void XxteaEncrypt(byte[] data, int end)
@@ -252,31 +282,39 @@ namespace LbpArchiveToolkit.Services
             int n = (end / 4) - 1;
             if (n < 0) return;
 
-            uint[] v = new uint[n + 1];
-            for (int i = 0; i <= n; i++)
-            {
-                v[i] = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(i * 4, 4));
-            }
+            uint[] v = ArrayPool<uint>.Shared.Rent(n + 1);
 
-            uint sum = 0;
-            uint z = v[n];
-            int rounds = 6 + 52 / (n + 1);
-
-            for (int i = 0; i < rounds; i++)
+            try
             {
-                sum += 0x9e3779b9;
-                uint e = sum >> 2;
-                for (int r = 0; r <= n; r++)
+                for (int i = 0; i <= n; i++)
                 {
-                    uint y = v[(r + 1) % (n + 1)];
-                    v[r] += (((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z));
-                    z = v[r];
+                    v[i] = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(i * 4, 4));
+                }
+
+                uint sum = 0;
+                uint z = v[n];
+                int rounds = 6 + 52 / (n + 1);
+
+                for (int i = 0; i < rounds; i++)
+                {
+                    sum += 0x9e3779b9;
+                    uint e = sum >> 2;
+                    for (int r = 0; r <= n; r++)
+                    {
+                        uint y = v[(r + 1) % (n + 1)];
+                        v[r] += (((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z));
+                        z = v[r];
+                    }
+                }
+
+                for (int i = 0; i <= n; i++)
+                {
+                    BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(i * 4, 4), v[i]);
                 }
             }
-
-            for (int i = 0; i <= n; i++)
+            finally
             {
-                BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(i * 4, 4), v[i]);
+                ArrayPool<uint>.Shared.Return(v);
             }
         }
 
@@ -493,13 +531,21 @@ namespace LbpArchiveToolkit.Services
                 w.WriteUInt32BE((uint)depOffset);
                 ms.Position = curr;
 
+                byte hashType = 1; byte guidType = 2;
+                if ((head & 0xFFFF) < 0x191) { hashType = 2; guidType = 1; }
+
                 w.WriteUInt32BE((uint)deps.Count);
                 foreach (var dep in deps)
                 {
-                    if (dep.Item1.Length == 40)
+                    if (dep.Item1.Length > 8)
                     {
-                        w.Write((byte)1);
+                        w.Write(hashType);
                         w.Write(StringToByteArray(dep.Item1));
+                    }
+                    else
+                    {
+                        w.Write(guidType);
+                        w.WriteUInt32BE(uint.Parse(dep.Item1, System.Globalization.NumberStyles.HexNumber));
                     }
                     w.WriteUInt32BE(dep.Item2);
                 }
@@ -513,16 +559,18 @@ namespace LbpArchiveToolkit.Services
             writer.WriteUInt32BE(6); 
             writer.WriteUInt32BE(0); 
 
+            bool isRootGuid = !string.IsNullOrEmpty(info.RootLevelHash) && info.RootLevelHash.Length <= 8;
             string? rootDesc = info.IsAdventurePlanet ? null : info.RootLevelHash;
-            WriteResDescriptor(writer, version, deps, rootDesc, 9);
+            WriteResDescriptor(writer, version, deps, rootDesc, 9, isRootGuid);
 
             if (subversion >= 0x145)
             {
                 string? advDesc = info.IsAdventurePlanet ? info.RootLevelHash : null;
-                WriteResDescriptor(writer, version, deps, advDesc, 31);
+                WriteResDescriptor(writer, version, deps, advDesc, 31, isRootGuid);
             }
 
-            WriteResDescriptor(writer, version, deps, info.IconHash, 1);
+            bool isIconGuid = !string.IsNullOrEmpty(info.IconHash) && info.IconHash.Length <= 8;
+            WriteResDescriptor(writer, version, deps, info.IconHash, 1, isIconGuid);
 
             for (int i = 0; i < 4; i++) writer.WriteUInt32BE(0); 
 
@@ -541,7 +589,7 @@ namespace LbpArchiveToolkit.Services
                 writer.Write((byte)(info.Shareable ? 1 : 0));
                 writer.WriteUInt32BE(info.BackgroundGuid);
             }
-            if (version > 0x333) WriteResDescriptor(writer, version, deps, null, 38);
+            if (version > 0x333) WriteResDescriptor(writer, version, deps, null, 38, false);
             if (version < 0x188) writer.Write((byte)0);
 
             if (version > 0x1de)
@@ -585,7 +633,7 @@ namespace LbpArchiveToolkit.Services
                 writer.WriteUInt32BE(3);
                 for (int i = 0; i < 3; i++)
                 {
-                    WriteResDescriptor(writer, version, deps, null, 38);
+                    WriteResDescriptor(writer, version, deps, null, 38, false);
                     writer.WriteUInt32BE(0);
                 }
             }
@@ -640,7 +688,7 @@ namespace LbpArchiveToolkit.Services
             else
             {
                 writer.Write(guidType);
-                writer.WriteUInt32BE(uint.Parse(hashOrGuid));
+                writer.WriteUInt32BE(uint.Parse(hashOrGuid, System.Globalization.NumberStyles.HexNumber));
                 deps.Add(Tuple.Create(hashOrGuid, resrcType));
             }
         }
@@ -714,7 +762,7 @@ namespace LbpArchiveToolkit.Services
             try
             {
                 var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                using Stream? stream = assembly.GetManifestResourceStream("LbpArchiveToolkit.MissingIcon.png");
+                using Stream? stream = assembly.GetManifestResourceStream("LbpArchiveToolkit.Assets.MissingIcon.png");
                 
                 if (stream != null)
                 {
@@ -725,40 +773,32 @@ namespace LbpArchiveToolkit.Services
             }
             catch { }
 
-            using var blankBmp = new System.Drawing.Bitmap(320, 176);
-            using var g = System.Drawing.Graphics.FromImage(blankBmp);
-            g.Clear(System.Drawing.Color.DarkGray);
-            blankBmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            // Pure WPF fallback if MissingIcon.png is lost
+            int width = 320;
+            int height = 176;
+            int stride = width * 4;
+            byte[] pixels = new byte[height * stride];
+            
+            // Fill with DarkGray #A9A9A9
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                pixels[i] = 169;     // B
+                pixels[i + 1] = 169; // G
+                pixels[i + 2] = 169; // R
+                pixels[i + 3] = 255; // A
+            }
+
+            var source = System.Windows.Media.Imaging.BitmapSource.Create(
+                width, height, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null, pixels, stride);
+            source.Freeze();
+
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
+            
+            using var fileStream = File.Create(path);
+            encoder.Save(fileStream);
         }
 
-        public class ByteArrayComparer : IComparer<byte[]>, IEqualityComparer<byte[]>
-        {
-            public int Compare(byte[]? x, byte[]? y)
-            {
-                if (x == null || y == null) return 0;
-                int len = Math.Min(x.Length, y.Length);
-                for (int i = 0; i < len; i++)
-                {
-                    if (x[i] != y[i]) return x[i].CompareTo(y[i]);
-                }
-                return x.Length.CompareTo(y.Length);
-            }
-
-            public bool Equals(byte[]? x, byte[]? y)
-            {
-                if (ReferenceEquals(x, y)) return true;
-                if (x == null || y == null) return false;
-                return x.AsSpan().SequenceEqual(y);
-            }
-
-            public int GetHashCode(byte[] obj)
-            {
-                if (obj == null) return 0;
-                var hc = new HashCode();
-                hc.AddBytes(obj);
-                return hc.ToHashCode();
-            }
-        }
 
         #endregion
     }
