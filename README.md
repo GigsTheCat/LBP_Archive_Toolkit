@@ -3,7 +3,8 @@ This app allows you to search the archive for levels to download and backup. It 
 
 # How to Use
 - Download the zip, extract it, and place the app anywhere
-- Start the app, go to settings and choose the location of your dry.db or fastdry.db file (or attempt to search for a level without it and you'll be given the option to download it)
+- Start the app (If Defender Smartscreen complains about it, click run anyway)
+- Go to settings and choose the location of your dry.db or fastdry.db file (or attempt to search for a level without it and you'll be given the option to download it)
 - Choose your backup location (if you are on rpcs3, I recommend "rpcs3 folder > dev_hdd0 > home > 00000001 > savedata"
 - Choose your download server (bonsai and archive are slow at the moment)
 - If you are crazy and have a local copy of the 1.2 TB level archive, you can select "local" and point to your archive folder (unzip all the folders to make it faster)
