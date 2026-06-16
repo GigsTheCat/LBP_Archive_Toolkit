@@ -149,7 +149,9 @@ namespace LbpArchiveToolkit.Configuration
                 string json = JsonSerializer.Serialize(data, options);
                 
                 Directory.CreateDirectory(AppDataFolder);
-                File.WriteAllText(ConfigPath, json);
+                string tempPath = ConfigPath + ".tmp";
+                File.WriteAllText(tempPath, json);
+                File.Move(tempPath, ConfigPath, overwrite: true);
             }
             catch { /* Fails silently if directory locks occur */ }
         }
