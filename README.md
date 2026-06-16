@@ -9,5 +9,8 @@ This app allows you to search the archive for levels to download and backup. It 
 - If you are crazy and have a local copy of the 1.2 TB level archive, you can select "local" and point to your archive folder (unzip all the folders to make it faster)
 - Save your settings and have fun!
 
+<img width="1520" height="960" alt="image" src="https://github.com/user-attachments/assets/79556557-b31a-4e91-b702-e4bba0dec3a9" />
+
+
 # Credits
 Some code is heavily based on / reverse engineered from [lbp_archive_dl](https://github.com/uhwot/lbp_archive_dl).
