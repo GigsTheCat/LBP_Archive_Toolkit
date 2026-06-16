@@ -75,7 +75,8 @@ namespace LbpArchiveToolkit
             foreach (var folderPath in Directory.EnumerateDirectories(_backupDir))
             {
                 string folderName = Path.GetFileName(folderPath);
-                if (!folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase) && 
+                    !folderName.Contains("ADVLBP", StringComparison.OrdinalIgnoreCase)) continue;
 
                 BackupList.Add(ParseBackupFolder(folderPath, folderName));
             }
