@@ -13,6 +13,7 @@
   <SelfContained>false</SelfContained>
   <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
 
   <ItemGroup>
