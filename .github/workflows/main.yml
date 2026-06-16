@@ -26,6 +26,11 @@ jobs:
     - name: Build and Publish the App
       run: dotnet publish -c Release -r win-x64 -o ./AppOutput
 
+    - name: Zip the Output
+      shell: pwsh
+      
+      run: Compress-Archive -Path ./AppOutput/* -DestinationPath "./LbpArchiveToolkit-${{ github.event.inputs.version }}.zip"
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v3
       with:
@@ -33,7 +38,6 @@ jobs:
         name: Release ${{ github.event.inputs.version }}
         draft: false
         prerelease: false
-        
-        files: "./AppOutput/LBP Archive Toolkit.exe"
+        files: "./LbpArchiveToolkit-${{ github.event.inputs.version }}.zip"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
