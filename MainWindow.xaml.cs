@@ -312,7 +312,9 @@ namespace LbpArchiveToolkit
 
             try
             {
-                var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels);
+                var results = await Task.Run(() => 
+                     _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels)
+            );
 
                 progressBar.IsIndeterminate = false;
                 progressBar.Maximum = results.Count;
