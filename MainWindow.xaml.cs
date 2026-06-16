@@ -296,7 +296,7 @@ namespace LbpArchiveToolkit
             if (_currentSearch != null)
             {
                 _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
-                _searchHistory.Push(_currentSearch);
+                PushToHistory(_searchHistory, _currentSearch);
             }
 
             _forwardHistory.Clear();
@@ -369,10 +369,10 @@ namespace LbpArchiveToolkit
             if (_searchHistory.Count > 0 && _currentSearch != null)
             {
                 _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
-                _forwardHistory.Push(_currentSearch);
+                PushToHistory(_forwardHistory, _currentSearch);
                 ApplySearchState(_searchHistory.Pop());
             }
-            
+
             btnBack.IsEnabled = _searchHistory.Count > 0;
             btnForward.IsEnabled = _forwardHistory.Count > 0;
         }
@@ -382,12 +382,28 @@ namespace LbpArchiveToolkit
             if (_forwardHistory.Count > 0 && _currentSearch != null)
             {
                 _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
-                _searchHistory.Push(_currentSearch);
+                PushToHistory(_searchHistory, _currentSearch);
                 ApplySearchState(_forwardHistory.Pop());
             }
 
             btnBack.IsEnabled = _searchHistory.Count > 0;
             btnForward.IsEnabled = _forwardHistory.Count > 0;
+        }
+
+        private static void PushToHistory(Stack<SearchState> stack, SearchState state, int maxDepth = 10)
+        {
+            stack.Push(state);
+            while (stack.Count > maxDepth)
+            {
+                var temp = stack.ToArray(); // Index 0 is the newest (top of stack), Index Length-1 is the oldest (bottom)
+                stack.Clear();
+
+                // Reconstruct the stack from bottom-to-top, discarding the oldest item (temp.Length - 1)
+                for (int i = temp.Length - 2; i >= 0; i--)
+                {
+                    stack.Push(temp[i]);
+                }
+            }
         }
 
         private void ApplySearchState(SearchState state)

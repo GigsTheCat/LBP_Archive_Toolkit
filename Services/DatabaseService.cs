@@ -61,7 +61,7 @@ namespace LbpArchiveToolkit.Services
 
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            using var conn = new SqliteConnection($"Data Source={_dbPath}");
+            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
             await conn.OpenAsync().ConfigureAwait(false);
 
             using (var cmdPragma = new SqliteCommand(

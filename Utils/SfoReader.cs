@@ -28,6 +28,14 @@ namespace LbpArchiveToolkit.Utils
                     uint dataTableStart = br.ReadUInt32();
                     uint entriesCount = br.ReadUInt32();
 
+                    // Protection: Prevent out-of-bounds reads and high memory allocation 
+                    // on corrupted headers. A single directory entry is exactly 16 bytes.
+                    long requiredBytes = (long)entriesCount * 16;
+                    if (fs.Position + requiredBytes > fs.Length)
+                    {
+                        return result;
+                    }
+
                     var entries = new List<(ushort keyOffset, uint dataOffset, uint dataLen)>();
                     for (int i = 0; i < entriesCount; i++)
                     {

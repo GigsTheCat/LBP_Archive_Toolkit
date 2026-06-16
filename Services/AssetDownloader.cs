@@ -35,9 +35,23 @@ namespace LbpArchiveToolkit.Services
             _lastRequestTime = DateTime.MinValue;
         }
 
+        private static bool IsValidHash(string hash)
+        {
+            if (string.IsNullOrWhiteSpace(hash)) return false;
+            if (hash.Length > 40) return false;
+            foreach (char c in hash)
+            {
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public static async Task<byte[]?> ExtractLocalArchiveToMemoryAsync(string hash, string baseDir, CancellationToken token)
         {
-            if (string.IsNullOrWhiteSpace(baseDir) || hash.Length < 4) return null;
+            if (string.IsNullOrWhiteSpace(baseDir) || !IsValidHash(hash) || hash.Length < 4) return null;
 
             string part1 = hash.Substring(0, 2);
             string part2 = hash.Substring(2, 2);
@@ -68,6 +82,7 @@ namespace LbpArchiveToolkit.Services
         public static async Task<(bool Success, string ErrorMessage)> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
         {
             if (string.IsNullOrEmpty(lvl.Hash)) return (false, "Level hash is missing or empty.");
+            if (!IsValidHash(lvl.Hash)) return (false, "Level hash contains invalid path characters.");
 
             var slotInfo = CreateSlotInfo(lvl);
             PopulateSlotInfoFromDatabase(lvl.Id, dbPath, slotInfo);
@@ -102,6 +117,7 @@ namespace LbpArchiveToolkit.Services
                 if (!string.IsNullOrEmpty(lvl.IconHash))
                 {
                     iconHashStr = lvl.IconHash.ToLowerInvariant();
+                    if (!IsValidHash(iconHashStr)) return (false, "Level icon hash contains invalid path characters.");
                     if (iconHashStr.Length > 8)
                     {
                         ctx.AddDiscoveredHash(iconHashStr);
@@ -153,6 +169,7 @@ namespace LbpArchiveToolkit.Services
                 await foreach (var currentHash in reader.ReadAllAsync(ctx.Token).ConfigureAwait(false))
                 {
                     if (ctx.Token.IsCancellationRequested) break;
+                    if (!IsValidHash(currentHash)) continue;
 
                     bool isLocal = ConfigManager.DownloadServer.ToLowerInvariant() == "local";
                     bool success = false;
@@ -181,7 +198,7 @@ namespace LbpArchiveToolkit.Services
                         var deps = SaveDataBuilder.GetDependenciesFast(fileData);
                         foreach (var dep in deps)
                         {
-                            if (ctx.AddDiscoveredHash(dep))
+                            if (IsValidHash(dep) && ctx.AddDiscoveredHash(dep))
                             {
                                 ctx.IncrementPending();
                                 ctx.QueueWriter.TryWrite(dep);

@@ -31,7 +31,7 @@ namespace LbpArchiveToolkit.Utils
             ushort numChunks = BigEndianUInt16(br);
             
             var chunkInfos = new System.Collections.Generic.List<(ushort comp, ushort decomp)>();
-            int totalDecompSize = 0;
+            long totalDecompSize = 0;
             
             for (int i = 0; i < numChunks; i++)
             {
@@ -40,8 +40,14 @@ namespace LbpArchiveToolkit.Utils
                 chunkInfos.Add((compSize, decompSize));
                 totalDecompSize += decompSize;
             }
+
+            const long MaxAllowedTextureSize = 32 * 1024 * 1024; // 32 MB limit
+            if (totalDecompSize > MaxAllowedTextureSize || totalDecompSize < 0)
+            {
+                throw new InvalidDataException("Decompressed texture size exceeds safety limits.");
+            }
             
-            byte[] finalData = new byte[totalDecompSize];
+            byte[] finalData = new byte[(int)totalDecompSize];
             int currentPos = 0;
             
             for (int i = 0; i < numChunks; i++)
