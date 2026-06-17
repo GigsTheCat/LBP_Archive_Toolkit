@@ -30,9 +30,11 @@ namespace LbpArchiveToolkit
     {
         #region State & Dependencies
 
+        private HwndSource? _hwndSource;
+
         private DatabaseService _dbService;
         private List<LevelItem> _resultsList = new();
-        private readonly HashSet<string> _savedLevels = new();
+        private readonly HashSet<long> _savedLevels = new();
         
         private readonly Stack<SearchState> _searchHistory = new();
         private readonly Stack<SearchState> _forwardHistory = new();
@@ -97,6 +99,8 @@ namespace LbpArchiveToolkit
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+
+                        
             SaveWindowPosition();
 
             if (_currentSearch != null)
@@ -107,6 +111,13 @@ namespace LbpArchiveToolkit
 
             ConfigManager.SaveConfig();
             base.OnClosing(e);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _hwndSource?.RemoveHook(WindowProc);
+            _hwndSource = null;
+            base.OnClosed(e);
         }
 
         private void RestoreWindowPosition()
@@ -165,7 +176,7 @@ namespace LbpArchiveToolkit
                              bool update = CustomDialog.Show(this, $"A new version of LBP Archive Toolkit is available ({latestVersion}).\n\nWould you like to download it now?", "Update Available", isYesNo: true);
                              if (update)
                              {
-                             Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
+                                 Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
                              }
                          }
                      }
@@ -202,6 +213,8 @@ namespace LbpArchiveToolkit
 
                 Dispatcher.Invoke(() =>
                 {
+                    if (Application.Current == null || Application.Current.MainWindow == null) return;
+                    
                     cmbGenre.Items.Clear();
                     cmbGenre.Items.Add(new ComboBoxItem { Content = "All Genres" });
                     foreach (var g in genres.OrderBy(x => x))
@@ -310,17 +323,18 @@ namespace LbpArchiveToolkit
             string? genreFilter = (cmbGenre.SelectedItem as ComboBoxItem)?.Content?.ToString();
             string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
+            // Create a thread-safe snapshot to avoid race conditions with background search
+            var savedLevelsSnapshot = _savedLevels.ToHashSet();
+
             try
             {
-                var results = await Task.Run(() => 
-                     _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels)
-            );
+                var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot);
 
+                     
                 progressBar.IsIndeterminate = false;
                 progressBar.Maximum = results.Count;
-                progressBar.Value = results.Count; // Update once, avoiding the loop penalty
+                progressBar.Value = results.Count; 
 
-                // Direct reference assignment, skipping O(N) array copy
                 _resultsList = results;
                 
                 dgResults.ItemsSource = _resultsList;
@@ -334,7 +348,7 @@ namespace LbpArchiveToolkit
                     LimitIndex = limitFilterIdx,
                     Exact = exact,
                     SearchDesc = searchDesc,
-                    Results = new List<LevelItem>(results) // Copy just for history immutability
+                    Results = new List<LevelItem>(results) 
                 };
 
                 btnBack.IsEnabled = _searchHistory.Count > 0;
@@ -397,10 +411,9 @@ namespace LbpArchiveToolkit
             stack.Push(state);
             while (stack.Count > maxDepth)
             {
-                var temp = stack.ToArray(); // Index 0 is the newest (top of stack), Index Length-1 is the oldest (bottom)
+                var temp = stack.ToArray(); 
                 stack.Clear();
 
-                // Reconstruct the stack from bottom-to-top, discarding the oldest item (temp.Length - 1)
                 for (int i = temp.Length - 2; i >= 0; i--)
                 {
                     stack.Push(temp[i]);
@@ -560,10 +573,13 @@ namespace LbpArchiveToolkit
                             if (_currentIconRequestId != expectedRequestId) return;
 
                             var bmp = new BitmapImage();
-                            bmp.BeginInit();
-                            bmp.CacheOption = BitmapCacheOption.OnLoad;
-                            bmp.StreamSource = new MemoryStream(pngBytes);
-                            bmp.EndInit();
+                            using (var ms = new MemoryStream(pngBytes))
+                            {
+                                bmp.BeginInit();
+                                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                bmp.StreamSource = ms;
+                                bmp.EndInit();
+                            }
                             bmp.Freeze();
 
                             iconEllipse.Fill = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
@@ -579,13 +595,18 @@ namespace LbpArchiveToolkit
                 if (_currentIconRequestId != expectedRequestId) return;
 
                 var webBmp = new BitmapImage();
-                webBmp.BeginInit();
-                webBmp.CacheOption = BitmapCacheOption.OnLoad;
-                webBmp.StreamSource = new MemoryStream(imageBytes);
-                webBmp.EndInit();
+                using (var ms = new MemoryStream(imageBytes))
+                {
+                    webBmp.BeginInit();
+                    webBmp.CacheOption = BitmapCacheOption.OnLoad;
+                    webBmp.StreamSource = ms;
+                    webBmp.EndInit();
+                }
                 webBmp.Freeze(); 
 
-                iconEllipse.Fill = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
+                var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
+                brush.Freeze();
+                iconEllipse.Fill = brush;
                 txtIconStatus.Text = "";
             }
             catch
@@ -645,7 +666,7 @@ namespace LbpArchiveToolkit
                         {
                             successCount++;
                             lvl.Saved = "✓";
-                            _savedLevels.Add(lvl.Id.ToString());
+                            _savedLevels.Add(lvl.Id);
                             
                             if (!ConfigManager.SavedLevels.Contains(lvl.Id.ToString()))
                             {
@@ -705,32 +726,32 @@ namespace LbpArchiveToolkit
         {
             foreach (var levelId in ConfigManager.SavedLevels)
             {
-                _savedLevels.Add(levelId);
+                if (long.TryParse(levelId, out long parsedId))
+                {
+                    _savedLevels.Add(parsedId);
+                }
             }
             
             if (Directory.Exists(ConfigManager.BackupDirectory))
             {
                 bool configNeedsUpdate = false;
 
-                foreach (var file in Directory.EnumerateFiles(ConfigManager.BackupDirectory))
+                // Safely parse trailing level hexadecimal IDs from custom directory names
+                foreach (var dir in Directory.EnumerateDirectories(ConfigManager.BackupDirectory))
                 {
-                    ReadOnlySpan<char> name = Path.GetFileNameWithoutExtension(file.AsSpan());
-                    int digitCount = 0;
-                    
-                    while (digitCount < name.Length && char.IsAsciiDigit(name[digitCount]))
+                    string dirName = Path.GetFileName(dir);
+                    if (dirName.Length >= 8)
                     {
-                        digitCount++;
-                    }
-
-                    if (digitCount > 0)
-                    {
-                        string id = new string(name.Slice(0, digitCount));
-                        _savedLevels.Add(id);
-                        
-                        if (!ConfigManager.SavedLevels.Contains(id))
+                        string hexId = dirName.Substring(dirName.Length - 8);
+                        if (long.TryParse(hexId, System.Globalization.NumberStyles.HexNumber, null, out long id))
                         {
-                            ConfigManager.SavedLevels.Add(id);
-                            configNeedsUpdate = true;
+                            _savedLevels.Add(id);
+                            string idStr = id.ToString();
+                            if (!ConfigManager.SavedLevels.Contains(idStr))
+                            {
+                                ConfigManager.SavedLevels.Add(idStr);
+                                configNeedsUpdate = true;
+                            }
                         }
                     }
                 }
@@ -762,7 +783,7 @@ namespace LbpArchiveToolkit
                 foreach (var item in state.Results) item.Saved = string.Empty;
             }
 
-            dgResults.Items.Refresh(); // Safely triggers visual layout rebuilds
+            dgResults.Items.Refresh(); 
         }
 
         #endregion
@@ -770,13 +791,14 @@ namespace LbpArchiveToolkit
         #region Win32 Interop (Borderless Window Support)
 
         private void Window_SourceInitialized(object? sender, EventArgs e)
-        {
-            var handle = new WindowInteropHelper(this).Handle;
-            HwndSource.FromHwnd(handle)?.AddHook(WindowProc);
+	{
+    	    var handle = new WindowInteropHelper(this).Handle;
+            _hwndSource = HwndSource.FromHwnd(handle);
+            _hwndSource?.AddHook(WindowProc);
 
             if (ConfigManager.IsMaximized)
             {
-                this.WindowState = WindowState.Maximized;
+                 this.WindowState = WindowState.Maximized;
             }
         }
 

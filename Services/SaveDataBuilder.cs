@@ -55,13 +55,21 @@ namespace LbpArchiveToolkit.Services
                         uint count = ReadUInt32BE(data, ptr);
                         ptr += 4;
                         
-                        for (int i = 0; i < count; i++)
+                        // Minimum size of a dependency entry is 4 bytes (for depType == 0)
+                        long maxPossibleDeps = (data.Length - ptr) / 4;
+                        uint safeCount = (uint)Math.Min(count, maxPossibleDeps);
+                        
+                        // Prevent OOM and avoid resizing allocations
+                        deps.Capacity = (int)safeCount;
+                        
+                        for (int i = 0; i < safeCount; i++)
                         {
                             if (ptr >= data.Length) break;
                             byte depType = data[ptr++];
                             
                             if (depType == 0)
                             {
+                                if (ptr + 4 > data.Length) break;
                                 ptr += 4;
                             }
                             else if (depType == 1)
@@ -74,6 +82,7 @@ namespace LbpArchiveToolkit.Services
                             }
                             else if (depType == 2)
                             {
+                                if (ptr + 8 > data.Length) break;
                                 ptr += 8; 
                             }
                         }
@@ -264,7 +273,7 @@ namespace LbpArchiveToolkit.Services
                     FileMode.Create, 
                     FileAccess.Write, 
                     FileShare.None, 
-                    FileOptions.Asynchronous);
+                    FileOptions.None);
 
                     // Writes the exact Span length directly to the disk via the OS kernel
                     RandomAccess.Write(handle, chunk.AsSpan(0, len), 0);
@@ -798,7 +807,6 @@ namespace LbpArchiveToolkit.Services
             using var fileStream = File.Create(path);
             encoder.Save(fileStream);
         }
-
 
         #endregion
     }

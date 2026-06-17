@@ -128,9 +128,15 @@ namespace LbpArchiveToolkit.Services
 
                 ctx.ReportProgress("Starting extraction...");
 
+                // If no remote assets are queued (e.g. built-in level with a GUID), complete immediately
+                if (ctx.PendingItems == 0)
+                {
+                    channel.Writer.TryComplete();
+                }
+
                 await Task.Run(async () =>
                 {
-                    int workerCount = Math.Min(maxConcurrent, 4);
+                    int workerCount = maxConcurrent;
                     Task[] workers = new Task[workerCount];
                     for (int i = 0; i < workerCount; i++)
                     {
@@ -283,8 +289,16 @@ namespace LbpArchiveToolkit.Services
                         ctx.IncrementRetryingThreads();
                         ctx.ReportProgress("Server Paused: Global rate limit active...");
                         
-                        try { await activeDelayTask.ConfigureAwait(false); } 
-                        catch (OperationCanceledException) { break; }
+                        try 
+                        { 
+                            await activeDelayTask.ConfigureAwait(false); 
+                            await Task.Delay(Random.Shared.Next(50, 250), ctx.Token).ConfigureAwait(false);
+                        } 
+                        catch (OperationCanceledException) 
+                        { 
+                            // Only cancel this thread's operation if this context itself was explicitly cancelled
+                            if (ctx.Token.IsCancellationRequested) break;
+                        }
                         finally { ctx.DecrementRetryingThreads(); }
                         
                         if (ctx.Token.IsCancellationRequested) break;
@@ -423,6 +437,8 @@ namespace LbpArchiveToolkit.Services
 
             private long _lastReportTime = 0;
             private readonly object _reportLock = new();
+
+            public int PendingItems => Volatile.Read(ref _pendingItems);
 
             public DownloadContext(HttpClient client, CancellationToken token, SemaphoreSlim semaphore, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter)
             {

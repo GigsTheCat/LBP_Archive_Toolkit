@@ -58,6 +58,9 @@ namespace LbpArchiveToolkit.Utils
 
                         if (key == "SUB_TITLE" || key == "DETAIL")
                         {
+                            
+                            if (entry.dataLen > 1024 * 1024) continue; 
+
                             fs.Position = dataTableStart + entry.dataOffset;
                             byte[] dataBytes = br.ReadBytes((int)entry.dataLen);
                             string decodedText = Encoding.UTF8.GetString(dataBytes).TrimEnd('\0');

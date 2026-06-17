@@ -74,6 +74,12 @@ namespace LbpArchiveToolkit
             BtnCancel_Click(sender, e);
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            CancellationTokenSource.Dispose(); // Dispose to prevent kernel handle leaks
+        }
+
         #endregion
     }
 }

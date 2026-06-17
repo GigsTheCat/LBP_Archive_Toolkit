@@ -35,6 +35,8 @@ namespace LbpArchiveToolkit.Configuration
 
         #region Paths & Constants
 
+        private static readonly object _saveLock = new object();
+
         private static readonly string AppDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
             "LbpArchiveToolkit"
@@ -123,38 +125,41 @@ namespace LbpArchiveToolkit.Configuration
         /// Commits the current static state out to the configuration JSON file in AppData.
         /// </summary>
         public static void SaveConfig()
-        {
-            try
-            {
-                var data = new ConfigData
+	{
+    	   lock (_saveLock)
+    	   {
+       		try
                 {
-                    DatabasePath = DatabasePath,
-                    BackupDirectory = BackupDirectory,
-                    DownloadServer = DownloadServer,
-                    LocalArchivePath = LocalArchivePath,
-                    MaxParallelDownloads = MaxParallelDownloads,
-                    FixBackupVersion = FixBackupVersion,
-                    ForceLbp3Backups = ForceLbp3Backups,
-                    Lbp2BetaToRetail = Lbp2BetaToRetail,
-                    WindowWidth = WindowWidth,
-                    WindowHeight = WindowHeight,
-                    WindowLeft = WindowLeft,
-                    WindowTop = WindowTop,
-                    IsMaximized = IsMaximized,
-                    SavedLevels = SavedLevels,
-                    LastSearch = LastSearch
-                };
+                     	var data = new ConfigData
+            	     	{
+                	DatabasePath = DatabasePath,
+                	BackupDirectory = BackupDirectory,
+                	DownloadServer = DownloadServer,
+                	LocalArchivePath = LocalArchivePath,
+                	MaxParallelDownloads = MaxParallelDownloads,
+                	FixBackupVersion = FixBackupVersion,
+                	ForceLbp3Backups = ForceLbp3Backups,
+                	Lbp2BetaToRetail = Lbp2BetaToRetail,
+                	WindowWidth = WindowWidth,
+                	WindowHeight = WindowHeight,
+                	WindowLeft = WindowLeft,
+                	WindowTop = WindowTop,
+                	IsMaximized = IsMaximized,
+                	SavedLevels = SavedLevels,
+                	LastSearch = LastSearch
+            	};
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(data, options);
-                
-                Directory.CreateDirectory(AppDataFolder);
-                string tempPath = ConfigPath + ".tmp";
-                File.WriteAllText(tempPath, json);
-                File.Move(tempPath, ConfigPath, overwrite: true);
-            }
-            catch { /* Fails silently if directory locks occur */ }
+            	var options = new JsonSerializerOptions { WriteIndented = true };
+            	string json = JsonSerializer.Serialize(data, options);
+            
+            	Directory.CreateDirectory(AppDataFolder);
+            	string tempPath = ConfigPath + ".tmp";
+            	File.WriteAllText(tempPath, json);
+            	File.Move(tempPath, ConfigPath, overwrite: true);
         }
+        catch { /* Fails silently if directory locks occur */ }
+    }
+}
 
         #endregion
     }

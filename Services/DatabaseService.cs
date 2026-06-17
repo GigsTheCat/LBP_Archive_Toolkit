@@ -21,7 +21,8 @@ namespace LbpArchiveToolkit.Services
         private readonly string _dbPath;
         private readonly object _schemaLock = new();
         
-        private bool _isSchemaResolved = false;
+        private volatile bool _isSchemaResolved = false;
+        
         private bool _hasFtsTable = false; // Flags if FTS5 hardware acceleration is available
         
         private string _colGame = "NULL";
@@ -55,7 +56,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<string> savedLevels)
+        public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -76,7 +77,20 @@ namespace LbpArchiveToolkit.Services
             string pfx = _hasFtsTable ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
-            queryBuilder.Append($"SELECT {pfx}id, {pfx}npHandle, {pfx}name, {SafeCol(_colGame)}, {SafeCol(_colDate)}, {SafeCol(_colDesc)}, {SafeCol(_colPlay)}, {SafeCol(_colHeart)}, {SafeCol(_colGenre)}, {SafeCol(_colHash)}, {SafeCol(_colIcon)}, {SafeCol(_colLabels)} FROM slot ");
+            queryBuilder.Append("SELECT ")
+                        .Append(pfx).Append("id, ")
+                        .Append(pfx).Append("npHandle, ")
+                        .Append(pfx).Append("name, ")
+                        .Append(SafeCol(_colGame)).Append(", ")
+                        .Append(SafeCol(_colDate)).Append(", ")
+                        .Append(SafeCol(_colDesc)).Append(", ")
+                        .Append(SafeCol(_colPlay)).Append(", ")
+                        .Append(SafeCol(_colHeart)).Append(", ")
+                        .Append(SafeCol(_colGenre)).Append(", ")
+                        .Append(SafeCol(_colHash)).Append(", ")
+                        .Append(SafeCol(_colIcon)).Append(", ")
+                        .Append(SafeCol(_colLabels))
+                        .Append(" FROM slot ");
 
             if (_hasFtsTable)
             {
@@ -115,7 +129,7 @@ namespace LbpArchiveToolkit.Services
                 items.Add(new LevelItem
                 {
                     Id = id,
-                    Saved = savedLevels.Contains(id.ToString()) ? "✓" : "",
+                    Saved = savedLevels.Contains(id) ? "✓" : "",
                     Creator = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
                     LevelName = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
                     Game = reader.IsDBNull(3) ? "Unk" : $"LBP{reader.GetInt32(3) + 1}",
@@ -261,12 +275,18 @@ namespace LbpArchiveToolkit.Services
             {
                 if (_isSchemaResolved) return;
 
-                using var conn = new SqliteConnection($"Data Source={_dbPath}");
+                // Open with Mode=ReadOnly to support strictly locked files
+                using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
                 conn.Open();
 
-                using (var cmdPragma = new SqliteCommand("PRAGMA journal_mode = WAL;", conn))
+                try
                 {
+                    using var cmdPragma = new SqliteCommand("PRAGMA journal_mode = WAL;", conn);
                     cmdPragma.ExecuteNonQuery();
+                }
+                catch
+                {
+                    // Fall back gracefully if database or directory is read-only
                 }
 
                 // Dynamically resolve existing columns
