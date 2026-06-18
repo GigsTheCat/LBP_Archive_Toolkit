@@ -572,7 +572,7 @@ namespace LbpArchiveToolkit.Services
             byte method = rootLevelData[3];
             if (method == 'b' || method == 'e')
             {
-                head = BitConverter.ToUInt32(rootLevelData.Skip(4).Take(4).Reverse().ToArray(), 0);
+                head = BinaryPrimitives.ReadUInt32BigEndian(rootLevelData.AsSpan(4, 4));
                 string resrcType = Encoding.ASCII.GetString(rootLevelData, 0, 3);
                 
                 if (resrcType != "SMH" && head >= 0x271)
@@ -580,8 +580,8 @@ namespace LbpArchiveToolkit.Services
                     int offset = head >= 0x109 ? 12 : 8;
                     if (rootLevelData.Length >= offset + 4)
                     {
-                        branchId = BitConverter.ToUInt16(rootLevelData.Skip(offset).Take(2).Reverse().ToArray(), 0);
-                        branchRev = BitConverter.ToUInt16(rootLevelData.Skip(offset + 2).Take(2).Reverse().ToArray(), 0);
+                        branchId = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData.AsSpan(offset, 2));
+                        branchRev = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData.AsSpan(offset + 2, 2));
                     }
                 }
             }

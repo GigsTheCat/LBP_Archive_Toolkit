@@ -62,7 +62,10 @@ namespace LbpArchiveToolkit.Utils
                             if (entry.dataLen > 1024 * 1024) continue; 
 
                             fs.Position = dataTableStart + entry.dataOffset;
-                            byte[] dataBytes = br.ReadBytes((int)entry.dataLen);
+                            
+                            // Bounds safety check to prevent EndOfStreamException on corrupted files
+                            int safeLength = (int)Math.Min(entry.dataLen, fs.Length - fs.Position);
+                            byte[] dataBytes = br.ReadBytes(safeLength);
                             string decodedText = Encoding.UTF8.GetString(dataBytes).TrimEnd('\0');
 
                             if (key == "SUB_TITLE") result.Title = decodedText;
