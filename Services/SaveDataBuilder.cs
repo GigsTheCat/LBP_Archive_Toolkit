@@ -41,22 +41,39 @@ namespace LbpArchiveToolkit.Services
             if (data.Length < 12) return deps;
 
             byte method = data[3];
+            byte[] workData = data;
+            int headOffset = 4;
+            int tableOffsetPos = 8;
+
+            if (method == (byte)'e')
+            {
+                uint size = ReadUInt32BE(data, 4);
+                if (8 + size > data.Length) return deps;
+                
+                workData = new byte[size];
+                Array.Copy(data, 8, workData, 0, (int)size);
+                XxteaDecrypt(workData, (int)size);
+                
+                headOffset = 0;
+                tableOffsetPos = 4;
+            }
+
             if (method == (byte)'b' || method == (byte)'e')
             {
-                uint head = ReadUInt32BE(data, 4);
+                uint head = ReadUInt32BE(workData, headOffset);
                 if (head >= 0x109)
                 {
-                    uint tableOffset = ReadUInt32BE(data, 8);
-                    if (tableOffset < data.Length)
+                    uint tableOffset = ReadUInt32BE(workData, tableOffsetPos);
+                    if (tableOffset < workData.Length)
                     {
                         int ptr = (int)tableOffset;
-                        if (ptr + 4 > data.Length) return deps;
-                        
-                        uint count = ReadUInt32BE(data, ptr);
-                        ptr += 4;
+                        if (ptr + 4 > workData.Length) return deps;
                         
                         // Minimum size of a dependency entry is 4 bytes (for depType == 0)
-                        long maxPossibleDeps = (data.Length - ptr) / 4;
+                        uint count = ReadUInt32BE(workData, ptr);
+                        ptr += 4;
+                        
+                        long maxPossibleDeps = (workData.Length - ptr) / 4;
                         uint safeCount = (uint)Math.Min(count, maxPossibleDeps);
                         
                         // Prevent OOM and avoid resizing allocations
@@ -64,27 +81,28 @@ namespace LbpArchiveToolkit.Services
                         
                         for (int i = 0; i < safeCount; i++)
                         {
-                            if (ptr >= data.Length) break;
-                            byte depType = data[ptr++];
+                            if (ptr >= workData.Length) break;
+                            byte flags = workData[ptr++];
                             
-                            if (depType == 0)
+                            // Bit 2: Contains a 4-byte GUID
+                            if ((flags & 2) != 0)
                             {
-                                if (ptr + 4 > data.Length) break;
+                                if (ptr + 4 > workData.Length) break;
                                 ptr += 4;
                             }
-                            else if (depType == 1)
+                            
+                            // Bit 1: Contains a 20-byte SHA1 hash
+                            if ((flags & 1) != 0)
                             {
-                                if (ptr + 24 > data.Length) break;
-                                
-                                string hashStr = Convert.ToHexStringLower(data.AsSpan(ptr, 20));
+                                if (ptr + 20 > workData.Length) break;
+                                string hashStr = Convert.ToHexStringLower(workData.AsSpan(ptr, 20));
                                 deps.Add(hashStr);
-                                ptr += 24; 
+                                ptr += 20; 
                             }
-                            else if (depType == 2)
-                            {
-                                if (ptr + 8 > data.Length) break;
-                                ptr += 8; 
-                            }
+                            
+                            // Always followed by a 4-byte ResourceType
+                            if (ptr + 4 > workData.Length) break;
+                            ptr += 4;
                         }
                     }
                 }
@@ -217,6 +235,8 @@ namespace LbpArchiveToolkit.Services
             w.WriteUInt16BE(branchId);
             w.WriteUInt16BE(branchRev);
             w.WriteUInt32BE(1);
+            w.WriteUInt32BE(0); // backupID
+            w.WriteUInt32BE(0); // localUserID
             w.Write(new byte[4 * 10]);
             w.WriteUInt32BE(0);
             w.WriteUInt32BE(29);
@@ -245,7 +265,23 @@ namespace LbpArchiveToolkit.Services
             byte[] hashinateKey = new byte[] { 0x2A, 0xFD, 0xA3, 0xCA, 0x86, 0x02, 0x19, 0xB3, 0xE6, 0x8A, 0xFF, 0xCC, 0x82, 0xC7, 0x6B, 0x8A, 0xFE, 0x0A, 0xD8, 0x13, 0x5F, 0x60, 0x47, 0x5B, 0xDF, 0x5D, 0x37, 0xBC, 0x57, 0x1C, 0xB5, 0xE7, 0x96, 0x75, 0xD5, 0x28, 0xA2, 0xFA, 0x90, 0xED, 0xDF, 0xA3, 0x45, 0xB4, 0x1F, 0xF9, 0x1F, 0x25, 0xE7, 0x42, 0x45, 0x3B, 0x2B, 0xB5, 0x3E, 0x16, 0xC9, 0x58, 0x19, 0x7B, 0xE7, 0x18, 0xC0, 0x80 };
 
             int finalLength = (int)arc.Length;
-            byte[] mac = HMACSHA1.HashData(hashinateKey, new ReadOnlySpan<byte>(buffer.Array!, buffer.Offset, finalLength));
+            byte[] mac;
+
+            using (var incrementalHash = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hashinateKey))
+            {
+                int hashChunkSize = 0x100000; // 1 MB chunks
+                int offset = buffer.Offset;
+                int remaining = finalLength;
+
+                while (remaining > 0)
+                {
+                    int toHash = Math.Min(remaining, hashChunkSize);
+                    incrementalHash.AppendData(buffer.Array!, offset, toHash);
+                    offset += toHash;
+                    remaining -= toHash;
+                }
+                mac = incrementalHash.GetHashAndReset();
+            }
 
             arc.Position = hashinateOffset;
             arc.Write(mac, 0, mac.Length);
@@ -327,6 +363,48 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        private static void XxteaDecrypt(byte[] data, int end)
+        {
+            if (end <= 0) return;
+            int n = (end / 4) - 1;
+            if (n < 0) return;
+
+            uint[] v = ArrayPool<uint>.Shared.Rent(n + 1);
+
+            try
+            {
+                for (int i = 0; i <= n; i++)
+                {
+                    v[i] = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(i * 4, 4));
+                }
+
+                uint y = v[0];
+                int rounds = 6 + 52 / (n + 1);
+                uint sum = unchecked((uint)(rounds * 0x9e3779b9));
+
+                for (int i = 0; i < rounds; i++)
+                {
+                    uint e = sum >> 2;
+                    for (int r = n; r >= 0; r--)
+                    {
+                        uint z = v[r > 0 ? r - 1 : n];
+                        v[r] = unchecked(v[r] - ((((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z))));
+                        y = v[r];
+                    }
+                    sum = unchecked(sum - 0x9e3779b9);
+                }
+
+                for (int i = 0; i <= n; i++)
+                {
+                    BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(i * 4, 4), v[i]);
+                }
+            }
+            finally
+            {
+                ArrayPool<uint>.Shared.Return(v);
+            }
+        }
+
         private static byte[] MakeSfo(string displayName, string bkpName, string npHandle, string description, int gameVersion)
         {
             using var ms = new MemoryStream();
@@ -341,7 +419,7 @@ namespace LbpArchiveToolkit.Services
                 ("CATEGORY", 4, 4, Encoding.UTF8.GetBytes("SD\0")),
                 ("DETAIL", 4, 1024, TruncateStr(description, 1024)),
                 ("PARAMS", 4, 1024, new byte[1024]),
-                ("PARAMS2", 4, 1024, new byte[12]),
+                ("PARAMS2", 4, 12, new byte[12]),
                 ("SAVEDATA_DIRECTORY", 4, 64, TruncateStr(bkpName, 64)),
                 ("SAVEDATA_LIST_PARAM", 4, 8, TruncateStr("", 8)),
                 ("SUB_TITLE", 4, 128, TruncateStr(subtitle, 128)),
@@ -540,20 +618,17 @@ namespace LbpArchiveToolkit.Services
                 w.WriteUInt32BE((uint)depOffset);
                 ms.Position = curr;
 
-                byte hashType = 1; byte guidType = 2;
-                if ((head & 0xFFFF) < 0x191) { hashType = 2; guidType = 1; }
-
                 w.WriteUInt32BE((uint)deps.Count);
                 foreach (var dep in deps)
                 {
                     if (dep.Item1.Length > 8)
                     {
-                        w.Write(hashType);
+                        w.Write((byte)1); // Always 1 for SHA1 hashes in outer dependency table
                         w.Write(StringToByteArray(dep.Item1));
                     }
                     else
                     {
-                        w.Write(guidType);
+                        w.Write((byte)2); // Always 2 for GUIDs in outer dependency table
                         w.WriteUInt32BE(uint.Parse(dep.Item1, System.Globalization.NumberStyles.HexNumber));
                     }
                     w.WriteUInt32BE(dep.Item2);

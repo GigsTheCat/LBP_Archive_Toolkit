@@ -91,7 +91,6 @@ namespace LbpArchiveToolkit.Services
             var token = cts.Token;
 
             int maxConcurrent = ConfigManager.MaxParallelDownloads > 0 ? ConfigManager.MaxParallelDownloads : 10;
-            using var semaphore = new SemaphoreSlim(maxConcurrent);
 
             var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
             {
@@ -99,7 +98,7 @@ namespace LbpArchiveToolkit.Services
                 SingleWriter = false
             });
 
-            var ctx = new DownloadContext(client, token, semaphore, progress, channel.Writer);
+            var ctx = new DownloadContext(client, token, progress, channel.Writer);
 
             try
             {
@@ -276,11 +275,8 @@ namespace LbpArchiveToolkit.Services
             byte[]? fileData = null;
             string url = GetDownloadUrl(currentHash, ConfigManager.DownloadServer);
 
-            await ctx.Semaphore.WaitAsync(ctx.Token).ConfigureAwait(false);
-            try
+            while (!success && currentTry < maxRetries)
             {
-                while (!success && currentTry < maxRetries)
-                {
                     if (ctx.Token.IsCancellationRequested) break;
 
                     Task activeDelayTask = _globalRateLimitTask;
@@ -391,11 +387,6 @@ namespace LbpArchiveToolkit.Services
                         finally { ctx.DecrementRetryingThreads(); }
                     }
                 }
-            }
-            finally
-            {
-                ctx.Semaphore.Release();
-            }
 
             return (success, fileData);
         }
@@ -422,7 +413,6 @@ namespace LbpArchiveToolkit.Services
         {
             public readonly HttpClient Client;
             public readonly CancellationToken Token;
-            public readonly SemaphoreSlim Semaphore;
             public readonly ChannelWriter<string> QueueWriter;
             public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.OrdinalIgnoreCase);
 
@@ -440,11 +430,10 @@ namespace LbpArchiveToolkit.Services
 
             public int PendingItems => Volatile.Read(ref _pendingItems);
 
-            public DownloadContext(HttpClient client, CancellationToken token, SemaphoreSlim semaphore, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter)
+            public DownloadContext(HttpClient client, CancellationToken token, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter)
             {
                 Client = client;
                 Token = token;
-                Semaphore = semaphore;
                 _progress = progress;
                 QueueWriter = queueWriter;
             }

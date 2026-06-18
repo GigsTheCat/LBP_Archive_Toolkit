@@ -65,12 +65,6 @@ namespace LbpArchiveToolkit.Services
             using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
             await conn.OpenAsync().ConfigureAwait(false);
 
-            using (var cmdPragma = new SqliteCommand(
-                "PRAGMA temp_store = MEMORY; PRAGMA cache_size = -10000; PRAGMA synchronous = OFF;", conn))
-            {
-                await cmdPragma.ExecuteNonQueryAsync().ConfigureAwait(false);
-            }
-
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
 
@@ -155,14 +149,8 @@ namespace LbpArchiveToolkit.Services
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
             if (_colGenre == "NULL") return genres;
 
-            using var conn = new SqliteConnection($"Data Source={_dbPath}");
+            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
             await conn.OpenAsync().ConfigureAwait(false);
-
-            using (var cmdPragma = new SqliteCommand(
-                "PRAGMA temp_store = MEMORY; PRAGMA cache_size = -10000; PRAGMA synchronous = OFF;", conn))
-            {
-                await cmdPragma.ExecuteNonQueryAsync().ConfigureAwait(false);
-            }
 
             string query = $"SELECT DISTINCT {_colGenre} FROM slot WHERE {_colGenre} IS NOT NULL AND {_colGenre} != ''";
             using var cmd = new SqliteCommand(query, conn);
