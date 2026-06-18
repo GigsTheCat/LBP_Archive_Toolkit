@@ -566,8 +566,7 @@ namespace LbpArchiveToolkit
                         {
                             byte[] pngBytes = await Task.Run(() =>
                             {
-                                byte[] ddsData = TextureDecoder.DecodeLbpTexture(rawResource);
-                                return TextureDecoder.ConvertDdsToPngCentered(ddsData);
+                                return TextureDecoder.DecodeToPngCentered(rawResource);
                             });
 
                             if (_currentIconRequestId != expectedRequestId) return;

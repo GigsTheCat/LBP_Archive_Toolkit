@@ -186,8 +186,7 @@ namespace LbpArchiveToolkit.Services
                     {
                         await Task.Run(() => 
                         {
-                            byte[] ddsData = TextureDecoder.DecodeLbpTexture(iconResrc);
-                            byte[] pngBytes = TextureDecoder.ConvertDdsToPngCentered(ddsData);
+                            byte[] pngBytes = TextureDecoder.DecodeToPngCentered(iconResrc);
                             File.WriteAllBytes(Path.Combine(bkpPath, "ICON0.PNG"), pngBytes);
                         }).ConfigureAwait(false);
                         iconSaved = true;
