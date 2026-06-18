@@ -4,6 +4,7 @@ namespace LbpArchiveToolkit.Utils
 {
     public static class LabelParser
     {
+        public static IReadOnlyList<string> GetFriendlyNames() => FriendlyLabelNames;
         // Master list of all 85 labels used by the LBP Database
         private static readonly string[] LabelTags = new string[] {
             "LABEL_SinglePlayer", "LABEL_RPG", "LABEL_Multiplayer", "LABEL_SINGLE_PLAYER", "LABEL_Musical",

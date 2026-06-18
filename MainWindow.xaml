@@ -184,6 +184,8 @@
             </Style.Triggers>
         </Style>
 
+        
+
         <Style x:Key="TitleBarCloseBtn" TargetType="Button" BasedOn="{StaticResource TitleBarBtn}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -241,6 +243,16 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="#453868"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#574880"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
 
         <Style x:Key="BtnNav" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="#453868"/>
@@ -462,6 +474,7 @@
 
                             <CheckBox x:Name="chkExact" Content="Exact Phrase"/>
                             <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions"/>
+                            <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{StaticResource BtnSecondary}" Padding="12,4" Margin="15,0,0,0" FontSize="11" Click="BtnAdvanced_Click"/>
                         </WrapPanel>
                     </StackPanel>
                 </Border>

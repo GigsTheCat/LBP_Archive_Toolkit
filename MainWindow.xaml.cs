@@ -39,6 +39,8 @@ namespace LbpArchiveToolkit
         private readonly Stack<SearchState> _searchHistory = new();
         private readonly Stack<SearchState> _forwardHistory = new();
         private SearchState? _currentSearch = null;
+        
+        private AdvancedSearchCriteria _advancedCriteria = new();
 
         private long _currentIconRequestId = -1;
 
@@ -61,6 +63,7 @@ namespace LbpArchiveToolkit
         {
             public string SearchText { get; set; } = "";
             public int GameIndex { get; set; }
+            public AdvancedSearchCriteria AdvancedCriteria { get; set; } = new();
             public int GenreIndex { get; set; }
             public int LimitIndex { get; set; }
             public bool Exact { get; set; }
@@ -328,7 +331,7 @@ namespace LbpArchiveToolkit
 
             try
             {
-                var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot);
+                var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, _advancedCriteria);
 
                      
                 progressBar.IsIndeterminate = false;
@@ -348,6 +351,12 @@ namespace LbpArchiveToolkit
                     LimitIndex = limitFilterIdx,
                     Exact = exact,
                     SearchDesc = searchDesc,
+                    AdvancedCriteria = new AdvancedSearchCriteria 
+    		    { 
+                        MinHearts = _advancedCriteria.MinHearts,
+                        MinPlays = _advancedCriteria.MinPlays,
+                        RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels)
+                    },
                     Results = new List<LevelItem>(results) 
                 };
 
@@ -374,6 +383,16 @@ namespace LbpArchiveToolkit
                 progressBar.Visibility = Visibility.Hidden;
             }
         }
+
+        private void BtnAdvanced_Click(object sender, RoutedEventArgs e)
+	{
+    	     var advancedWin = new AdvancedSearchWindow(_advancedCriteria) { Owner = this };
+    	     if (advancedWin.ShowDialog() == true)
+    	     {
+                  _advancedCriteria = advancedWin.Criteria;
+        
+             }
+         }
 
         private void TxtSearch_KeyDown(object sender, KeyEventArgs e)
         {
@@ -426,6 +445,7 @@ namespace LbpArchiveToolkit
             _currentSearch = state;
 
             txtSearch.Text = state.SearchText;
+            _advancedCriteria = state.AdvancedCriteria;
             cmbGame.SelectedIndex = state.GameIndex;
             cmbGenre.SelectedIndex = state.GenreIndex;
             cmbLimit.SelectedIndex = state.LimitIndex;
