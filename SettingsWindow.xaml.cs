@@ -75,14 +75,15 @@ namespace LbpArchiveToolkit
          private bool _promptedForDb = false;
  
          private void CheckFtsSupport(string dbPath)
-         {
-             if (_promptedForDb || !File.Exists(dbPath)) return;
-             
-             try
-             {
-                 using var conn = new SqliteConnection($"Data Source={dbPath}");
-                 conn.Open();
-                 using var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn);
+ {
+     if (_promptedForDb || !File.Exists(dbPath)) return;
+     
+     try
+     {
+         var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
+         using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+         conn.Open();
+         using var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn);
                  bool hasFts = System.Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
                  if (!hasFts)
                  {

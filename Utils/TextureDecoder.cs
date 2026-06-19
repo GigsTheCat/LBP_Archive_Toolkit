@@ -12,18 +12,19 @@ namespace LbpArchiveToolkit.Utils
     public static class TextureDecoder
     {
         public static byte[] DecodeToPngCentered(byte[] resourceData)
-        {
-            if (resourceData == null || resourceData.Length < 4) return new byte[0];
+{
+    if (resourceData == null || resourceData.Length < 4) return new byte[0];
 
-            uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
-            if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
-            {
-                return CenterWpfImage(resourceData);
-            }
-            if (magic == 0x44445320)
-            {
-                return DecodeDdsToPngCentered(resourceData);
-            }
+    uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
+    if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
+    {
+        return CenterWpfImage(resourceData);
+    }
+    if (resourceData.Length < 44) return new byte[0]; // Protection against short header buffers for GTF/DDS/TEX
+    if (magic == 0x44445320)
+    {
+        return DecodeDdsToPngCentered(resourceData);
+    }
 
             using var ms = new MemoryStream(resourceData);
             using var br = new BinaryReader(ms);
@@ -90,17 +91,19 @@ namespace LbpArchiveToolkit.Utils
                 
                 if (info.comp == info.decomp)
                 {
-                    br.Read(finalData, currentPos, info.comp);
+                    int uncompBytesRead = br.Read(finalData, currentPos, info.comp);
+                    if (uncompBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading uncompressed texture chunk.");
                 }
                 else
                 {
                     byte[] deflatedData = System.Buffers.ArrayPool<byte>.Shared.Rent(info.comp);
                     try
                     {
-                        br.Read(deflatedData, 0, info.comp);
-                        using var msIn = new MemoryStream(deflatedData, 0, info.comp);
-                        using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
+                        int compBytesRead = br.Read(deflatedData, 0, info.comp);
+                        if (compBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading compressed texture chunk.");
                         
+                        using var msIn = new MemoryStream(deflatedData, 0, info.comp);
+                        using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);                        
                         int bytesRead = 0;
                         while (bytesRead < info.decomp)
                         {
@@ -192,49 +195,55 @@ namespace LbpArchiveToolkit.Utils
         }
 
         private static byte[] DecodeFormatToBgra32(byte[] data, byte format, int width, int height)
+{
+    long totalPixels = (long)width * height;
+    if (totalPixels <= 0 || totalPixels > 16777216) // Max 16M pixels (e.g. 4096x4096) to prevent overflow/OOM
+    {
+        return new byte[0];
+    }
+
+    byte[] bgra = new byte[totalPixels * 4];
+
+    if (format == 0x85)
+    {
+        for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
         {
-            byte[] bgra = new byte[width * height * 4];
+            bgra[i]     = data[i + 3];
+            bgra[i + 1] = data[i + 2];
+            bgra[i + 2] = data[i + 1];
+            bgra[i + 3] = data[i];    
+        }
+        return bgra;
+    }
+    else if (format == 0x89)
+    {
+        for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
+        {
+            bgra[i]     = data[i];    
+            bgra[i + 1] = data[i + 1];
+            bgra[i + 2] = data[i + 2];
+            bgra[i + 3] = data[i + 3];
+        }
+        return bgra;
+    }
+    else if (format == 0x81)
+    {
+        for (int i = 0; i < data.Length && i * 4 < bgra.Length; i++)
+        {
+            byte val = data[i];
+            bgra[i * 4]     = val;
+            bgra[i * 4 + 1] = val;
+            bgra[i * 4 + 2] = val;
+            bgra[i * 4 + 3] = 255;
+        }
+        return bgra;
+    }
 
-            if (format == 0x85)
-            {
-                for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
-                {
-                    bgra[i]     = data[i + 3];
-                    bgra[i + 1] = data[i + 2];
-                    bgra[i + 2] = data[i + 1];
-                    bgra[i + 3] = data[i];    
-                }
-                return bgra;
-            }
-            else if (format == 0x89)
-            {
-                for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
-                {
-                    bgra[i]     = data[i];    
-                    bgra[i + 1] = data[i + 1];
-                    bgra[i + 2] = data[i + 2];
-                    bgra[i + 3] = data[i + 3];
-                }
-                return bgra;
-            }
-            else if (format == 0x81)
-            {
-                for (int i = 0; i < data.Length && i * 4 < bgra.Length; i++)
-                {
-                    byte val = data[i];
-                    bgra[i * 4]     = val;
-                    bgra[i * 4 + 1] = val;
-                    bgra[i * 4 + 2] = val;
-                    bgra[i * 4 + 3] = 255;
-                }
-                return bgra;
-            }
+    int blocksX = (width + 3) / 4;
+    int blocksY = (height + 3) / 4;
+    int srcOffset = 0;
 
-            int blocksX = (width + 3) / 4;
-            int blocksY = (height + 3) / 4;
-            int srcOffset = 0;
-
-            uint[] dest = new uint[width * height];
+    uint[] dest = new uint[totalPixels];
 
             for (int by = 0; by < blocksY; by++)
             {

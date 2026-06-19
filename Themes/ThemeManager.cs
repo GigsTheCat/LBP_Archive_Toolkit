@@ -7,6 +7,12 @@ namespace LbpArchiveToolkit.Themes
     {
         public static void ApplyTheme(string themeName)
         {
+            // Security: Prevent XAML injection by explicitly safelisting allowed themes
+            if (themeName != "CraftTheme" && themeName != "DefaultTheme")
+            {
+                themeName = "DefaultTheme";
+            }
+
             var app = Application.Current;
             var dict = new ResourceDictionary
             {

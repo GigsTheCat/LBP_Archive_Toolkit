@@ -53,13 +53,14 @@ namespace LbpArchiveToolkit.Services
         #region Public API
 
         public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, AdvancedSearchCriteria advanced)
-        {
-            if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
+{
+    if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
-            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
-            await conn.OpenAsync().ConfigureAwait(false);
+    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+    await conn.OpenAsync().ConfigureAwait(false);
 
             conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob, string requiredIndicesStr) =>
             {
@@ -191,14 +192,15 @@ namespace LbpArchiveToolkit.Services
         }
 
         public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter)
-        {
-            var items = new List<UserItem>();
-            if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
+{
+    var items = new List<UserItem>();
+    if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
-            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
-            await conn.OpenAsync().ConfigureAwait(false);
+    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+    await conn.OpenAsync().ConfigureAwait(false);
 
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
@@ -249,15 +251,16 @@ namespace LbpArchiveToolkit.Services
         }
 
         public async Task<HashSet<string>> GetGenresAsync()
-        {
-            var genres = new HashSet<string>();
-            if (!File.Exists(_dbPath)) return genres;
+{
+    var genres = new HashSet<string>();
+    if (!File.Exists(_dbPath)) return genres;
 
-            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
-            if (_colGenre == "NULL") return genres;
+    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+    if (_colGenre == "NULL") return genres;
 
-            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
-            await conn.OpenAsync().ConfigureAwait(false);
+    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+    await conn.OpenAsync().ConfigureAwait(false);
 
             string query = $"SELECT DISTINCT {_colGenre} FROM slot WHERE {_colGenre} IS NOT NULL AND {_colGenre} != ''";
             using var cmd = new SqliteCommand(query, conn);
@@ -383,15 +386,16 @@ namespace LbpArchiveToolkit.Services
         #region Schema Resolution & Utilities
 
         private void EnsureSchemaResolved()
-        {
-            if (_isSchemaResolved) return;
+{
+    if (_isSchemaResolved) return;
 
-            lock (_schemaLock)
-            {
-                if (_isSchemaResolved) return;
+    lock (_schemaLock)
+    {
+        if (_isSchemaResolved) return;
 
-                using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
-                conn.Open();
+        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+        using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+        conn.Open();
 
                 try
                 {

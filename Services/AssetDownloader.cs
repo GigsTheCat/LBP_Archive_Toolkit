@@ -219,12 +219,13 @@ namespace LbpArchiveToolkit.Services
         }
 
         private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo)
-        {
-            try
-            {
-                using var conn = new SqliteConnection($"Data Source={dbPath}");
-                conn.Open();
-                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels FROM slot WHERE id = @id";
+{
+    try
+    {
+        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
+        using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+        conn.Open();
+        string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels FROM slot WHERE id = @id";
                 using var cmd = new SqliteCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", levelId);
                 
@@ -335,17 +336,23 @@ namespace LbpArchiveToolkit.Services
                     if (ctx.Token.IsCancellationRequested) break;
 
                     try
+            {
+                using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token).ConfigureAwait(false);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    long? contentLength = response.Content.Headers.ContentLength;
+                    if (contentLength.HasValue && contentLength.Value > 104857600) // Hard 100 MB limit to prevent Memory Exhaustion / DoS
                     {
-                        using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token).ConfigureAwait(false);
-                        
-                        if (response.IsSuccessStatusCode)
-                        {
-                            fileData = await response.Content.ReadAsByteArrayAsync(ctx.Token).ConfigureAwait(false);
-                            string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
-                            
-                            if (computedHash == currentHash) success = true;
-                            else { success = false; fileData = null; failReason = "Hash Mismatch"; }
-                        }
+                        throw new InvalidOperationException("File exceeds maximum allowed size.");
+                    }
+
+                    fileData = await response.Content.ReadAsByteArrayAsync(ctx.Token).ConfigureAwait(false);
+                    string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
+                    
+                    if (computedHash == currentHash) success = true;
+                    else { success = false; fileData = null; failReason = "Hash Mismatch"; }
+                }
                         else if ((int)response.StatusCode == 429 || (int)response.StatusCode >= 500)
                         {
                             failReason = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";

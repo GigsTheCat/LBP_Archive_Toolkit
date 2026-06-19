@@ -46,12 +46,12 @@ namespace LbpArchiveToolkit.Services
             int tableOffsetPos = 8;
 
             if (method == (byte)'e')
-            {
-                uint size = ReadUInt32BE(data, 4);
-                if (8 + size > data.Length) return deps;
-                
-                workData = new byte[size];
-                Array.Copy(data, 8, workData, 0, (int)size);
+    {
+        uint size = ReadUInt32BE(data, 4);
+        if (8L + size > data.Length) return deps; // Use long addition to prevent uint overflow
+        
+        workData = new byte[size];
+        Array.Copy(data, 8, workData, 0, (int)size);
                 XxteaDecrypt(workData, (int)size);
                 
                 headOffset = 0;
