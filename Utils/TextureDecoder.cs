@@ -7,12 +7,24 @@ using System.Windows.Media.Imaging;
 namespace LbpArchiveToolkit.Utils
 {
     /// <summary>
-    /// Handles the decryption and formatting of proprietary LBP texture files into standard image formats
+    /// Handles the decryption and formatting of proprietary LBP texture files into standard image formats.
     /// </summary>
     public static class TextureDecoder
     {
         public static byte[] DecodeToPngCentered(byte[] resourceData)
         {
+            if (resourceData == null || resourceData.Length < 4) return new byte[0];
+
+            uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
+            if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
+            {
+                return CenterWpfImage(resourceData);
+            }
+            if (magic == 0x44445320)
+            {
+                return DecodeDdsToPngCentered(resourceData);
+            }
+
             using var ms = new MemoryStream(resourceData);
             using var br = new BinaryReader(ms);
             
@@ -24,17 +36,29 @@ namespace LbpArchiveToolkit.Utils
                 
             byte format = 0;
             int width = 0, height = 0, mipCount = 1;
+            bool isLinear = false;
             
             if (typeStr == "GTF")
             {
                 br.BaseStream.Position = 0x14; // GTF header starts exactly 20 bytes into the stream
                 format = br.ReadByte();
+                
+                // PS3 libgcm uses the 0x20 bit to explicitly mark a texture as LINEAR in memory.
+                isLinear = (format & 0x20) != 0;
+                
+                // Mask out the linear bit (0x20) and no-restriction bit (0x40) to get the base format
+                format = (byte)(format & ~(0x20 | 0x40));
+                
                 mipCount = br.ReadByte();
                 br.ReadBytes(6); // Skip dimension, cubemap, remap
                 width = BigEndianUInt16(br);
                 height = BigEndianUInt16(br);
                 
                 br.BaseStream.Position = 44; // Jump straight into chunk tables
+            }
+            else
+            {
+                br.BaseStream.Position = 4; // Go to the chunk count in TEX
             }
             
             br.ReadUInt16(); 
@@ -93,56 +117,77 @@ namespace LbpArchiveToolkit.Utils
                 currentPos += info.decomp;
             }
 
-            // TEX files wrap standard files (DDS, PNG, JPG). We extract their metadata here.
             if (typeStr == "TEX")
             {
                 if (finalData.Length >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
                 {
-                    width = BitConverter.ToInt32(finalData, 16);
-                    height = BitConverter.ToInt32(finalData, 12);
-                    
-                    uint pfFlags = BitConverter.ToUInt32(finalData, 84);
-                    uint fourCC = BitConverter.ToUInt32(finalData, 88);
-                    uint bitCount = BitConverter.ToUInt32(finalData, 92);
-
-                    if ((pfFlags & 0x4) != 0) // DDPF_FOURCC (Compressed Texture)
-                    {
-                        if (fourCC == 0x31545844) format = 0x86; // DXT1
-                        else if (fourCC == 0x33545844) format = 0x87; // DXT3
-                        else if (fourCC == 0x35545844) format = 0x88; // DXT5
-                        else format = 0x86; 
-                    }
-                    else // Uncompressed
-                    {
-                        if (bitCount == 32) format = 0x89; // Little Endian BGRA
-                        else if (bitCount == 8) format = 0x81; // L8
-                        else format = 0x89; 
-                    }
-
-                    // Extract pixel data (skip the 128 byte DDS header)
-                    byte[] pixels = new byte[finalData.Length - 128];
-                    Buffer.BlockCopy(finalData, 128, pixels, 0, pixels.Length);
-                    finalData = pixels;
+                    return DecodeDdsToPngCentered(finalData);
                 }
                 else
                 {
-                    // It's a standard PNG/JPG file. Hand it directly to WPF native imaging.
                     return CenterWpfImage(finalData);
                 }
             }
             else // GTF files are raw console textures that need unswizzling
             {
-                if (method == 's' || method == 'w')
+                // Unswizzle based purely on the hardware texture flag, ignoring flawed serialization hints.
+                if (!isLinear)
                 {
                     finalData = Unswizzle(finalData, format, width, height, mipCount);
+                }
+
+                // FIX 1: Restore 16-bit blocks back to Little-Endian for the GPU
+                if (format == 0x86 || format == 0x87 || format == 0x88)
+                {
+                    for (int i = 0; i < finalData.Length - 1; i += 2)
+                    {
+                        byte temp = finalData[i];
+                        finalData[i] = finalData[i + 1];
+                        finalData[i + 1] = temp;
+                    }
                 }
             }
 
             if (width == 0 || height == 0) return new byte[0];
 
-            // Decode DXT block formats into uncompressed raw pixels
             byte[] bgraData = DecodeFormatToBgra32(finalData, format, width, height);
 
+            return CenterBgraToPng(bgraData, width, height);
+        }
+
+        private static byte[] DecodeDdsToPngCentered(byte[] finalData)
+        {
+            if (finalData.Length < 128) return new byte[0];
+
+            int width = BitConverter.ToInt32(finalData, 16);
+            int height = BitConverter.ToInt32(finalData, 12);
+            
+            // Re-aligned offsets for standard DDS_PIXELFORMAT structures inside DDS files
+            uint pfFlags = BitConverter.ToUInt32(finalData, 80);
+            uint fourCC = BitConverter.ToUInt32(finalData, 84);
+            uint bitCount = BitConverter.ToUInt32(finalData, 88);
+
+            byte format = 0;
+            if ((pfFlags & 0x4) != 0) // DDPF_FOURCC
+            {
+                if (fourCC == 0x31545844) format = 0x86; // DXT1
+                else if (fourCC == 0x33545844) format = 0x87; // DXT3
+                else if (fourCC == 0x35545844) format = 0x88; // DXT5
+                else format = 0x86; 
+            }
+            else
+            {
+                if (bitCount == 32) format = 0x89;
+                else if (bitCount == 8) format = 0x81;
+                else format = 0x89; 
+            }
+
+            byte[] pixels = new byte[finalData.Length - 128];
+            Buffer.BlockCopy(finalData, 128, pixels, 0, pixels.Length);
+            
+            if (width == 0 || height == 0) return new byte[0];
+
+            byte[] bgraData = DecodeFormatToBgra32(pixels, format, width, height);
             return CenterBgraToPng(bgraData, width, height);
         }
 
@@ -150,29 +195,29 @@ namespace LbpArchiveToolkit.Utils
         {
             byte[] bgra = new byte[width * height * 4];
 
-            if (format == 0x85) // Uncompressed ARGB 32-bit (Big Endian)
+            if (format == 0x85)
             {
                 for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
                 {
-                    bgra[i]     = data[i + 3]; // B
-                    bgra[i + 1] = data[i + 2]; // G
-                    bgra[i + 2] = data[i + 1]; // R
-                    bgra[i + 3] = data[i];     // A
+                    bgra[i]     = data[i + 3];
+                    bgra[i + 1] = data[i + 2];
+                    bgra[i + 2] = data[i + 1];
+                    bgra[i + 3] = data[i];    
                 }
                 return bgra;
             }
-            else if (format == 0x89) // Uncompressed BGRA 32-bit (PC Little Endian)
+            else if (format == 0x89)
             {
                 for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
                 {
-                    bgra[i]     = data[i];     // B
-                    bgra[i + 1] = data[i + 1]; // G
-                    bgra[i + 2] = data[i + 2]; // R
-                    bgra[i + 3] = data[i + 3]; // A
+                    bgra[i]     = data[i];    
+                    bgra[i + 1] = data[i + 1];
+                    bgra[i + 2] = data[i + 2];
+                    bgra[i + 3] = data[i + 3];
                 }
                 return bgra;
             }
-            else if (format == 0x81) // Uncompressed 8-bit (Grayscale mapping)
+            else if (format == 0x81)
             {
                 for (int i = 0; i < data.Length && i * 4 < bgra.Length; i++)
                 {
@@ -215,7 +260,6 @@ namespace LbpArchiveToolkit.Utils
                     }
                     else
                     {
-                        // Fill unknown blocks with Magenta
                         for (int y = 0; y < 4; y++)
                         for (int x = 0; x < 4; x++)
                         {
@@ -250,7 +294,10 @@ namespace LbpArchiveToolkit.Utils
                 colors[3] = 0;
             }
 
-            uint indices = (uint)(data[srcOffset + 4] | (data[srcOffset + 5] << 8) | (data[srcOffset + 6] << 16) | (data[srcOffset + 7] << 24));
+            uint indices = (uint)data[srcOffset + 4] | 
+                           ((uint)data[srcOffset + 5] << 8) | 
+                           ((uint)data[srcOffset + 6] << 16) | 
+                           ((uint)data[srcOffset + 7] << 24);
 
             for (int y = 0; y < 4; y++)
             {
@@ -270,7 +317,7 @@ namespace LbpArchiveToolkit.Utils
 
             for (int y = 0; y < 4; y++)
             {
-                uint rowAlpha = (uint)(data[srcOffset + y * 2] | (data[srcOffset + y * 2 + 1] << 8));
+                uint rowAlpha = (uint)data[srcOffset + y * 2] | ((uint)data[srcOffset + y * 2 + 1] << 8);
                 for (int x = 0; x < 4; x++)
                 {
                     uint a = rowAlpha & 0xF;
@@ -306,7 +353,7 @@ namespace LbpArchiveToolkit.Utils
                 alphas[7] = 255;
             }
 
-            ulong alphaIndices = data[srcOffset + 2] |
+            ulong alphaIndices = (ulong)data[srcOffset + 2] |
                                  ((ulong)data[srcOffset + 3] << 8) |
                                  ((ulong)data[srcOffset + 4] << 16) |
                                  ((ulong)data[srcOffset + 5] << 24) |
@@ -354,6 +401,44 @@ namespace LbpArchiveToolkit.Utils
             return (uint)((255 << 24) | (r << 16) | (g << 8) | b);
         }
 
+        private static int NextPowerOfTwo(int value)
+        {
+            if (value < 1) return 1;
+            int n = value - 1;
+            n |= n >> 1;
+            n |= n >> 2;
+            n |= n >> 4;
+            n |= n >> 8;
+            n |= n >> 16;
+            return n + 1;
+        }
+
+        private static int GetMortonOffset(int x, int y, int log2Width, int log2Height)
+        {
+            int offset = 0;
+            int shiftX = 0;
+            int shiftY = 0;
+            int outShift = 0;
+            
+            while (shiftX < log2Width || shiftY < log2Height)
+            {
+                if (shiftX < log2Width)
+                {
+                    offset |= ((x >> shiftX) & 1) << outShift;
+                    shiftX++;
+                    outShift++;
+                }
+                if (shiftY < log2Height)
+                {
+                    offset |= ((y >> shiftY) & 1) << outShift;
+                    shiftY++;
+                    outShift++;
+                }
+            }
+            
+            return offset;
+        }
+
         private static byte[] Unswizzle(byte[] data, byte format, int width, int height, int mipCount)
         {
             int bytesPerBlock = 16;
@@ -361,13 +446,24 @@ namespace LbpArchiveToolkit.Utils
             int blockHeight = 4;
 
             if (format == 0x81) { bytesPerBlock = 1; blockWidth = 1; blockHeight = 1; }
-            else if (format == 0x85) { bytesPerBlock = 4; blockWidth = 1; blockHeight = 1; }
+            else if (format == 0x85 || format == 0x89) { bytesPerBlock = 4; blockWidth = 1; blockHeight = 1; }
             else if (format == 0x86) { bytesPerBlock = 8; blockWidth = 4; blockHeight = 4; }
             else if (format == 0x87 || format == 0x88) { bytesPerBlock = 16; blockWidth = 4; blockHeight = 4; }
             else return data; 
 
-            byte[] unswizzled = new byte[data.Length];
+            int totalUnswizzledSize = 0;
+            for (int mip = 0; mip < mipCount; mip++)
+            {
+                int mipWidth = Math.Max(1, width >> mip);
+                int mipHeight = Math.Max(1, height >> mip);
+                int blocksX = (mipWidth + blockWidth - 1) / blockWidth;
+                int blocksY = (mipHeight + blockHeight - 1) / blockHeight;
+                totalUnswizzledSize += blocksX * blocksY * bytesPerBlock;
+            }
+
+            byte[] unswizzled = new byte[totalUnswizzledSize];
             int srcOffset = 0;
+            int destOffset = 0;
 
             for (int mip = 0; mip < mipCount; mip++)
             {
@@ -377,44 +473,37 @@ namespace LbpArchiveToolkit.Utils
                 int blocksX = (mipWidth + blockWidth - 1) / blockWidth;
                 int blocksY = (mipHeight + blockHeight - 1) / blockHeight;
                 
-                int totalBlocks = blocksX * blocksY;
-                int mipDataSize = totalBlocks * bytesPerBlock;
+                int paddedWidth = NextPowerOfTwo(mipWidth);
+                int paddedHeight = NextPowerOfTwo(mipHeight);
+                
+                int paddedBlocksX = Math.Max(1, paddedWidth / blockWidth);
+                int paddedBlocksY = Math.Max(1, paddedHeight / blockHeight);
 
-                if (srcOffset + mipDataSize > data.Length) break;
+                int log2Width = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksX);
+                int log2Height = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksY);
 
-                for (int i = 0; i < totalBlocks; i++)
+                int paddedMipDataSize = paddedBlocksX * paddedBlocksY * bytesPerBlock;
+                if (srcOffset >= data.Length) break;
+
+                for (int y = 0; y < blocksY; y++)
                 {
-                    uint x = Compact1By1((uint)i);
-                    uint y = Compact1By1((uint)(i >> 1));
-
-                    int destIndex = srcOffset + ((int)y * blocksX + (int)x) * bytesPerBlock;
-                    int srcIndex = srcOffset + i * bytesPerBlock;
-
-                    if (destIndex + bytesPerBlock <= unswizzled.Length)
+                    for (int x = 0; x < blocksX; x++)
                     {
-                        Buffer.BlockCopy(data, srcIndex, unswizzled, destIndex, bytesPerBlock);
+                        int mortonIndex = GetMortonOffset(x, y, log2Width, log2Height);
+                        int srcIndex = srcOffset + mortonIndex * bytesPerBlock;
+
+                        if (srcIndex + bytesPerBlock <= data.Length && destOffset + bytesPerBlock <= unswizzled.Length)
+                        {
+                            Buffer.BlockCopy(data, srcIndex, unswizzled, destOffset, bytesPerBlock);
+                        }
+                        destOffset += bytesPerBlock;
                     }
                 }
 
-                srcOffset += mipDataSize;
-            }
-            
-            if (srcOffset < data.Length)
-            {
-                Buffer.BlockCopy(data, srcOffset, unswizzled, srcOffset, data.Length - srcOffset);
+                srcOffset += paddedMipDataSize;
             }
 
             return unswizzled;
-        }
-
-        private static uint Compact1By1(uint x)
-        {
-            x &= 0x55555555;
-            x = (x ^ (x >> 1)) & 0x33333333;
-            x = (x ^ (x >> 2)) & 0x0f0f0f0f;
-            x = (x ^ (x >> 4)) & 0x00ff00ff;
-            x = (x ^ (x >> 8)) & 0x0000ffff;
-            return x;
         }
         
         private static ushort BigEndianUInt16(BinaryReader br)
@@ -425,105 +514,76 @@ namespace LbpArchiveToolkit.Utils
 
         private static byte[] CenterBgraToPng(byte[] bgraData, int srcWidth, int srcHeight)
         {
-            int canvasWidth = 320;
-            int canvasHeight = 176;
-            int canvasStride = canvasWidth * 4;
-            byte[] canvasPixels = new byte[canvasHeight * canvasStride];
-
-            int offsetX = (canvasWidth - srcWidth) / 2;
-            int offsetY = (canvasHeight - srcHeight) / 2;
-
-            int startY = Math.Max(0, offsetY);
-            int endY = Math.Min(canvasHeight, offsetY + srcHeight);
-            int startX = Math.Max(0, offsetX);
-            int endX = Math.Min(canvasWidth, offsetX + srcWidth);
+            if (srcWidth == 0 || srcHeight == 0) return new byte[0];
 
             int srcStride = srcWidth * 4;
-
-            for (int y = startY; y < endY; y++)
-            {
-                int srcY = y - offsetY;
-                int srcOffset = (srcY * srcStride) + ((startX - offsetX) * 4);
-                int destOffset = (y * canvasStride) + (startX * 4);
-                int bytesToCopy = (endX - startX) * 4;
-                
-                int availableInSrc = bgraData.Length - srcOffset;
-                if (bytesToCopy > availableInSrc) bytesToCopy = availableInSrc;
-                if (bytesToCopy <= 0) continue;
-
-                Buffer.BlockCopy(bgraData, srcOffset, canvasPixels, destOffset, bytesToCopy);
-            }
-
-            var pixelFormat = PixelFormats.Bgra32;
-            var bitmapSource = BitmapSource.Create(canvasWidth, canvasHeight, 96, 96, pixelFormat, null, canvasPixels, canvasStride);
+            var bitmapSource = BitmapSource.Create(srcWidth, srcHeight, 96, 96, PixelFormats.Bgra32, null, bgraData, srcStride);
             bitmapSource.Freeze(); 
 
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-            
-            using var outStream = new MemoryStream();
-            encoder.Save(outStream);
-            
-            return outStream.ToArray();
+            return ScaleAndCenterWpfImage(bitmapSource);
         }
 
         private static byte[] CenterWpfImage(byte[] imageData)
         {
-            using var ms = new MemoryStream(imageData);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = ms;
-            bitmap.EndInit();
-            bitmap.Freeze();
-
-            int srcWidth = bitmap.PixelWidth;
-            int srcHeight = bitmap.PixelHeight;
-
-            int canvasWidth = 320;
-            int canvasHeight = 176;
-            int canvasStride = canvasWidth * 4;
-            byte[] canvasPixels = new byte[canvasHeight * canvasStride];
-
-            // Convert raw format to predictable 32-bit BGRA mapping
-            var formattedBitmap = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
-            byte[] srcPixels = new byte[srcHeight * srcWidth * 4];
-            formattedBitmap.CopyPixels(srcPixels, srcWidth * 4, 0);
-
-            int offsetX = (canvasWidth - srcWidth) / 2;
-            int offsetY = (canvasHeight - srcHeight) / 2;
-
-            int startY = Math.Max(0, offsetY);
-            int endY = Math.Min(canvasHeight, offsetY + srcHeight);
-            int startX = Math.Max(0, offsetX);
-            int endX = Math.Min(canvasWidth, offsetX + srcWidth);
-
-            int srcStride = srcWidth * 4;
-
-            for (int y = startY; y < endY; y++)
+            try
             {
-                int srcY = y - offsetY;
-                int srcOffset = (srcY * srcStride) + ((startX - offsetX) * 4);
-                int destOffset = (y * canvasStride) + (startX * 4);
-                int bytesToCopy = (endX - startX) * 4;
-                
-                int availableInSrc = srcPixels.Length - srcOffset;
-                if (bytesToCopy > availableInSrc) bytesToCopy = availableInSrc;
-                if (bytesToCopy <= 0) continue;
+                using var ms = new MemoryStream(imageData);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = ms;
+                bitmap.EndInit();
+                bitmap.Freeze();
 
-                Buffer.BlockCopy(srcPixels, srcOffset, canvasPixels, destOffset, bytesToCopy);
+                if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return new byte[0];
+
+                return ScaleAndCenterWpfImage(bitmap);
+            }
+            catch
+            {
+                return new byte[0];
+            }
+        }
+
+        private static byte[] ScaleAndCenterWpfImage(BitmapSource bitmap)
+        {
+            int targetWidth = 320;
+            int targetHeight = 176;
+
+            if (bitmap.PixelWidth == targetWidth && bitmap.PixelHeight == targetHeight)
+            {
+                var enc = new PngBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(bitmap));
+                using var ms1 = new MemoryStream();
+                enc.Save(ms1);
+                return ms1.ToArray();
             }
 
-            var bitmapSource = BitmapSource.Create(canvasWidth, canvasHeight, 96, 96, PixelFormats.Bgra32, null, canvasPixels, canvasStride);
-            bitmapSource.Freeze(); 
+            double scaleX = (double)targetWidth / bitmap.PixelWidth;
+            double scaleY = (double)targetHeight / bitmap.PixelHeight;
+            double scale = Math.Min(scaleX, scaleY);
+
+            int scaledWidth = (int)(bitmap.PixelWidth * scale);
+            int scaledHeight = (int)(bitmap.PixelHeight * scale);
+
+            var drawingVisual = new System.Windows.Media.DrawingVisual();
+            using (var drawingContext = drawingVisual.RenderOpen())
+            {
+                drawingContext.DrawRectangle(Brushes.Transparent, null, new System.Windows.Rect(0, 0, targetWidth, targetHeight));
+
+                double x = (targetWidth - scaledWidth) / 2.0;
+                double y = (targetHeight - scaledHeight) / 2.0;
+                drawingContext.DrawImage(bitmap, new System.Windows.Rect(x, y, scaledWidth, scaledHeight));
+            }
+
+            var renderTarget = new RenderTargetBitmap(targetWidth, targetHeight, 96, 96, PixelFormats.Pbgra32);
+            renderTarget.Render(drawingVisual);
 
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-            
-            using var outStream = new MemoryStream();
-            encoder.Save(outStream);
-            
-            return outStream.ToArray();
+            encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+            using var ms = new MemoryStream();
+            encoder.Save(ms);
+            return ms.ToArray();
         }
     }
 }

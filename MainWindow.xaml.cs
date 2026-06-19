@@ -294,9 +294,8 @@ namespace LbpArchiveToolkit
         {
             if (dgResults.SelectedItem is LevelItem selected)
             {
-                cmbSearchType.SelectedIndex = 1; // Ensure levels is selected
                 txtSearch.Text = selected.Creator;
-                BtnSearch_Click(btnSearch, null!);
+                cmbSearchType.SelectedIndex = 1; // Switch UI to Creators, CmbSearchType_SelectionChanged triggers search
             }
         }
 
@@ -314,6 +313,11 @@ namespace LbpArchiveToolkit
 
             if (panelLevelDetails != null) panelLevelDetails.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
             if (panelUserDetails != null) panelUserDetails.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
+
+            if (this.IsLoaded && !_isApplyingState && txtSearch != null && !string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                BtnSearch_Click(sender, null!);
+            }
         }
 
         #endregion
@@ -329,6 +333,13 @@ namespace LbpArchiveToolkit
             txtStatus.Text = "Searching database...";
             progressBar.Visibility = Visibility.Visible;
             progressBar.IsIndeterminate = true;
+
+            // Clear previous results to avoid old icons flashing
+            _resultsList = new List<LevelItem>();
+            dgResults.ItemsSource = _resultsList;
+            
+            _userResultsList = new List<UserItem>();
+            dgUsers.ItemsSource = _userResultsList;
 
             if (_currentSearch != null)
             {
@@ -458,6 +469,10 @@ namespace LbpArchiveToolkit
              if (advancedWin.ShowDialog() == true)
              {
                   _advancedCriteria = advancedWin.Criteria;
+                  if (advancedWin.ShouldSearch && !string.IsNullOrWhiteSpace(txtSearch.Text))
+                  {
+                      BtnSearch_Click(btnSearch, null!);
+                  }
              }
          }
 
@@ -515,59 +530,75 @@ namespace LbpArchiveToolkit
             }
         }
 
+        private bool _isApplyingState = false;
+
         private void ApplySearchState(SearchState state)
         {
-            _currentSearch = state;
-
-            cmbSearchType.SelectedIndex = state.SearchTypeIndex;
-            txtSearch.Text = state.SearchText;
-            _advancedCriteria = state.AdvancedCriteria;
-            cmbGame.SelectedIndex = state.GameIndex;
-            cmbGenre.SelectedIndex = state.GenreIndex;
-            cmbLimit.SelectedIndex = state.LimitIndex;
-            chkExact.IsChecked = state.Exact;
-            chkSearchDesc.IsChecked = state.SearchDesc;
-
-            if (state.SearchTypeIndex == 0)
+            _isApplyingState = true;
+            try
             {
-                _resultsList = state.Results.ToList();
-                dgResults.ItemsSource = _resultsList;
+                _currentSearch = state;
 
-                if (state.SelectedItem != null)
+                cmbSearchType.SelectedIndex = state.SearchTypeIndex;
+                txtSearch.Text = state.SearchText;
+                _advancedCriteria = state.AdvancedCriteria;
+                cmbGame.SelectedIndex = state.GameIndex;
+                cmbGenre.SelectedIndex = state.GenreIndex;
+                cmbLimit.SelectedIndex = state.LimitIndex;
+                chkExact.IsChecked = state.Exact;
+                chkSearchDesc.IsChecked = state.SearchDesc;
+
+                if (state.SearchTypeIndex == 0)
                 {
-                    var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
-                    if (itemToSelect != null)
-                    {
-                        dgResults.SelectedItem = itemToSelect;
-                        dgResults.ScrollIntoView(itemToSelect);
-                    }
-                }
-                else
-                {
+                    _resultsList = state.Results.ToList();
+                    dgResults.ItemsSource = _resultsList;
                     dgResults.SelectedItem = null;
-                }
-            }
-            else
-            {
-                _userResultsList = state.UserResults.ToList();
-                dgUsers.ItemsSource = _userResultsList;
 
-                if (state.SelectedUser != null)
-                {
-                    var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
-                    if (userToSelect != null)
+                    if (state.SelectedItem != null)
                     {
-                        dgUsers.SelectedItem = userToSelect;
-                        dgUsers.ScrollIntoView(userToSelect);
+                        var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
+                        if (itemToSelect != null)
+                        {
+                            dgResults.SelectedItem = itemToSelect;
+                            dgResults.ScrollIntoView(itemToSelect);
+                        }
+                    }
+                    
+                    if (dgResults.SelectedItem == null && _resultsList.Any())
+                    {
+                        dgResults.SelectedIndex = 0;
+                        dgResults.ScrollIntoView(_resultsList[0]);
                     }
                 }
                 else
                 {
+                    _userResultsList = state.UserResults.ToList();
+                    dgUsers.ItemsSource = _userResultsList;
                     dgUsers.SelectedItem = null;
-                }
-            }
 
-            txtStatus.Text = $"Restored search for '{state.SearchText}'.";
+                    if (state.SelectedUser != null)
+                    {
+                        var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
+                        if (userToSelect != null)
+                        {
+                            dgUsers.SelectedItem = userToSelect;
+                            dgUsers.ScrollIntoView(userToSelect);
+                        }
+                    }
+                    
+                    if (dgUsers.SelectedItem == null && _userResultsList.Any())
+                    {
+                        dgUsers.SelectedIndex = 0;
+                        dgUsers.ScrollIntoView(_userResultsList[0]);
+                    }
+                }
+
+                txtStatus.Text = $"Restored search for '{state.SearchText}'.";
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
         }
 
         private void SetUIState(bool isSearching)
@@ -640,7 +671,6 @@ namespace LbpArchiveToolkit
         {
             if (dgUsers.SelectedItem is UserItem selectedUser)
             {
-                cmbSearchType.SelectedIndex = 0; // Switch UI to Levels
                 txtSearch.Text = selectedUser.NpHandle;
                 chkExact.IsChecked = true;
                 chkSearchDesc.IsChecked = false;
@@ -648,7 +678,7 @@ namespace LbpArchiveToolkit
                 cmbGenre.SelectedIndex = 0;
                 _advancedCriteria = new AdvancedSearchCriteria(); // Reset filters
 
-                BtnSearch_Click(btnSearch, null!); // Trigger search
+                cmbSearchType.SelectedIndex = 0; // Switch UI to Levels, CmbSearchType_SelectionChanged triggers search
             }
         }
 
@@ -677,9 +707,8 @@ namespace LbpArchiveToolkit
                 link.Click += (s, e) =>
                 {
                     string name = mentionStr.Substring(1);
-                    cmbSearchType.SelectedIndex = 1;
                     txtSearch.Text = name;
-                    BtnSearch_Click(btnSearch, null!);
+                    cmbSearchType.SelectedIndex = 1; // Switch UI to Creators, CmbSearchType_SelectionChanged triggers search
                     e.Handled = true;
                 };
                 para.Inlines.Add(link);

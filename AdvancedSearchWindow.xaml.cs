@@ -8,6 +8,7 @@ namespace LbpArchiveToolkit
     public partial class AdvancedSearchWindow : Window
     {
         public AdvancedSearchCriteria Criteria { get; private set; }
+        public bool ShouldSearch { get; private set; }
 
         public AdvancedSearchWindow(AdvancedSearchCriteria existingCriteria)
         {
@@ -60,6 +61,21 @@ namespace LbpArchiveToolkit
 
         private void BtnApply_Click(object sender, RoutedEventArgs e)
         {
+            ApplyCriteria();
+            DialogResult = true;
+            Close();
+        }
+
+        private void BtnApplyAndSearch_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyCriteria();
+            ShouldSearch = true;
+            DialogResult = true;
+            Close();
+        }
+
+        private void ApplyCriteria()
+        {
             int.TryParse(txtMinHearts.Text, out int hearts);
             int.TryParse(txtMinPlays.Text, out int plays);
 
@@ -76,9 +92,6 @@ namespace LbpArchiveToolkit
 
             foreach (var child in wpLbp1Tags.Children)
                 if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredTags.Add(cb.Content.ToString()!);
-
-            DialogResult = true;
-            Close();
         }
     }
 }

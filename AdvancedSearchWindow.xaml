@@ -237,7 +237,8 @@
                     <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="CLEAR ALL" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="100" Click="BtnClear_Click"/>
-                            <Button Content="APPLY FILTERS" Style="{StaticResource BtnPrimary}" MinWidth="140" Click="BtnApply_Click"/>
+                            <Button Content="APPLY FILTERS" Style="{StaticResource BtnPrimary}" Margin="0,0,15,0" MinWidth="120" Click="BtnApply_Click"/>
+                            <Button Content="APPLY &amp; SEARCH" Style="{StaticResource BtnPrimary}" MinWidth="140" Click="BtnApplyAndSearch_Click"/>
                         </StackPanel>
                     </Border>
                 </Grid>
