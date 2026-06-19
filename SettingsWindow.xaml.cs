@@ -14,10 +14,15 @@ namespace LbpArchiveToolkit
     {
         #region Initialization & Lifecycle
 
+        private string _originalTheme = "DefaultTheme";
+        private bool _isInitialized = false;
+
         public SettingsWindow()
         {
             InitializeComponent();
+            _originalTheme = ConfigManager.Theme;
             LoadConfigToUI();
+            _isInitialized = true;
         }
 
         private void LoadConfigToUI()
@@ -38,9 +43,21 @@ namespace LbpArchiveToolkit
             txtThreads.Text = ConfigManager.MaxParallelDownloads.ToString();
             chkForceLbp3.IsChecked = ConfigManager.ForceLbp3Backups;
             chkLbp2Beta.IsChecked = ConfigManager.Lbp2BetaToRetail;
+
+            // Load saved theme state
+            foreach (System.Windows.Controls.ComboBoxItem item in cmbTheme.Items)
+            {
+                if (item.Tag?.ToString() == ConfigManager.Theme)
+                {
+                    cmbTheme.SelectedItem = item;
+                    break;
+                }
+            }
         }
 
         #endregion
+
+        
 
         #region Custom Title Bar Controls
 
@@ -134,6 +151,29 @@ namespace LbpArchiveToolkit
 
         #region Configuration Actions
 
+        // Add this method to handle dynamic theme previewing
+        private void CmbTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (!_isInitialized) return;
+
+            if (cmbTheme.SelectedItem is System.Windows.Controls.ComboBoxItem selectedItem)
+            {
+                string themeName = selectedItem.Tag?.ToString() ?? "DefaultTheme";
+                LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(themeName);
+            }
+        }
+
+        // Add this method to handle cancellation and reverting themes
+        protected override void OnClosed(EventArgs e)
+        {
+            if (this.DialogResult != true)
+            {
+                // Revert to original theme if closed without saving
+                LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(_originalTheme);
+            }
+            base.OnClosed(e);
+        }
+
         private void BtnForgetLevels_Click(object sender, RoutedEventArgs e)
         {
             bool result = CustomDialog.Show(
@@ -200,14 +240,19 @@ namespace LbpArchiveToolkit
                 CheckFtsSupport(txtDbPath.Text);
             }
     
-
-                ConfigManager.DatabasePath = txtDbPath.Text;
+            ConfigManager.DatabasePath = txtDbPath.Text;
             ConfigManager.BackupDirectory = txtBackupDir.Text;
             ConfigManager.LocalArchivePath = txtLocalArchive.Text;
             ConfigManager.DownloadServer = (cmbServer.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "bonsai";
             ConfigManager.MaxParallelDownloads = threads;
             ConfigManager.ForceLbp3Backups = chkForceLbp3.IsChecked == true;
             ConfigManager.Lbp2BetaToRetail = chkLbp2Beta.IsChecked == true;
+
+            // Save selected theme configuration
+            if (cmbTheme.SelectedItem is System.Windows.Controls.ComboBoxItem selectedThemeItem)
+            {
+                ConfigManager.Theme = selectedThemeItem.Tag?.ToString() ?? "DefaultTheme";
+            }
 
             ConfigManager.SaveConfig();
             this.DialogResult = true; 

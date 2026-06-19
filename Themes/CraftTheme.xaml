@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- CRAFT THEME (Tactile Cardboard & Sackboy Stage Spotlight) -->
+    
+    <!-- Deep radial-linear spotlight representing the dark stage background -->
+    <LinearGradientBrush x:Key="BgPrimary" StartPoint="0.1,0.1" EndPoint="0.9,0.9">
+        <GradientStop Color="#231712" Offset="0.0"/>
+        <GradientStop Color="#140D0A" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Warm cardboard gradient with top-down lighting -->
+    <LinearGradientBrush x:Key="BgCard" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#463126" Offset="0.0"/>
+        <GradientStop Color="#302018" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Embedded darker cardboard pocket representing deep felt backing -->
+    <LinearGradientBrush x:Key="BgCardDarker" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#231711" Offset="0.0"/>
+        <GradientStop Color="#160E0A" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Soft, warm linen stitching color -->
+    <SolidColorBrush x:Key="FgPrimary" Color="#FAF3EA"/>
+    
+    <!-- Twisted twine/burlap secondary color -->
+    <SolidColorBrush x:Key="FgSecondary" Color="#C1A491"/>
+
+    <!-- Dark leather seam stitching / border outline -->
+    <SolidColorBrush x:Key="BorderSubtle" Color="#5A3E31"/>
+
+    <!-- Glowing Terracotta Felt Orange -->
+    <LinearGradientBrush x:Key="LbpOrange" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#F39C12" Offset="0.0"/>
+        <GradientStop Color="#D35400" Offset="0.5"/>
+        <GradientStop Color="#A04000" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Glowing Stitched Popit Felt Pink -->
+    <LinearGradientBrush x:Key="LbpPink" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#EC407A" Offset="0.0"/>
+        <GradientStop Color="#D81B60" Offset="0.5"/>
+        <GradientStop Color="#880E4F" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Warm Seafoam Craft Felt Teal -->
+    <LinearGradientBrush x:Key="LbpCyan" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#26A69A" Offset="0.0"/>
+        <GradientStop Color="#00897B" Offset="0.5"/>
+        <GradientStop Color="#004D40" Offset="1.0"/>
+    </LinearGradientBrush>
+
+    <!-- Natural Grass Felt Green -->
+    <LinearGradientBrush x:Key="LbpEmerald" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#9CCC65" Offset="0.0"/>
+        <GradientStop Color="#7CB342" Offset="0.5"/>
+        <GradientStop Color="#33691E" Offset="1.0"/>
+    </LinearGradientBrush>
+</ResourceDictionary>

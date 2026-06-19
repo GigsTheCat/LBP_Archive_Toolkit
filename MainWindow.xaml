@@ -352,13 +352,7 @@
     </Window.Resources>
 
     <!-- ROUNDED APP WRAPPER -->
-    <Border>
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#130F25" Offset="0.0" />
-                <GradientStop Color="#2A2045" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
+    <Border Background="{DynamicResource BgPrimary}">
         <Border.Style>
             <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="14"/>

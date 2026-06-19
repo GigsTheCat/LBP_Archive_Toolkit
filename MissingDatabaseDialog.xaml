@@ -8,13 +8,7 @@
         FontFamily="Segoe UI" Topmost="False">
     
     <Window.Resources>
-        <SolidColorBrush x:Key="BgCard" Color="#2D2447"/>
-        <SolidColorBrush x:Key="BorderSubtle" Color="#453868"/>
-        <SolidColorBrush x:Key="FgPrimary" Color="#F8FAFC"/>
-        <SolidColorBrush x:Key="LbpOrange" Color="#FFB703"/>
-        <SolidColorBrush x:Key="LbpPink" Color="#F72585"/>
-        <SolidColorBrush x:Key="LbpCyan" Color="#4CC9F0"/>
-        <SolidColorBrush x:Key="LbpEmerald" Color="#06D6A0"/>
+        
 
         
         <Style x:Key="BubbleButton" TargetType="Button">
@@ -49,7 +43,7 @@
         </Style>
 
         <Style x:Key="BtnSettings" TargetType="Button" BasedOn="{StaticResource DialogButtonBase}">
-            <Setter Property="Background" Value="{StaticResource LbpCyan}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
             <Setter Property="Foreground" Value="#002D3D"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -59,7 +53,7 @@
         </Style>
 
         <Style x:Key="BtnDownload" TargetType="Button" BasedOn="{StaticResource DialogButtonBase}">
-            <Setter Property="Background" Value="{StaticResource LbpEmerald}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpEmerald}"/>
             <Setter Property="Foreground" Value="#003D2A"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -69,7 +63,7 @@
         </Style>
         
         <Style x:Key="BtnClose" TargetType="Button" BasedOn="{StaticResource DialogButtonBase}">
-            <Setter Property="Background" Value="{StaticResource LbpPink}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#FF4A9F"/>
@@ -78,13 +72,7 @@
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1" CornerRadius="16" Margin="25" Padding="25">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#19132B" Offset="0.0" />
-                <GradientStop Color="#2D2447" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
+    <Border BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="16" Margin="25" Padding="25" Background="{DynamicResource BgCard}">
 
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="6" Opacity="0.4" Direction="270" Color="Black"/>
@@ -99,18 +87,18 @@
             </Grid.RowDefinitions>
 
             <DockPanel Grid.Row="0" Margin="0,0,0,12">
-                <TextBlock Text="Database Missing" Foreground="{StaticResource LbpOrange}" FontSize="22" FontWeight="Black" VerticalAlignment="Center"/>
+                <TextBlock Text="Database Missing" Foreground="{DynamicResource LbpOrange}" FontSize="22" FontWeight="Black" VerticalAlignment="Center"/>
             </DockPanel>
 
-            <Rectangle Grid.Row="1" Fill="{StaticResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
+            <Rectangle Grid.Row="1" Fill="{DynamicResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
 
-            <TextBlock Grid.Row="2" Text="Could not find dry.db" Foreground="{StaticResource FgPrimary}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24" Margin="0,0,0,30"/>
+            <TextBlock Grid.Row="2" Text="Could not find dry.db" Foreground="{DynamicResource FgPrimary}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24" Margin="0,0,0,30"/>
 
             <!-- Buttons use the new chunkier style -->
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="SETTINGS" Style="{StaticResource BtnSettings}" Click="BtnSettings_Click"/>
-                <Button Content="DOWNLOAD" Style="{StaticResource BtnDownload}" Click="BtnDownload_Click"/>
-                <Button Content="CLOSE" Style="{StaticResource BtnClose}" Click="BtnClose_Click"/>
+                <Button Content="SETTINGS" Style="{DynamicResource BtnSettings}" Click="BtnSettings_Click"/>
+                <Button Content="DOWNLOAD" Style="{DynamicResource BtnDownload}" Click="BtnDownload_Click"/>
+                <Button Content="CLOSE" Style="{DynamicResource BtnClose}" Click="BtnClose_Click"/>
             </StackPanel>
         </Grid>
     </Border>

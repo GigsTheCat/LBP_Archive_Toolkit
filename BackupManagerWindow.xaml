@@ -11,16 +11,7 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="BgPrimary" Color="#19132B"/> 
-        <SolidColorBrush x:Key="BgCard" Color="#2D2447"/>
-        <SolidColorBrush x:Key="BgCardDarker" Color="#221A35"/>
-        <SolidColorBrush x:Key="FgPrimary" Color="#F8FAFC"/>
-        <SolidColorBrush x:Key="FgSecondary" Color="#B7AEDB"/>
-        <SolidColorBrush x:Key="BorderSubtle" Color="#453868"/>
-        <SolidColorBrush x:Key="LbpOrange" Color="#FFB703"/>
-        <SolidColorBrush x:Key="LbpPink" Color="#F72585"/>
-        <SolidColorBrush x:Key="LbpCyan" Color="#4CC9F0"/>
-        <SolidColorBrush x:Key="LbpEmerald" Color="#06D6A0"/>
+        
 
         <!-- ============================================== -->
         <!-- SCROLLBAR THEME                                -->
@@ -38,13 +29,13 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border x:Name="thumbBorder" Background="{StaticResource BorderSubtle}" CornerRadius="4" Margin="2,0"/>
+                                                <Border x:Name="thumbBorder" Background="{DynamicResource BorderSubtle}" CornerRadius="4" Margin="2,0"/>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource LbpPink}"/>
+                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource LbpPink}"/>
                                                     </Trigger>
                                                     <Trigger Property="IsDragging" Value="True">
-                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource LbpCyan}"/>
+                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource LbpCyan}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -69,13 +60,13 @@
                                             <Thumb>
                                                 <Thumb.Template>
                                                     <ControlTemplate TargetType="Thumb">
-                                                        <Border x:Name="thumbBorder" Background="{StaticResource BorderSubtle}" CornerRadius="4" Margin="0,2"/>
+                                                        <Border x:Name="thumbBorder" Background="{DynamicResource BorderSubtle}" CornerRadius="4" Margin="0,2"/>
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource LbpPink}"/>
+                                                                <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource LbpPink}"/>
                                                             </Trigger>
                                                             <Trigger Property="IsDragging" Value="True">
-                                                                <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource LbpCyan}"/>
+                                                                <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource LbpCyan}"/>
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -93,7 +84,7 @@
 
         <Style x:Key="TitleBarBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource FgSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
             <Setter Property="Width" Value="46"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="14"/>
@@ -138,8 +129,8 @@
         </Style>
 
         <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Effect">
@@ -173,7 +164,7 @@
         </Style>
 
         <Style x:Key="BtnDelete" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
-            <Setter Property="Background" Value="{StaticResource LbpPink}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#FF4A9F"/>
@@ -187,18 +178,12 @@
         </Style>
     </Window.Resources>
 
-    <Border>
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#130F25" Offset="0.0" />
-                <GradientStop Color="#2A2045" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
+    <Border Background="{DynamicResource BgPrimary}">
         <Border.Style>
             <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="14"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
                 <Setter Property="Padding" Value="0"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
@@ -212,11 +197,11 @@
 
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Content="─" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
-                    <Button Content="◻" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
-                    <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
+                    <Button Content="─" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
+                    <Button Content="◻" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
+                    <Button Content="✕" Style="{DynamicResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -226,7 +211,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="LOCAL BACKUPS" Foreground="{StaticResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,15"/>
+                <TextBlock Grid.Row="0" Text="LOCAL BACKUPS" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,15"/>
 
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
@@ -235,10 +220,10 @@
                         <ColumnDefinition Width="380"/> 
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Style="{StaticResource PopitCard}" Padding="5">
+                    <Border Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <DataGrid x:Name="lvBackups" 
                                   Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
-                                  Foreground="{StaticResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
+                                  Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                   HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
                                   SelectionChanged="LvBackups_SelectionChanged">
                             
@@ -251,25 +236,25 @@
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">
                                     <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="Foreground" Value="{StaticResource LbpOrange}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource LbpOrange}"/>
                                     <Setter Property="FontWeight" Value="Black"/>
                                     <Setter Property="Padding" Value="8,10"/>
                                     <Setter Property="BorderThickness" Value="0,0,0,2"/>
-                                    <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
                                 </Style>
                             </DataGrid.ColumnHeaderStyle>
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="LEVEL &amp; CREATOR ↕" Width="*" Binding="{Binding LevelName}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="FOLDER ID ↕" Width="200" Binding="{Binding FolderName}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="DATE BACKED UP ↕" Width="180" Binding="{Binding DateSaved}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="LEVEL &amp; CREATOR ↕" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="FOLDER ID ↕" Width="200" Binding="{Binding FolderName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="DATE BACKED UP ↕" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
 
                     <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
 
-                    <Border Grid.Column="2" Style="{StaticResource PopitCard}" Padding="20">
+                    <Border Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/> 
@@ -283,24 +268,24 @@
                                     <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                     <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                 </Ellipse>
-                                <Ellipse x:Name="iconEllipse" Stroke="{StaticResource LbpOrange}" StrokeThickness="5" Fill="{StaticResource BgPrimary}"/>
-                                <TextBlock x:Name="txtIconStatus" Text="Select a backup&#x0a;to view details" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
+                                <TextBlock x:Name="txtIconStatus" Text="Select a backup&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
 
-                            <TextBlock x:Name="txtLevelTitle" Grid.Row="1" Text="" Foreground="{StaticResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
+                            <TextBlock x:Name="txtLevelTitle" Grid.Row="1" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
 
                             <DockPanel Grid.Row="2" Margin="0,0,0,20">
-                                <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{StaticResource LbpCyan}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
-                                <Border Background="{StaticResource BgCardDarker}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
+                                <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpCyan}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
+                                <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <TextBlock x:Name="txtDescription" Foreground="{StaticResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="txtDescription" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                     </ScrollViewer>
                                 </Border>
                             </DockPanel>
 
                             <StackPanel Grid.Row="3">
-                                <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                                <Button x:Name="btnDelete" Content="DELETE SELECTED BACKUP" IsEnabled="False" Style="{StaticResource BtnDelete}" Click="BtnDelete_Click"/>
+                                <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                <Button x:Name="btnDelete" Content="DELETE SELECTED BACKUP" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
                             </StackPanel>
                         </Grid>
                     </Border>

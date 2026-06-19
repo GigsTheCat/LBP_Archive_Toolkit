@@ -79,6 +79,9 @@ namespace LbpArchiveToolkit
             InitializeComponent();
                         
             ConfigManager.LoadConfig();
+
+            LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(ConfigManager.Theme);
+            
             _dbService = new DatabaseService(ConfigManager.DatabasePath);
 
             RestoreWindowPosition();
@@ -105,7 +108,7 @@ namespace LbpArchiveToolkit
 
             if (_currentSearch != null)
             {
-                if (cmbSearchType.SelectedIndex == 0)
+                if (_currentSearch.SearchTypeIndex == 0)
                     _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -329,7 +332,8 @@ namespace LbpArchiveToolkit
 
             if (_currentSearch != null)
             {
-                if (cmbSearchType.SelectedIndex == 0)
+                // FIX: Check the actual search state type, not the UI dropdown
+                if (_currentSearch.SearchTypeIndex == 0)
                     _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -365,6 +369,12 @@ namespace LbpArchiveToolkit
                     dgResults.ItemsSource = _resultsList;
                     txtStatus.Text = $"Found {results.Count} levels for '{keyword}'.";
 
+                    if (results.Any())
+                    {
+                        dgResults.SelectedIndex = 0;
+                        dgResults.ScrollIntoView(results[0]);
+                    }
+
                     _currentSearch = new SearchState
                     {
                         SearchText = keyword,
@@ -396,12 +406,25 @@ namespace LbpArchiveToolkit
                     dgUsers.ItemsSource = _userResultsList;
                     txtStatus.Text = $"Found {results.Count} creators matching '{keyword}'.";
 
+                    if (results.Any())
+                    {
+                        dgUsers.SelectedIndex = 0;
+                        dgUsers.ScrollIntoView(results[0]);
+                    }
+
                     _currentSearch = new SearchState
                     {
                         SearchText = keyword,
                         SearchTypeIndex = 1,
                         LimitIndex = limitFilterIdx,
                         Exact = exact,
+                        AdvancedCriteria = new AdvancedSearchCriteria 
+                        { 
+                            MinHearts = _advancedCriteria.MinHearts,
+                            MinPlays = _advancedCriteria.MinPlays,
+                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
+                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                        },
                         UserResults = new List<UserItem>(results)
                     };
                 }
@@ -447,7 +470,7 @@ namespace LbpArchiveToolkit
         {
             if (_searchHistory.Count > 0 && _currentSearch != null)
             {
-                if (cmbSearchType.SelectedIndex == 0)
+                if (_currentSearch.SearchTypeIndex == 0)
                     _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -464,7 +487,7 @@ namespace LbpArchiveToolkit
         {
             if (_forwardHistory.Count > 0 && _currentSearch != null)
             {
-                if (cmbSearchType.SelectedIndex == 0)
+                if (_currentSearch.SearchTypeIndex == 0)
                     _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -576,7 +599,7 @@ namespace LbpArchiveToolkit
             {
                 btnExtract.IsEnabled = false;
                 btnCopyHash.IsEnabled = false;
-                iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                iconEllipse.Fill = (Brush)FindResource("BgPrimary"); // Changed to (Brush)
                 txtIconStatus.Text = "Select a level\nto view details";
                 
                 txtDescription.Document.Blocks.Clear();
@@ -605,7 +628,7 @@ namespace LbpArchiveToolkit
             else
             {
                 btnViewUserLevels.IsEnabled = false;
-                userIconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                userIconEllipse.Fill = (Brush)FindResource("BgPrimary"); 
                 txtUserIconStatus.Text = "Select a creator\nto view details";
                 txtUserNpHandle.Text = "";
                 txtUserStats.Text = "";
@@ -674,7 +697,7 @@ namespace LbpArchiveToolkit
 
         private async Task LoadIconAsync(string? hash)
         {
-            iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+            iconEllipse.Fill = (Brush)FindResource("BgPrimary");
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -759,7 +782,7 @@ namespace LbpArchiveToolkit
 
         private async Task LoadUserIconAsync(string? hash, string npHandle)
         {
-            userIconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+            userIconEllipse.Fill = (Brush)FindResource("BgPrimary");
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {

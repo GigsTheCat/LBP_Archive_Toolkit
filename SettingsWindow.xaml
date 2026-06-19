@@ -289,15 +289,8 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#130F25" Offset="0.0" />
-                <GradientStop Color="#2A2045" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
-
-        <DockPanel>
+    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
+                    <DockPanel>
             <!-- Title Bar -->
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
                 <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
@@ -376,8 +369,26 @@
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Parallel Downloads:" Style="{StaticResource LabelText}"/>
                                 <TextBox x:Name="txtThreads" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="80" Margin="0,6,0,6"/>
                             </Grid>
-
+                            
+                            <!-- APPEARANCE SECTION -->
                             <Rectangle Style="{StaticResource Separator}"/>
+
+                            <TextBlock Text="APPEARANCE" Style="{StaticResource SectionHeader}"/>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="App Theme:" Style="{StaticResource LabelText}"/>
+                                <ComboBox x:Name="cmbTheme" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6" SelectionChanged="CmbTheme_SelectionChanged">
+                                    <ComboBoxItem Content="Default Theme" Tag="DefaultTheme"/>
+                                    <ComboBoxItem Content="Craft Theme" Tag="CraftTheme"/>
+                                </ComboBox>
+                            </Grid>
 
                             <!-- BEHAVIOR SECTION -->
                             <TextBlock Text="ADVANCED BEHAVIOR" Style="{StaticResource SectionHeader}"/>

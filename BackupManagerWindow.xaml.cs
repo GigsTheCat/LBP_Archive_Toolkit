@@ -148,13 +148,13 @@ namespace LbpArchiveToolkit
                 }
                 catch
                 {
-                    iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                    iconEllipse.Fill = (Brush)FindResource("BgPrimary");
                     txtIconStatus.Text = "Icon error";
                 }
             }
             else
             {
-                iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                iconEllipse.Fill = (Brush)FindResource("BgPrimary");
                 txtIconStatus.Text = "No icon";
             }
         }
@@ -177,7 +177,7 @@ namespace LbpArchiveToolkit
             {
                 txtLevelTitle.Text = "";
                 txtDescription.Text = "";
-                iconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                iconEllipse.Fill = (Brush)FindResource("BgPrimary");
                 txtIconStatus.Text = "Select a backup";
             }
         }

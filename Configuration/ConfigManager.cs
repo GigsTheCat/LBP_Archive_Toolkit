@@ -16,7 +16,7 @@ namespace LbpArchiveToolkit.Configuration
         public static string BackupDirectory { get; set; } = "backups";
         public static string DownloadServer { get; set; } = "zaprit";
         public static string LocalArchivePath { get; set; } = "";
-        
+        public static string Theme { get; set; } = "DefaultTheme";
         public static int MaxParallelDownloads { get; set; } = 10;
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
@@ -57,6 +57,7 @@ namespace LbpArchiveToolkit.Configuration
             public string? BackupDirectory { get; set; }
             public string? DownloadServer { get; set; }
             public string? LocalArchivePath { get; set; }
+            public string? Theme { get; set; }
             public int MaxParallelDownloads { get; set; }
             public bool ForceLbp3Backups { get; set; }
             public bool Lbp2BetaToRetail { get; set; }
@@ -103,6 +104,7 @@ namespace LbpArchiveToolkit.Configuration
                     BackupDirectory = data.BackupDirectory ?? BackupDirectory;
                     DownloadServer = data.DownloadServer ?? DownloadServer;
                     LocalArchivePath = data.LocalArchivePath ?? LocalArchivePath;
+                    Theme = data.Theme ?? Theme;
                     MaxParallelDownloads = data.MaxParallelDownloads;
                     ForceLbp3Backups = data.ForceLbp3Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail;
@@ -133,6 +135,7 @@ namespace LbpArchiveToolkit.Configuration
                 	BackupDirectory = BackupDirectory,
                 	DownloadServer = DownloadServer,
                 	LocalArchivePath = LocalArchivePath,
+                        Theme = Theme,
                 	MaxParallelDownloads = MaxParallelDownloads,
                 	ForceLbp3Backups = ForceLbp3Backups,
                 	Lbp2BetaToRetail = Lbp2BetaToRetail,

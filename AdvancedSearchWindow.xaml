@@ -175,13 +175,7 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#130F25" Offset="0.0" />
-                <GradientStop Color="#2A2045" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
+    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
 
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">

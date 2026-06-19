@@ -11,21 +11,9 @@
     </WindowChrome.WindowChrome>
     
     <Window.Resources>
-        <SolidColorBrush x:Key="BgPrimary" Color="#19132B"/> 
-        <SolidColorBrush x:Key="BgCard" Color="#2D2447"/>
-        <SolidColorBrush x:Key="BgCardDarker" Color="#221A35"/>
-        <SolidColorBrush x:Key="FgPrimary" Color="#F8FAFC"/>
-        <SolidColorBrush x:Key="FgSecondary" Color="#B7AEDB"/>
-        <SolidColorBrush x:Key="BorderSubtle" Color="#453868"/>
-        
-        <SolidColorBrush x:Key="LbpOrange" Color="#FFB703"/>
-        <SolidColorBrush x:Key="LbpPink" Color="#F72585"/>
-        <SolidColorBrush x:Key="LbpCyan" Color="#4CC9F0"/>
-        <SolidColorBrush x:Key="LbpEmerald" Color="#06D6A0"/>
-
         <Style x:Key="TitleBarCloseBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource FgSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
             <Setter Property="Width" Value="46"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="14"/>
@@ -47,8 +35,8 @@
         </Style>
 
         <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Effect">
@@ -82,7 +70,7 @@
         </Style>
 
         <Style x:Key="BtnActionBlue" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
-            <Setter Property="Background" Value="{StaticResource LbpCyan}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
             <Setter Property="Foreground" Value="#002D3D"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -92,32 +80,26 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{StaticResource BorderSubtle}">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#130F25" Offset="0.0" />
-                <GradientStop Color="#2A2045" Offset="1.0" />
-            </LinearGradientBrush>
-        </Border.Background>
+    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
 
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
+                    <Button Content="✕" Style="{DynamicResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
                 </StackPanel>
             </Grid>
 
-            <Border Style="{StaticResource PopitCard}" Margin="20,5,20,25" Padding="20">
+            <Border Style="{DynamicResource PopitCard}" Margin="20,5,20,25" Padding="20">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="LBP Archive Toolkit" Foreground="{StaticResource LbpOrange}" FontSize="26" FontWeight="Black" TextAlignment="Center" Margin="0,0,0,5"/>
-                    <TextBlock x:Name="txtVersion" Text="Version 1.0" Foreground="{StaticResource LbpCyan}" FontWeight="Bold" FontSize="14" TextAlignment="Center" Margin="0,0,0,20"/>
+                    <TextBlock Text="LBP Archive Toolkit" Foreground="{DynamicResource LbpOrange}" FontSize="26" FontWeight="Black" TextAlignment="Center" Margin="0,0,0,5"/>
+                    <TextBlock x:Name="txtVersion" Text="Version 1.0" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="14" TextAlignment="Center" Margin="0,0,0,20"/>
                     
-                    <TextBlock Foreground="{StaticResource FgPrimary}" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,30">
+                    <TextBlock Foreground="{DynamicResource FgPrimary}" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,30">
                         <Run Text="Created by GigsTheCat" FontSize="15"/>
                     </TextBlock>
                     
-                    <Button Content="CLOSE" Style="{StaticResource BtnActionBlue}" Width="120" HorizontalAlignment="Center" Click="BtnClose_Click"/>
+                    <Button Content="CLOSE" Style="{DynamicResource BtnActionBlue}" Width="120" HorizontalAlignment="Center" Click="BtnClose_Click"/>
                 </StackPanel>
             </Border>
         </DockPanel>
