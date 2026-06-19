@@ -23,9 +23,6 @@ using System.Threading;
 
 namespace LbpArchiveToolkit
 {
-    /// <summary>
-    /// The main application window. Handles user interactions, database searching, level selection, and triggering extractions.
-    /// </summary>
     public partial class MainWindow : Window
     {
         #region State & Dependencies
@@ -34,6 +31,7 @@ namespace LbpArchiveToolkit
 
         private DatabaseService _dbService;
         private List<LevelItem> _resultsList = new();
+        private List<UserItem> _userResultsList = new();
         private readonly HashSet<long> _savedLevels = new();
         
         private readonly Stack<SearchState> _searchHistory = new();
@@ -56,12 +54,10 @@ namespace LbpArchiveToolkit
         [GeneratedRegex(@"(\@[a-zA-Z0-9_-]+)")]
         private static partial Regex MentionRegex();
 
-        /// <summary>
-        /// Represents a snapshot of the UI state to enable forward/back browser-style navigation.
-        /// </summary>
         public class SearchState
         {
             public string SearchText { get; set; } = "";
+            public int SearchTypeIndex { get; set; } = 0;
             public int GameIndex { get; set; }
             public AdvancedSearchCriteria AdvancedCriteria { get; set; } = new();
             public int GenreIndex { get; set; }
@@ -69,7 +65,9 @@ namespace LbpArchiveToolkit
             public bool Exact { get; set; }
             public bool SearchDesc { get; set; }
             public List<LevelItem> Results { get; set; } = new();
+            public List<UserItem> UserResults { get; set; } = new();
             public LevelItem? SelectedItem { get; set; }
+            public UserItem? SelectedUser { get; set; }
         }
 
         #endregion
@@ -87,6 +85,7 @@ namespace LbpArchiveToolkit
             this.SourceInitialized += Window_SourceInitialized;
 
             dgResults.ItemsSource = _resultsList;
+            dgUsers.ItemsSource = _userResultsList;
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
 
             if (ConfigManager.SavedLevels == null) ConfigManager.SavedLevels = new List<string>();
@@ -102,13 +101,15 @@ namespace LbpArchiveToolkit
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-
-                        
             SaveWindowPosition();
 
             if (_currentSearch != null)
             {
-                _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (cmbSearchType.SelectedIndex == 0)
+                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                else
+                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+
                 ConfigManager.LastSearch = _currentSearch;
             }
 
@@ -152,31 +153,31 @@ namespace LbpArchiveToolkit
             }
         }
 
-         private async void Window_Loaded(object sender, RoutedEventArgs e)
-         {
-             await CheckForUpdatesAsync();
-         }
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            await CheckForUpdatesAsync();
+        }
 
-         private async Task CheckForUpdatesAsync()
-         {
-             try
-             {
-                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
-                 var response = await _httpClient.GetStringAsync(url);
-                 var json = JsonNode.Parse(response);
-                 string? tag = json?["tag_name"]?.ToString();
+        private async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
+                var response = await _httpClient.GetStringAsync(url);
+                var json = JsonNode.Parse(response);
+                string? tag = json?["tag_name"]?.ToString();
                  
-                 if (!string.IsNullOrEmpty(tag))
-                 {
-                     string versionStr = tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag.Substring(1) : tag;
-                     if (Version.TryParse(versionStr, out Version? latestVersion))
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    string versionStr = tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag.Substring(1) : tag;
+                    if (Version.TryParse(versionStr, out Version? latestVersion))
                      {
                          var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                          if (currentVersion != null && latestVersion > currentVersion)
                          {
                              if (!this.IsVisible) return;
                              
-                             bool update = CustomDialog.Show(this, $"A new version of LBP Archive Toolkit is available ({latestVersion}).\n\nWould you like to download it now?", "Update Available", isYesNo: true);
+                             bool update = CustomDialog.Show(this, "A new version of LBP Archive Toolkit is available.\n\nWould you like to download it now?", "Update Available", isYesNo: true);
                              if (update)
                              {
                                  Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
@@ -185,7 +186,7 @@ namespace LbpArchiveToolkit
                      }
                  }
              }
-             catch { /* Silently fail if no internet or API limit reached */ }
+             catch { }
          }
 
         private void SaveWindowPosition()
@@ -290,9 +291,26 @@ namespace LbpArchiveToolkit
         {
             if (dgResults.SelectedItem is LevelItem selected)
             {
+                cmbSearchType.SelectedIndex = 1; // Ensure levels is selected
                 txtSearch.Text = selected.Creator;
                 BtnSearch_Click(btnSearch, null!);
             }
+        }
+
+        private void CmbSearchType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbSearchType == null) return;
+            bool isLevels = cmbSearchType.SelectedIndex == 0;
+
+            if (panelLevelFilters != null) panelLevelFilters.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            if (chkSearchDesc != null) chkSearchDesc.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            if (btnAdvanced != null) btnAdvanced.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+
+            if (dgResults != null) dgResults.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            if (dgUsers != null) dgUsers.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
+
+            if (panelLevelDetails != null) panelLevelDetails.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            if (panelUserDetails != null) panelUserDetails.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
         }
 
         #endregion
@@ -311,13 +329,18 @@ namespace LbpArchiveToolkit
 
             if (_currentSearch != null)
             {
-                _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (cmbSearchType.SelectedIndex == 0)
+                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                else
+                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+
                 PushToHistory(_searchHistory, _currentSearch);
             }
 
             _forwardHistory.Clear();
             btnForward.IsEnabled = false;
 
+            int searchType = cmbSearchType.SelectedIndex;
             bool exact = chkExact.IsChecked == true;
             bool searchDesc = chkSearchDesc.IsChecked == true;
             int gameFilter = cmbGame.SelectedIndex;
@@ -326,39 +349,62 @@ namespace LbpArchiveToolkit
             string? genreFilter = (cmbGenre.SelectedItem as ComboBoxItem)?.Content?.ToString();
             string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
-            // Create a thread-safe snapshot to avoid race conditions with background search
             var savedLevelsSnapshot = _savedLevels.ToHashSet();
 
             try
             {
-                var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, _advancedCriteria);
-
-                     
-                progressBar.IsIndeterminate = false;
-                progressBar.Maximum = results.Count;
-                progressBar.Value = results.Count; 
-
-                _resultsList = results;
-                
-                dgResults.ItemsSource = _resultsList;
-                txtStatus.Text = $"Found {results.Count} results for '{keyword}'.";
-
-                _currentSearch = new SearchState
+                if (searchType == 0)
                 {
-                    SearchText = keyword,
-                    GameIndex = gameFilter,
-                    GenreIndex = genreFilterIdx,
-                    LimitIndex = limitFilterIdx,
-                    Exact = exact,
-                    SearchDesc = searchDesc,
-                    AdvancedCriteria = new AdvancedSearchCriteria 
-    		    { 
-                        MinHearts = _advancedCriteria.MinHearts,
-                        MinPlays = _advancedCriteria.MinPlays,
-                        RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels)
-                    },
-                    Results = new List<LevelItem>(results) 
-                };
+                    var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, _advancedCriteria);
+                     
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Maximum = results.Count;
+                    progressBar.Value = results.Count; 
+
+                    _resultsList = results;
+                    dgResults.ItemsSource = _resultsList;
+                    txtStatus.Text = $"Found {results.Count} levels for '{keyword}'.";
+
+                    _currentSearch = new SearchState
+                    {
+                        SearchText = keyword,
+                        SearchTypeIndex = 0,
+                        GameIndex = gameFilter,
+                        GenreIndex = genreFilterIdx,
+                        LimitIndex = limitFilterIdx,
+                        Exact = exact,
+                        SearchDesc = searchDesc,
+                        AdvancedCriteria = new AdvancedSearchCriteria 
+                        { 
+                            MinHearts = _advancedCriteria.MinHearts,
+                            MinPlays = _advancedCriteria.MinPlays,
+                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
+                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                        },
+                        Results = new List<LevelItem>(results) 
+                    };
+                }
+                else
+                {
+                    var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter);
+
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Maximum = results.Count;
+                    progressBar.Value = results.Count;
+
+                    _userResultsList = results;
+                    dgUsers.ItemsSource = _userResultsList;
+                    txtStatus.Text = $"Found {results.Count} creators matching '{keyword}'.";
+
+                    _currentSearch = new SearchState
+                    {
+                        SearchText = keyword,
+                        SearchTypeIndex = 1,
+                        LimitIndex = limitFilterIdx,
+                        Exact = exact,
+                        UserResults = new List<UserItem>(results)
+                    };
+                }
 
                 btnBack.IsEnabled = _searchHistory.Count > 0;
             }
@@ -369,7 +415,6 @@ namespace LbpArchiveToolkit
                 {
                     MenuSettings_Click(sender, e); 
                 }
-                
                 txtStatus.Text = "Search failed. Database missing.";
             }
             catch (Exception ex)
@@ -385,12 +430,11 @@ namespace LbpArchiveToolkit
         }
 
         private void BtnAdvanced_Click(object sender, RoutedEventArgs e)
-	{
-    	     var advancedWin = new AdvancedSearchWindow(_advancedCriteria) { Owner = this };
-    	     if (advancedWin.ShowDialog() == true)
-    	     {
+        {
+             var advancedWin = new AdvancedSearchWindow(_advancedCriteria) { Owner = this };
+             if (advancedWin.ShowDialog() == true)
+             {
                   _advancedCriteria = advancedWin.Criteria;
-        
              }
          }
 
@@ -403,7 +447,11 @@ namespace LbpArchiveToolkit
         {
             if (_searchHistory.Count > 0 && _currentSearch != null)
             {
-                _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (cmbSearchType.SelectedIndex == 0)
+                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                else
+                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+
                 PushToHistory(_forwardHistory, _currentSearch);
                 ApplySearchState(_searchHistory.Pop());
             }
@@ -416,7 +464,11 @@ namespace LbpArchiveToolkit
         {
             if (_forwardHistory.Count > 0 && _currentSearch != null)
             {
-                _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (cmbSearchType.SelectedIndex == 0)
+                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                else
+                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+
                 PushToHistory(_searchHistory, _currentSearch);
                 ApplySearchState(_forwardHistory.Pop());
             }
@@ -444,6 +496,7 @@ namespace LbpArchiveToolkit
         {
             _currentSearch = state;
 
+            cmbSearchType.SelectedIndex = state.SearchTypeIndex;
             txtSearch.Text = state.SearchText;
             _advancedCriteria = state.AdvancedCriteria;
             cmbGame.SelectedIndex = state.GameIndex;
@@ -452,21 +505,43 @@ namespace LbpArchiveToolkit
             chkExact.IsChecked = state.Exact;
             chkSearchDesc.IsChecked = state.SearchDesc;
 
-            _resultsList = state.Results.ToList();
-            dgResults.ItemsSource = _resultsList;
-
-            if (state.SelectedItem != null)
+            if (state.SearchTypeIndex == 0)
             {
-                var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
-                if (itemToSelect != null)
+                _resultsList = state.Results.ToList();
+                dgResults.ItemsSource = _resultsList;
+
+                if (state.SelectedItem != null)
                 {
-                    dgResults.SelectedItem = itemToSelect;
-                    dgResults.ScrollIntoView(itemToSelect);
+                    var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
+                    if (itemToSelect != null)
+                    {
+                        dgResults.SelectedItem = itemToSelect;
+                        dgResults.ScrollIntoView(itemToSelect);
+                    }
+                }
+                else
+                {
+                    dgResults.SelectedItem = null;
                 }
             }
             else
             {
-                dgResults.SelectedItem = null;
+                _userResultsList = state.UserResults.ToList();
+                dgUsers.ItemsSource = _userResultsList;
+
+                if (state.SelectedUser != null)
+                {
+                    var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
+                    if (userToSelect != null)
+                    {
+                        dgUsers.SelectedItem = userToSelect;
+                        dgUsers.ScrollIntoView(userToSelect);
+                    }
+                }
+                else
+                {
+                    dgUsers.SelectedItem = null;
+                }
             }
 
             txtStatus.Text = $"Restored search for '{state.SearchText}'.";
@@ -510,6 +585,50 @@ namespace LbpArchiveToolkit
             }
         }
 
+        private async void DgUsers_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                txtUserNpHandle.Text = selectedUser.NpHandle;
+                txtUserStats.Text = $"Hearts: {selectedUser.HeartCount}  |  Total Levels: {selectedUser.TotalLevels}";
+                txtUserSummary.Text = $"Published Level slots summary:\n" +
+                                      $"• LBP1 Slots: {selectedUser.Lbp1UsedSlots}\n" +
+                                      $"• LBP2 Slots: {selectedUser.Lbp2UsedSlots}\n" +
+                                      $"• LBP3 Slots: {selectedUser.Lbp3UsedSlots}\n\n" +
+                                      $"Click the button below to view all levels published by {selectedUser.NpHandle}.";
+
+                btnViewUserLevels.IsEnabled = true;
+
+                _currentIconRequestId = selectedUser.NpHandle.GetHashCode();
+                await LoadUserIconAsync(selectedUser.IconHash, selectedUser.NpHandle);
+            }
+            else
+            {
+                btnViewUserLevels.IsEnabled = false;
+                userIconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+                txtUserIconStatus.Text = "Select a creator\nto view details";
+                txtUserNpHandle.Text = "";
+                txtUserStats.Text = "";
+                txtUserSummary.Text = "";
+            }
+        }
+
+        private void BtnViewUserLevels_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                cmbSearchType.SelectedIndex = 0; // Switch UI to Levels
+                txtSearch.Text = selectedUser.NpHandle;
+                chkExact.IsChecked = true;
+                chkSearchDesc.IsChecked = false;
+                cmbGame.SelectedIndex = 0;
+                cmbGenre.SelectedIndex = 0;
+                _advancedCriteria = new AdvancedSearchCriteria(); // Reset filters
+
+                BtnSearch_Click(btnSearch, null!); // Trigger search
+            }
+        }
+
         private void SetDescriptionRichText(string? text)
         {
             txtDescription.IsDocumentEnabled = true; 
@@ -535,6 +654,7 @@ namespace LbpArchiveToolkit
                 link.Click += (s, e) =>
                 {
                     string name = mentionStr.Substring(1);
+                    cmbSearchType.SelectedIndex = 1;
                     txtSearch.Text = name;
                     BtnSearch_Click(btnSearch, null!);
                     e.Handled = true;
@@ -606,7 +726,7 @@ namespace LbpArchiveToolkit
                             return; 
                         }
                     }
-                    catch { /* Fallback to web request */ }
+                    catch { }
                 }
 
                 byte[] imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
@@ -633,6 +753,91 @@ namespace LbpArchiveToolkit
                 if (_currentIconRequestId == expectedRequestId)
                 {
                     txtIconStatus.Text = "Icon offline\nor missing.";
+                }
+            }
+        }
+
+        private async Task LoadUserIconAsync(string? hash, string npHandle)
+        {
+            userIconEllipse.Fill = (SolidColorBrush)FindResource("BgPrimary");
+
+            if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
+            {
+                txtUserIconStatus.Text = "No Icon Available";
+                return;
+            }
+
+            txtUserIconStatus.Text = "Loading Icon...";
+
+            long expectedRequestId = npHandle.GetHashCode();
+
+            if (dgUsers.SelectedItem is UserItem currentSelection)
+            {
+                if (currentSelection.NpHandle.GetHashCode() != expectedRequestId) return;
+            }
+            else return;
+
+            try
+            {
+                bool useLocalArchive = ConfigManager.DownloadServer.ToLower() == "local" && !string.IsNullOrWhiteSpace(ConfigManager.LocalArchivePath);
+
+                if (useLocalArchive)
+                {
+                    try
+                    {
+                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, CancellationToken.None);
+
+                        if (rawResource != null)
+                        {
+                            byte[] pngBytes = await Task.Run(() =>
+                            {
+                                return TextureDecoder.DecodeToPngCentered(rawResource);
+                            });
+
+                            if (_currentIconRequestId != expectedRequestId) return;
+
+                            var bmp = new BitmapImage();
+                            using (var ms = new MemoryStream(pngBytes))
+                            {
+                                bmp.BeginInit();
+                                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                bmp.StreamSource = ms;
+                                bmp.EndInit();
+                            }
+                            bmp.Freeze();
+
+                            userIconEllipse.Fill = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            txtUserIconStatus.Text = "";
+                            return; 
+                        }
+                    }
+                    catch { }
+                }
+
+                byte[] imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
+
+                if (_currentIconRequestId != expectedRequestId) return;
+
+                var webBmp = new BitmapImage();
+                using (var ms = new MemoryStream(imageBytes))
+                {
+                    webBmp.BeginInit();
+                    webBmp.CacheOption = BitmapCacheOption.OnLoad;
+                    webBmp.StreamSource = ms;
+                    webBmp.EndInit();
+                }
+                webBmp.Freeze(); 
+
+                var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
+                brush.Freeze();
+                userIconEllipse.Fill = brush;
+                txtUserIconStatus.Text = "";
+            }
+            catch
+            {
+                if (_currentIconRequestId == expectedRequestId)
+                {
+                    txtUserIconStatus.Text = "Icon offline\nor missing.";
                 }
             }
         }
@@ -755,7 +960,6 @@ namespace LbpArchiveToolkit
             {
                 bool configNeedsUpdate = false;
 
-                // Safely parse trailing level hexadecimal IDs from custom directory names
                 foreach (var dir in Directory.EnumerateDirectories(ConfigManager.BackupDirectory))
                 {
                     string dirName = Path.GetFileName(dir);
@@ -810,8 +1014,8 @@ namespace LbpArchiveToolkit
         #region Win32 Interop (Borderless Window Support)
 
         private void Window_SourceInitialized(object? sender, EventArgs e)
-	{
-    	    var handle = new WindowInteropHelper(this).Handle;
+        {
+            var handle = new WindowInteropHelper(this).Handle;
             _hwndSource = HwndSource.FromHwnd(handle);
             _hwndSource?.AddHook(WindowProc);
 

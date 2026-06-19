@@ -4,6 +4,7 @@ namespace LbpArchiveToolkit.Utils
 {
     public static class TagParser
     {
+        public static IReadOnlyList<string> GetNames() => TagNames;
         // Master list of all 76 player tags used by the LBP Database
         private static readonly string[] TagNames = new string[] {
             "Brilliant", "Beautiful", "Funky", "Points-Fest", "Weird", "Tricky", "Short",

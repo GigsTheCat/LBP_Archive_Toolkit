@@ -36,7 +36,6 @@ namespace LbpArchiveToolkit
             }
 
             txtThreads.Text = ConfigManager.MaxParallelDownloads.ToString();
-            chkFixVersion.IsChecked = ConfigManager.FixBackupVersion;
             chkForceLbp3.IsChecked = ConfigManager.ForceLbp3Backups;
             chkLbp2Beta.IsChecked = ConfigManager.Lbp2BetaToRetail;
         }
@@ -183,7 +182,6 @@ namespace LbpArchiveToolkit
                 }
 
                 txtThreads.Text = "10";
-                chkFixVersion.IsChecked = true;
                 chkForceLbp3.IsChecked = false;
                 chkLbp2Beta.IsChecked = true;
             }
@@ -208,7 +206,6 @@ namespace LbpArchiveToolkit
             ConfigManager.LocalArchivePath = txtLocalArchive.Text;
             ConfigManager.DownloadServer = (cmbServer.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "bonsai";
             ConfigManager.MaxParallelDownloads = threads;
-            ConfigManager.FixBackupVersion = chkFixVersion.IsChecked == true;
             ConfigManager.ForceLbp3Backups = chkForceLbp3.IsChecked == true;
             ConfigManager.Lbp2BetaToRetail = chkLbp2Beta.IsChecked == true;
 

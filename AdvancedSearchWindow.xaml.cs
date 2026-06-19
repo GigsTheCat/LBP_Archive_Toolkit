@@ -14,21 +14,35 @@ namespace LbpArchiveToolkit
             InitializeComponent();
             Criteria = existingCriteria;
             
-            // Load existing numbers
             txtMinHearts.Text = Criteria.MinHearts.ToString();
             txtMinPlays.Text = Criteria.MinPlays.ToString();
 
-            // Build dynamic checkboxes for labels
+            // LBP2 and LBP3 Labels
             foreach (var labelName in LabelParser.GetFriendlyNames())
             {
                 var cb = new CheckBox
                 {
                     Content = labelName,
-                    Width = 140, // Keeps grid tidy
+                    Width = 140,
                     Margin = new Thickness(0, 5, 10, 5),
                     IsChecked = Criteria.RequiredLabels.Contains(labelName)
                 };
-                wpLabels.Children.Add(cb);
+                
+                if (LabelParser.IsLbp2Label(labelName)) wpLbp2Labels.Children.Add(cb);
+                else wpLbp3Labels.Children.Add(cb);
+            }
+
+            // LBP1 Tags
+            foreach (var tagName in TagParser.GetNames())
+            {
+                var cb = new CheckBox
+                {
+                    Content = tagName,
+                    Width = 140,
+                    Margin = new Thickness(0, 5, 10, 5),
+                    IsChecked = Criteria.RequiredTags.Contains(tagName)
+                };
+                wpLbp1Tags.Children.Add(cb);
             }
         }
 
@@ -39,10 +53,9 @@ namespace LbpArchiveToolkit
             txtMinHearts.Text = "0";
             txtMinPlays.Text = "0";
             
-            foreach (var child in wpLabels.Children)
-            {
-                if (child is CheckBox cb) cb.IsChecked = false;
-            }
+            foreach (var child in wpLbp2Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
+            foreach (var child in wpLbp3Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
+            foreach (var child in wpLbp1Tags.Children) if (child is CheckBox cb) cb.IsChecked = false;
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e)
@@ -53,14 +66,16 @@ namespace LbpArchiveToolkit
             Criteria.MinHearts = hearts;
             Criteria.MinPlays = plays;
             Criteria.RequiredLabels.Clear();
+            Criteria.RequiredTags.Clear();
 
-            foreach (var child in wpLabels.Children)
-            {
-                if (child is CheckBox cb && cb.IsChecked == true && cb.Content != null)
-                {
-                    Criteria.RequiredLabels.Add(cb.Content.ToString()!);
-                }
-            }
+            foreach (var child in wpLbp2Labels.Children)
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
+                
+            foreach (var child in wpLbp3Labels.Children)
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
+
+            foreach (var child in wpLbp1Tags.Children)
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredTags.Add(cb.Content.ToString()!);
 
             DialogResult = true;
             Close();

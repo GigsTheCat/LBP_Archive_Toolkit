@@ -18,7 +18,6 @@ namespace LbpArchiveToolkit.Configuration
         public static string LocalArchivePath { get; set; } = "";
         
         public static int MaxParallelDownloads { get; set; } = 10;
-        public static bool FixBackupVersion { get; set; } = true;
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
         
@@ -59,7 +58,6 @@ namespace LbpArchiveToolkit.Configuration
             public string? DownloadServer { get; set; }
             public string? LocalArchivePath { get; set; }
             public int MaxParallelDownloads { get; set; }
-            public bool FixBackupVersion { get; set; }
             public bool ForceLbp3Backups { get; set; }
             public bool Lbp2BetaToRetail { get; set; }
             public double WindowWidth { get; set; }
@@ -106,7 +104,6 @@ namespace LbpArchiveToolkit.Configuration
                     DownloadServer = data.DownloadServer ?? DownloadServer;
                     LocalArchivePath = data.LocalArchivePath ?? LocalArchivePath;
                     MaxParallelDownloads = data.MaxParallelDownloads;
-                    FixBackupVersion = data.FixBackupVersion;
                     ForceLbp3Backups = data.ForceLbp3Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail;
                     WindowWidth = data.WindowWidth;
@@ -137,7 +134,6 @@ namespace LbpArchiveToolkit.Configuration
                 	DownloadServer = DownloadServer,
                 	LocalArchivePath = LocalArchivePath,
                 	MaxParallelDownloads = MaxParallelDownloads,
-                	FixBackupVersion = FixBackupVersion,
                 	ForceLbp3Backups = ForceLbp3Backups,
                 	Lbp2BetaToRetail = Lbp2BetaToRetail,
                 	WindowWidth = WindowWidth,

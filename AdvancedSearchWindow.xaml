@@ -11,16 +11,6 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="BgPrimary" Color="#19132B"/> 
-        <SolidColorBrush x:Key="BgCard" Color="#2D2447"/>
-        <SolidColorBrush x:Key="BgCardDarker" Color="#221A35"/>
-        <SolidColorBrush x:Key="FgPrimary" Color="#F8FAFC"/>
-        <SolidColorBrush x:Key="FgSecondary" Color="#B7AEDB"/>
-        <SolidColorBrush x:Key="BorderSubtle" Color="#453868"/>
-        <SolidColorBrush x:Key="LbpOrange" Color="#FFB703"/>
-        <SolidColorBrush x:Key="LbpCyan" Color="#4CC9F0"/>
-        <SolidColorBrush x:Key="LbpEmerald" Color="#06D6A0"/>
-
         <!-- ScrollBar Theme -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="Transparent"/>
@@ -35,10 +25,10 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border x:Name="thumbBorder" Background="{StaticResource BorderSubtle}" CornerRadius="4" Margin="2,0"/>
+                                                <Border x:Name="thumbBorder" Background="{DynamicResource BorderSubtle}" CornerRadius="4" Margin="2,0"/>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource LbpCyan}"/>
+                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource LbpCyan}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -54,7 +44,7 @@
 
         <Style x:Key="TitleBarCloseBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource FgSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
             <Setter Property="Width" Value="46"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="14"/>
@@ -76,8 +66,8 @@
         </Style>
         
         <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Effect">
@@ -114,7 +104,7 @@
         </Style>
 
         <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
-            <Setter Property="Background" Value="{StaticResource LbpEmerald}"/>
+            <Setter Property="Background" Value="{DynamicResource LbpEmerald}"/>
             <Setter Property="Foreground" Value="#003D2A"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -124,9 +114,9 @@
         </Style>
         
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource BgCardDarker}"/>
-            <Setter Property="Foreground" Value="{StaticResource FgPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}"/>
+            <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Padding" Value="10,6"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -142,7 +132,7 @@
         </Style>
         
         <Style TargetType="TextBlock" x:Key="SectionHeader">
-            <Setter Property="Foreground" Value="{StaticResource LbpCyan}"/>
+            <Setter Property="Foreground" Value="{DynamicResource LbpCyan}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Margin" Value="0,20,0,12"/>
@@ -150,14 +140,14 @@
 
         <Style TargetType="Rectangle" x:Key="Separator">
             <Setter Property="Height" Value="2"/>
-            <Setter Property="Fill" Value="{StaticResource BgCardDarker}"/>
+            <Setter Property="Fill" Value="{DynamicResource BgCardDarker}"/>
             <Setter Property="RadiusX" Value="1"/>
             <Setter Property="RadiusY" Value="1"/>
             <Setter Property="Margin" Value="0,15,0,0"/>
         </Style>
         
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource FgPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,8"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -165,15 +155,15 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal">
-                            <Border x:Name="checkBoxBorder" Width="20" Height="20" Background="{StaticResource BgCardDarker}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="2" CornerRadius="6" VerticalAlignment="Center">
-                                <Path x:Name="checkMark" Data="M4,10 L8,14 L15,5" Stroke="{StaticResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <Border x:Name="checkBoxBorder" Width="20" Height="20" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="6" VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Data="M4,10 L8,14 L15,5" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                             </Border>
                             <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="{StaticResource LbpCyan}"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="checkBoxBorder" Property="Background" Value="#3D325C"/>
@@ -185,7 +175,7 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{StaticResource BorderSubtle}">
+    <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                 <GradientStop Color="#130F25" Offset="0.0" />
@@ -195,7 +185,7 @@
 
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="Advanced Search Filters" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                <TextBlock Text="Advanced Search Filters" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
                 </StackPanel>
@@ -209,8 +199,8 @@
                         <RowDefinition Height="Auto"/> 
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="0,0,0,1" Padding="25,20,25,15">
-                        <TextBlock Text="ADVANCED FILTERS" Foreground="{StaticResource LbpOrange}" FontWeight="Black" FontSize="20"/>
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,0,0,1" Padding="25,20,25,15">
+                        <TextBlock Text="ADVANCED FILTERS" Foreground="{DynamicResource LbpOrange}" FontWeight="Black" FontSize="20"/>
                     </Border>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -226,27 +216,31 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                 <TextBox x:Name="txtMinHearts" Grid.Column="1" Text="0" Width="80" HorizontalAlignment="Left"/>
                                 
-                                <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{StaticResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
+                                <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
                                 <TextBox x:Name="txtMinPlays" Grid.Column="3" Text="0" Width="80" HorizontalAlignment="Left"/>
                             </Grid>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
-                            <!-- LEVEL LABELS -->
-                            <TextBlock Text="REQUIRED LEVEL LABELS" Style="{StaticResource SectionHeader}"/>
-                            <TextBlock Text="Only levels containing ALL selected labels will be shown." Foreground="{StaticResource FgSecondary}" FontSize="12" Margin="0,0,0,15"/>
-                            
-                            <WrapPanel x:Name="wpLabels" Orientation="Horizontal">
-                                <!-- CheckBoxes injected via Code-Behind -->
-                            </WrapPanel>
+                            <!-- LBP2 & LBP3 LABELS -->
+                            <TextBlock Text="LBP2 &amp; LBP3 LABELS" Style="{StaticResource SectionHeader}"/>
+                            <WrapPanel x:Name="wpLbp2Labels" Orientation="Horizontal" Margin="0,5,0,15"/>
+
+                            <!-- LBP3 ONLY LABELS -->
+                            <TextBlock Text="LBP3 ONLY LABELS" Style="{StaticResource SectionHeader}"/>
+                            <WrapPanel x:Name="wpLbp3Labels" Orientation="Horizontal" Margin="0,5,0,15"/>
+
+                            <!-- LBP1 TAGS -->
+                            <TextBlock Text="LBP1 TAGS" Style="{StaticResource SectionHeader}"/>
+                            <WrapPanel x:Name="wpLbp1Tags" Orientation="Horizontal" Margin="0,5,0,15"/>
                             
                         </StackPanel>
                     </ScrollViewer>
 
-                    <Border Grid.Row="2" Background="{StaticResource BgCardDarker}" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
+                    <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="CLEAR ALL" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="100" Click="BtnClear_Click"/>
                             <Button Content="APPLY FILTERS" Style="{StaticResource BtnPrimary}" MinWidth="140" Click="BtnApply_Click"/>

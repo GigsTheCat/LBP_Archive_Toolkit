@@ -10,10 +10,6 @@ using LbpArchiveToolkit.Utils;
 
 namespace LbpArchiveToolkit.Services
 {
-    /// <summary>
-    /// Handles asynchronous querying, searching, and schema mapping for the LBP SQLite databases.
-    /// Supports FTS5 hardware acceleration with graceful fallback to standard LIKE queries.
-    /// </summary>
     public class DatabaseService
     {
         #region State & Caching
@@ -22,8 +18,7 @@ namespace LbpArchiveToolkit.Services
         private readonly object _schemaLock = new();
         
         private volatile bool _isSchemaResolved = false;
-        
-        private bool _hasFtsTable = false; // Flags if FTS5 hardware acceleration is available
+        private bool _hasFtsTable = false; 
         
         private string _colGame = "NULL";
         private string _colDate = "NULL";
@@ -34,6 +29,7 @@ namespace LbpArchiveToolkit.Services
         private string _colHash = "NULL";
         private string _colIcon = "NULL";
         private string _colLabels = "NULL";
+        private string _colTags = "NULL";
 
         private static readonly FrozenDictionary<string, int> _genreToIntMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) {
             {"Platformer", 1}, {"Versus", 2}, {"Arcade", 3}, {"Cinematic", 4}, {"Fighter", 5},
@@ -57,134 +53,200 @@ namespace LbpArchiveToolkit.Services
         #region Public API
 
         public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, AdvancedSearchCriteria advanced)
-{
-    if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
-
-    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
-
-    using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
-    await conn.OpenAsync().ConfigureAwait(false);
-
-    // --- 1. ADD CUSTOM SQLITE FUNCTION ---
-    conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob, string requiredIndicesStr) =>
-    {
-        if (blob == null) return false;
-        if (string.IsNullOrEmpty(requiredIndicesStr)) return true;
-
-        var indices = requiredIndicesStr.Split(',');
-        foreach (var indexStr in indices)
         {
-            if (!int.TryParse(indexStr, out int i)) continue;
-            
-            int byteIndex = (blob.Length - 1) - (i / 8);
-            int bitIndex = i % 8;
+            if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
-            // Big-Endian bitmask check (matches LabelParser.cs)
-            if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
-            {
-                return false;
-            }
-        }
-        return true;
-    });
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-    // --- 2. PRE-CALCULATE REQUIRED LABEL INDICES ---
-    string reqIndicesStr = "";
-    if (advanced.RequiredLabels.Count > 0)
-    {
-        var friendlyNames = LabelParser.GetFriendlyNames();
-        var reqIndices = new List<int>();
-        foreach (var reqLabel in advanced.RequiredLabels)
-        {
-            for (int i = 0; i < friendlyNames.Count; i++)
+            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
+            await conn.OpenAsync().ConfigureAwait(false);
+
+            conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob, string requiredIndicesStr) =>
             {
-                if (friendlyNames[i] == reqLabel)
+                if (blob == null) return false;
+                if (string.IsNullOrEmpty(requiredIndicesStr)) return true;
+
+                var indices = requiredIndicesStr.Split(',');
+                foreach (var indexStr in indices)
                 {
-                    reqIndices.Add(i);
-                    break;
+                    if (!int.TryParse(indexStr, out int i)) continue;
+                    
+                    int byteIndex = (blob.Length - 1) - (i / 8);
+                    int bitIndex = i % 8;
+
+                    if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
+                    {
+                        return false;
+                    }
                 }
+                return true;
+            });
+
+            string reqIndicesStr = "";
+            if (advanced.RequiredLabels.Count > 0)
+            {
+                var friendlyNames = LabelParser.GetFriendlyNames();
+                var reqIndices = new List<int>();
+                foreach (var reqLabel in advanced.RequiredLabels)
+                {
+                    for (int i = 0; i < friendlyNames.Count; i++)
+                    {
+                        if (friendlyNames[i] == reqLabel)
+                        {
+                            reqIndices.Add(i);
+                            break;
+                        }
+                    }
+                }
+                reqIndicesStr = string.Join(",", reqIndices);
             }
+
+            string reqTagIndicesStr = "";
+            if (advanced.RequiredTags.Count > 0)
+            {
+                var tagNames = TagParser.ParseTagNames(new byte[0]); // Safe fallback or direct inline fetch
+                // We map them directly to indices inside SearchLevelsAsync
+                var reqTagIndices = new List<int>();
+                for (int i = 0; i < advanced.RequiredTags.Count; i++)
+                {
+                    int index = GetTagIndex(advanced.RequiredTags[i]);
+                    if (index >= 0) reqTagIndices.Add(index);
+                }
+                reqTagIndicesStr = string.Join(",", reqTagIndices);
+            }
+
+            var queryBuilder = new StringBuilder();
+            var parameters = new List<SqliteParameter>();
+
+            string pfx = _hasFtsTable ? "s." : "";
+            string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
+
+            queryBuilder.Append("SELECT ")
+                        .Append(pfx).Append("id, ")
+                        .Append(pfx).Append("npHandle, ")
+                        .Append(pfx).Append("name, ")
+                        .Append(SafeCol(_colGame)).Append(", ")
+                        .Append(SafeCol(_colDate)).Append(", ")
+                        .Append(SafeCol(_colDesc)).Append(", ")
+                        .Append(SafeCol(_colPlay)).Append(", ")
+                        .Append(SafeCol(_colHeart)).Append(", ")
+                        .Append(SafeCol(_colGenre)).Append(", ")
+                        .Append(SafeCol(_colHash)).Append(", ")
+                        .Append(SafeCol(_colIcon)).Append(", ")
+                        .Append(SafeCol(_colLabels))
+                        .Append(" FROM slot ");
+
+            if (_hasFtsTable)
+            {
+                queryBuilder.Append("s INNER JOIN slot_fts f ON s.id = f.id WHERE ");
+                BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+            }
+            else
+            {
+                queryBuilder.Append("WHERE ");
+                BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+            }
+            
+            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqIndicesStr, reqTagIndicesStr);
+
+            if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
+            
+            if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
+            {
+                queryBuilder.Append($" LIMIT {limit}");
+            }
+            
+            var items = new List<LevelItem>();
+            using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
+
+            foreach (var param in parameters)
+            {
+                cmd.Parameters.Add(param);
+            }
+
+            using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+            while (await reader.ReadAsync().ConfigureAwait(false))
+            {
+                long id = reader.GetInt64(0);
+                var levelItem = new LevelItem
+                {
+                    Id = id,
+                    Saved = savedLevels.Contains(id) ? "✓" : "",
+                    Creator = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
+                    LevelName = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
+                    Game = reader.IsDBNull(3) ? "Unk" : $"LBP{reader.GetInt32(3) + 1}",
+                    Date = reader.IsDBNull(4) ? "Unknown" : FormatDate(reader.GetValue(4)),
+                    Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
+                    Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
+                    Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
+                    Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
+                    Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
+                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
+                    Labels = reader.IsDBNull(11) ? new List<string>() : LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(11))
+                };
+
+                items.Add(levelItem);
+            }
+            return items;
         }
-        reqIndicesStr = string.Join(",", reqIndices);
-    }
 
-    var queryBuilder = new StringBuilder();
-    var parameters = new List<SqliteParameter>();
-
-    string pfx = _hasFtsTable ? "s." : "";
-    string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
-
-    queryBuilder.Append("SELECT ")
-                .Append(pfx).Append("id, ")
-                .Append(pfx).Append("npHandle, ")
-                .Append(pfx).Append("name, ")
-                .Append(SafeCol(_colGame)).Append(", ")
-                .Append(SafeCol(_colDate)).Append(", ")
-                .Append(SafeCol(_colDesc)).Append(", ")
-                .Append(SafeCol(_colPlay)).Append(", ")
-                .Append(SafeCol(_colHeart)).Append(", ")
-                .Append(SafeCol(_colGenre)).Append(", ")
-                .Append(SafeCol(_colHash)).Append(", ")
-                .Append(SafeCol(_colIcon)).Append(", ")
-                .Append(SafeCol(_colLabels))
-                .Append(" FROM slot ");
-
-    if (_hasFtsTable)
-    {
-        queryBuilder.Append("s INNER JOIN slot_fts f ON s.id = f.id WHERE ");
-        BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
-    }
-    else
-    {
-        queryBuilder.Append("WHERE ");
-        BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
-    }
-    
-    // Pass our calculated indices string to the filter builder
-    BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqIndicesStr);
-
-    if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
-    
-    // --- 3. RESTORE NATIVE SQL LIMIT CLAUSE ---
-    if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
-    {
-        queryBuilder.Append($" LIMIT {limit}");
-    }
-    
-    var items = new List<LevelItem>();
-    using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
-
-    foreach (var param in parameters)
-    {
-        cmd.Parameters.Add(param);
-    }
-
-    using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
-    while (await reader.ReadAsync().ConfigureAwait(false))
-    {
-        long id = reader.GetInt64(0);
-        var levelItem = new LevelItem
+        public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter)
         {
-            Id = id,
-            Saved = savedLevels.Contains(id) ? "✓" : "",
-            Creator = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
-            LevelName = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
-            Game = reader.IsDBNull(3) ? "Unk" : $"LBP{reader.GetInt32(3) + 1}",
-            Date = reader.IsDBNull(4) ? "Unknown" : FormatDate(reader.GetValue(4)),
-            Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
-            Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
-            Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
-            Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
-            Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
-            IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
-            Labels = reader.IsDBNull(11) ? new List<string>() : LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(11))
-        };
+            var items = new List<UserItem>();
+            if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
-        // We no longer need the C# list filtering here, just add the item!
-        items.Add(levelItem);
-    }
-    return items;
-}
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+
+            using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
+            await conn.OpenAsync().ConfigureAwait(false);
+
+            var queryBuilder = new StringBuilder();
+            var parameters = new List<SqliteParameter>();
+
+            queryBuilder.Append("SELECT npHandle, icon, heartCount, lbp1UsedSlots, lbp2UsedSlots, lbp3UsedSlots FROM user WHERE ");
+
+            if (exact)
+            {
+                queryBuilder.Append("npHandle LIKE @k");
+                parameters.Add(new SqliteParameter("@k", $"%{keyword}%"));
+            }
+            else
+            {
+                var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var conds = new List<string>();
+                for (int i = 0; i < words.Length; i++)
+                {
+                    conds.Add("npHandle LIKE @w" + i);
+                    parameters.Add(new SqliteParameter("@w" + i, $"%{words[i]}%"));
+                }
+                queryBuilder.Append(string.Join(" AND ", conds));
+            }
+
+            queryBuilder.Append(" ORDER BY heartCount DESC");
+
+            if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
+            {
+                queryBuilder.Append($" LIMIT {limit}");
+            }
+
+            using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
+            foreach (var param in parameters) cmd.Parameters.Add(param);
+
+            using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+            while (await reader.ReadAsync().ConfigureAwait(false))
+            {
+                items.Add(new UserItem
+                {
+                    NpHandle = reader.IsDBNull(0) ? "Unknown" : reader.GetString(0),
+                    IconHash = reader.IsDBNull(1) ? "" : GetHashString(reader.GetValue(1)),
+                    HeartCount = reader.IsDBNull(2) ? 0 : reader.GetInt64(2),
+                    Lbp1UsedSlots = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                    Lbp2UsedSlots = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
+                    Lbp3UsedSlots = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
+                });
+            }
+            return items;
+        }
 
         public async Task<HashSet<string>> GetGenresAsync()
         {
@@ -214,7 +276,6 @@ namespace LbpArchiveToolkit.Services
 
         #region SQL Query Builders
 
-        // The fallback condition for dry.db instances without FTS5 tables
         private void BuildSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             bool hasDesc = searchDesc && _colDesc != "NULL";
@@ -240,7 +301,6 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        // The ultra-fast FTS5 Virtual Table matcher logic
         private void BuildFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             string matchTerm = "";
@@ -248,7 +308,6 @@ namespace LbpArchiveToolkit.Services
 
             if (exact)
             {
-                // Adding the * outside the quotes enables phrase prefix matching
                 matchTerm = $"\"{Sanitize(keyword)}\"*";
             }
             else
@@ -256,7 +315,6 @@ namespace LbpArchiveToolkit.Services
                 var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var safeWords = new List<string>();
                 
-                // Adding the * enables prefix matching for each individual word (e.g. "cat" finds "cats")
                 foreach (var w in words) safeWords.Add($"\"{Sanitize(w)}\"*");
                 
                 matchTerm = string.Join(" AND ", safeWords);
@@ -271,49 +329,54 @@ namespace LbpArchiveToolkit.Services
             parameters.Add(new SqliteParameter("@match", matchTerm));
         }
 
-        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, string reqIndicesStr)
-{
-    if (gameFilter > 0 && _colGame != "NULL")
-    {
-        query.Append($" AND {pfx}{_colGame} = @game");
-        parameters.Add(new SqliteParameter("@game", gameFilter - 1));
-    }
-
-    if (genreFilter != "All Genres" && !string.IsNullOrEmpty(genreFilter) && _colGenre != "NULL")
-    {
-        int genreId = MapGenreToInt(genreFilter);
-        if (genreId != 0)
+        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, string reqIndicesStr, string reqTagIndicesStr)
         {
-            query.Append($" AND ({pfx}{_colGenre} = @genreInt OR {pfx}{_colGenre} = @genreStr)");
-            parameters.Add(new SqliteParameter("@genreInt", genreId));
-            parameters.Add(new SqliteParameter("@genreStr", genreFilter));
+            if (gameFilter > 0 && _colGame != "NULL")
+            {
+                query.Append($" AND {pfx}{_colGame} = @game");
+                parameters.Add(new SqliteParameter("@game", gameFilter - 1));
+            }
+
+            if (genreFilter != "All Genres" && !string.IsNullOrEmpty(genreFilter) && _colGenre != "NULL")
+            {
+                int genreId = MapGenreToInt(genreFilter);
+                if (genreId != 0)
+                {
+                    query.Append($" AND ({pfx}{_colGenre} = @genreInt OR {pfx}{_colGenre} = @genreStr)");
+                    parameters.Add(new SqliteParameter("@genreInt", genreId));
+                    parameters.Add(new SqliteParameter("@genreStr", genreFilter));
+                }
+                else
+                {
+                    query.Append($" AND {pfx}{_colGenre} = @genreStr");
+                    parameters.Add(new SqliteParameter("@genreStr", genreFilter));
+                }
+            }
+
+            if (advanced.MinPlays > 0 && _colPlay != "NULL")
+            {
+                query.Append($" AND {pfx}{_colPlay} >= @minPlays");
+                parameters.Add(new SqliteParameter("@minPlays", advanced.MinPlays));
+            }
+
+            if (advanced.MinHearts > 0 && _colHeart != "NULL")
+            {
+                query.Append($" AND {pfx}{_colHeart} >= @minHearts");
+                parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
+            }
+
+            if (!string.IsNullOrEmpty(reqIndicesStr) && _colLabels != "NULL")
+            {
+                query.Append($" AND HAS_ALL_LABELS({pfx}{_colLabels}, @reqIndices)");
+                parameters.Add(new SqliteParameter("@reqIndices", reqIndicesStr));
+            }
+
+            if (!string.IsNullOrEmpty(reqTagIndicesStr) && _colTags != "NULL")
+            {
+                query.Append($" AND HAS_ALL_LABELS({pfx}{_colTags}, @reqTagIndices)");
+                parameters.Add(new SqliteParameter("@reqTagIndices", reqTagIndicesStr));
+            }
         }
-        else
-        {
-            query.Append($" AND {pfx}{_colGenre} = @genreStr");
-            parameters.Add(new SqliteParameter("@genreStr", genreFilter));
-        }
-    }
-
-    if (advanced.MinPlays > 0 && _colPlay != "NULL")
-    {
-        query.Append($" AND {pfx}{_colPlay} >= @minPlays");
-        parameters.Add(new SqliteParameter("@minPlays", advanced.MinPlays));
-    }
-
-    if (advanced.MinHearts > 0 && _colHeart != "NULL")
-    {
-        query.Append($" AND {pfx}{_colHeart} >= @minHearts");
-        parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
-    }
-
-    // --- 4. APPLY CUSTOM SQL FUNCTION IN WHERE CLAUSE ---
-    if (!string.IsNullOrEmpty(reqIndicesStr) && _colLabels != "NULL")
-    {
-        query.Append($" AND HAS_ALL_LABELS({pfx}{_colLabels}, @reqIndices)");
-        parameters.Add(new SqliteParameter("@reqIndices", reqIndicesStr));
-    }
-}
 
         #endregion
 
@@ -327,7 +390,6 @@ namespace LbpArchiveToolkit.Services
             {
                 if (_isSchemaResolved) return;
 
-                // Open with Mode=ReadOnly to support strictly locked files
                 using var conn = new SqliteConnection($"Data Source={_dbPath};Mode=ReadOnly;");
                 conn.Open();
 
@@ -336,12 +398,8 @@ namespace LbpArchiveToolkit.Services
                     using var cmdPragma = new SqliteCommand("PRAGMA journal_mode = WAL;", conn);
                     cmdPragma.ExecuteNonQuery();
                 }
-                catch
-                {
-                    // Fall back gracefully if database or directory is read-only
-                }
+                catch { }
 
-                // Dynamically resolve existing columns
                 var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using (var cmdInfo = new SqliteCommand("PRAGMA table_info(slot)", conn))
                 using (var readerInfo = cmdInfo.ExecuteReader())
@@ -349,7 +407,6 @@ namespace LbpArchiveToolkit.Services
                     while (readerInfo.Read()) columns.Add(readerInfo.GetString(1));
                 }
 
-                // Check if the FTS5 virtual table was created by the user
                 using (var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn))
                 {
                     _hasFtsTable = Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
@@ -364,6 +421,7 @@ namespace LbpArchiveToolkit.Services
                 _colHash = GetDbColumn(columns, "rootLevel", "root_level", "rootLevelHash", "hash");
                 _colIcon = GetDbColumn(columns, "icon", "iconHash");
                 _colLabels = GetDbColumn(columns, "authorLabels");
+                _colTags = GetDbColumn(columns, "tags");
 
                 _isSchemaResolved = true;
             }
@@ -415,6 +473,23 @@ namespace LbpArchiveToolkit.Services
             }
 
             return _intToGenreMap.TryGetValue(id, out string? name) ? name : "Unknown";
+        }
+
+        private static int GetTagIndex(string tagName)
+        {
+            string[] tagNames = new string[] {
+                "Brilliant", "Beautiful", "Funky", "Points-Fest", "Weird", "Tricky", "Short",
+                "Vehicles", "Easy", "Cute", "Quick", "Fun", "Relaxing", "Great", "Speedy", "Race",
+                "Multi-Path", "Machines", "Complex", "Pretty", "Rubbish", "Toys", "Repetitive",
+                "Machinery", "Satisfying", "Braaains", "Fast", "Simple", "Long", "Slow", "Mad", "Hectic",
+                "Creepy", "Perilous", "Empty", "Ingenious", "Lousy", "Frustrating", "Timing", "Boss",
+                "Springy", "Funny", "Musical", "Good", "Hilarious", "Electric", "Puzzler", "Platformer",
+                "Difficult", "Mechanical", "Horizontal", "Splendid", "Fiery", "Swingy", "Single-Path",
+                "Annoying", "Co-op", "Boring", "Moody", "Bubbly", "Nerve-wracking", "Hoists", "Ugly",
+                "Daft", "Ramps", "Secrets", "Floaty", "Artistic", "Competitive", "Gas", "Varied",
+                "Stickers", "Spikes", "Collectables", "Vertical", "Balancing"
+            };
+            return Array.IndexOf(tagNames, tagName);
         }
 
         #endregion
