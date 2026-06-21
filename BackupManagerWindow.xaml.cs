@@ -99,6 +99,11 @@ namespace LbpArchiveToolkit
             }
 
             txtStatus.Text = $"Found {BackupList.Count} local level backups.";
+
+            if (BackupList.Any())
+            {
+                lvBackups.SelectedIndex = 0;
+            }
         }
 
         private BackupItem ParseBackupFolder(string folderPath, string folderName)
