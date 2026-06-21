@@ -15,7 +15,8 @@ namespace LbpArchiveToolkit.Utils
 
             try
             {
-                using (FileStream fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                byte[] fileBytes = File.ReadAllBytes(sfoFilePath);
+                using (MemoryStream fs = new MemoryStream(fileBytes))
                 using (BinaryReader br = new BinaryReader(fs))
                 {
                     // Check Magic Header: "\0PSF"
@@ -53,7 +54,7 @@ namespace LbpArchiveToolkit.Utils
                         fs.Position = keyTableStart + entry.keyOffset;
                         List<byte> keyBytes = new List<byte>();
                         byte b;
-                        while ((b = br.ReadByte()) != 0) keyBytes.Add(b);
+                        while (fs.Position < fs.Length && (b = br.ReadByte()) != 0) keyBytes.Add(b);
                         string key = Encoding.UTF8.GetString(keyBytes.ToArray());
 
                         if (key == "SUB_TITLE" || key == "DETAIL")

@@ -80,16 +80,16 @@ namespace LbpArchiveToolkit
             // Offload disk operations to a background thread
             var backups = await Task.Run(() =>
             {
-                var temp = new System.Collections.Generic.List<BackupItem>();
-                foreach (var folderPath in Directory.EnumerateDirectories(_backupDir))
-                {
-                    string folderName = Path.GetFileName(folderPath);
-                    if (!folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase) && 
-                        !folderName.Contains("ADVLBP", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    temp.Add(ParseBackupFolder(folderPath, folderName));
-                }
-                return temp;
+                return Directory.EnumerateDirectories(_backupDir)
+                    .AsParallel()
+                    .Where(folderPath => {
+                        string folderName = Path.GetFileName(folderPath);
+                        return folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase) || 
+                               folderName.Contains("ADVLBP", StringComparison.OrdinalIgnoreCase);
+                    })
+                    .Select(folderPath => ParseBackupFolder(folderPath, Path.GetFileName(folderPath)))
+                    .OrderByDescending(b => b.DateSaved)
+                    .ToList();
             });
 
             // Update UI list safely on UI thread
@@ -200,7 +200,16 @@ namespace LbpArchiveToolkit
 
             if (isConfirmed)
             {
+                // Capture the minimum selected index to use as a fallback target
+                int fallbackIndex = selectedItems
+                    .Select(item => BackupList.IndexOf(item))
+                    .Where(idx => idx >= 0)
+                    .DefaultIfEmpty(-1)
+                    .Min();
+
                 int deletedCount = 0;
+                
+                // Clear selection temporarily to avoid UI layout overhead while mutating the collection
                 lvBackups.SelectedIndex = -1;
 
                 foreach (var item in selectedItems)
@@ -222,6 +231,16 @@ namespace LbpArchiveToolkit
                 }
 
                 txtStatus.Text = $"Deleted {deletedCount} backup(s).";
+
+                // Auto-select the next logical backup item
+                if (BackupList.Any())
+                {
+                    if (fallbackIndex < 0) fallbackIndex = 0;
+                    if (fallbackIndex >= BackupList.Count) fallbackIndex = BackupList.Count - 1;
+
+                    lvBackups.SelectedIndex = fallbackIndex;
+                    lvBackups.ScrollIntoView(BackupList[fallbackIndex]);
+                }
             }
         }
 

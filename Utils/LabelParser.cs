@@ -91,15 +91,14 @@ namespace LbpArchiveToolkit.Utils
         public static List<string> ParseLabelNames(byte[] blob)
         {
             var labels = new List<string>();
+            int len = blob.Length;
+            if (len == 0) return labels;
+            
             for (int i = 0; i < LabelTags.Length; i++)
             {
-                // Calculate from the END of the array because it is Big-Endian
-                int byteIndex = (blob.Length - 1) - (i / 8); 
-                int bitIndex = i % 8;
-
-                if (byteIndex >= 0 && byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
+                int byteIndex = (len - 1) - (i >> 3); 
+                if (byteIndex >= 0 && (blob[byteIndex] & (1 << (i & 7))) != 0)
                 {
-                    // Directly access the pre-computed string cache
                     labels.Add(FriendlyLabelNames[i]);
                 }
             }

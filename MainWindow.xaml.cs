@@ -95,7 +95,7 @@ namespace LbpArchiveToolkit
             dgUsers.ItemsSource = _userResultsList;
             SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
 
-            LoadSavedLevels();
+            _ = LoadSavedLevelsAsync();
             _ = LoadGenresAsync(); 
             
             if (ConfigManager.LastSearch?.Results != null)
@@ -1230,7 +1230,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             }
         }
 
-        private void LoadSavedLevels()
+        private async Task LoadSavedLevelsAsync()
         {
             foreach (var levelId in SavedLevelsManager.SavedLevels)
             {
@@ -1242,24 +1242,33 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             
             if (Directory.Exists(ConfigManager.BackupDirectory))
             {
-                bool needsUpdate = false;
-
-                foreach (var dir in Directory.EnumerateDirectories(ConfigManager.BackupDirectory))
+                var discoveredIds = await Task.Run(() =>
                 {
-                    string dirName = Path.GetFileName(dir);
-                    if (dirName.Length >= 8)
+                    var ids = new List<long>();
+                    foreach (var dir in Directory.EnumerateDirectories(ConfigManager.BackupDirectory))
                     {
-                        string hexId = dirName.Substring(dirName.Length - 8);
-                        if (long.TryParse(hexId, System.Globalization.NumberStyles.HexNumber, null, out long id))
+                        string dirName = Path.GetFileName(dir);
+                        if (dirName.Length >= 8)
                         {
-                            _savedLevels.Add(id);
-                            string idStr = id.ToString();
-                            if (!SavedLevelsManager.Contains(idStr))
+                            string hexId = dirName.Substring(dirName.Length - 8);
+                            if (long.TryParse(hexId, System.Globalization.NumberStyles.HexNumber, null, out long id))
                             {
-                                SavedLevelsManager.SavedLevels.Add(idStr);
-                                needsUpdate = true;
+                                ids.Add(id);
                             }
                         }
+                    }
+                    return ids;
+                });
+                
+                bool needsUpdate = false;
+                foreach (var id in discoveredIds)
+                {
+                    _savedLevels.Add(id);
+                    string idStr = id.ToString();
+                    if (!SavedLevelsManager.Contains(idStr))
+                    {
+                        SavedLevelsManager.SavedLevels.Add(idStr);
+                        needsUpdate = true;
                     }
                 }
                 

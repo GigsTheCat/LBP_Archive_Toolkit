@@ -243,52 +243,61 @@ namespace LbpArchiveToolkit.Utils
     int blocksY = (height + 3) / 4;
     int srcOffset = 0;
 
-    uint[] dest = new uint[totalPixels];
+    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
 
-            for (int by = 0; by < blocksY; by++)
+            if (format == 0x86) // DXT1
             {
+                for (int by = 0; by < blocksY; by++)
                 for (int bx = 0; bx < blocksX; bx++)
                 {
-                    if (format == 0x86) // DXT1
+                    if (srcOffset + 8 > data.Length) break;
+                    DecodeDXT1Block(data, srcOffset, dest, bx, by, width, height, true);
+                    srcOffset += 8;
+                }
+            }
+            else if (format == 0x87) // DXT3
+            {
+                for (int by = 0; by < blocksY; by++)
+                for (int bx = 0; bx < blocksX; bx++)
+                {
+                    if (srcOffset + 16 > data.Length) break;
+                    DecodeDXT3Block(data, srcOffset, dest, bx, by, width, height);
+                    srcOffset += 16;
+                }
+            }
+            else if (format == 0x88) // DXT5
+            {
+                for (int by = 0; by < blocksY; by++)
+                for (int bx = 0; bx < blocksX; bx++)
+                {
+                    if (srcOffset + 16 > data.Length) break;
+                    DecodeDXT5Block(data, srcOffset, dest, bx, by, width, height);
+                    srcOffset += 16;
+                }
+            }
+            else
+            {
+                for (int by = 0; by < blocksY; by++)
+                for (int bx = 0; bx < blocksX; bx++)
+                {
+                    for (int y = 0; y < 4; y++)
+                    for (int x = 0; x < 4; x++)
                     {
-                        if (srcOffset + 8 > data.Length) break;
-                        DecodeDXT1Block(data, srcOffset, dest, bx, by, width, height, true);
-                        srcOffset += 8;
-                    }
-                    else if (format == 0x87) // DXT3
-                    {
-                        if (srcOffset + 16 > data.Length) break;
-                        DecodeDXT3Block(data, srcOffset, dest, bx, by, width, height);
-                        srcOffset += 16;
-                    }
-                    else if (format == 0x88) // DXT5
-                    {
-                        if (srcOffset + 16 > data.Length) break;
-                        DecodeDXT5Block(data, srcOffset, dest, bx, by, width, height);
-                        srcOffset += 16;
-                    }
-                    else
-                    {
-                        for (int y = 0; y < 4; y++)
-                        for (int x = 0; x < 4; x++)
-                        {
-                            if (by * 4 + y < height && bx * 4 + x < width)
-                                dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF; 
-                        }
+                        if (by * 4 + y < height && bx * 4 + x < width)
+                            dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF; 
                     }
                 }
             }
 
-            Buffer.BlockCopy(dest, 0, bgra, 0, bgra.Length);
             return bgra;
         }
 
-        private static void DecodeDXT1Block(byte[] data, int srcOffset, uint[] dest, int bx, int by, int width, int height, bool isDxt1)
+        private static void DecodeDXT1Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height, bool isDxt1)
         {
             ushort c0 = (ushort)(data[srcOffset] | (data[srcOffset + 1] << 8));
             ushort c1 = (ushort)(data[srcOffset + 2] | (data[srcOffset + 3] << 8));
 
-            uint[] colors = new uint[4];
+            Span<uint> colors = stackalloc uint[4];
             colors[0] = RGB565toBGRA(c0);
             colors[1] = RGB565toBGRA(c1);
 
@@ -308,24 +317,39 @@ namespace LbpArchiveToolkit.Utils
                            ((uint)data[srcOffset + 6] << 16) | 
                            ((uint)data[srcOffset + 7] << 24);
 
+            int startY = by * 4;
+            int startX = bx * 4;
             for (int y = 0; y < 4; y++)
             {
+                int py = startY + y;
+                if (py >= height) 
+                {
+                    indices >>= 8; // skip 4 pixels * 2 bits
+                    continue;
+                }
+                int rowOffset = py * width;
                 for (int x = 0; x < 4; x++)
                 {
                     uint idx = indices & 3;
                     indices >>= 2;
-                    if (by * 4 + y >= height || bx * 4 + x >= width) continue;
-                    dest[(by * 4 + y) * width + (bx * 4 + x)] = colors[idx];
+                    int px = startX + x;
+                    if (px >= width) continue;
+                    dest[rowOffset + px] = colors[(int)idx];
                 }
             }
         }
 
-        private static void DecodeDXT3Block(byte[] data, int srcOffset, uint[] dest, int bx, int by, int width, int height)
+        private static void DecodeDXT3Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
         {
             DecodeDXT1Block(data, srcOffset + 8, dest, bx, by, width, height, false);
 
+            int startY = by * 4;
+            int startX = bx * 4;
             for (int y = 0; y < 4; y++)
             {
+                int py = startY + y;
+                if (py >= height) continue;
+                int rowOffset = py * width;
                 uint rowAlpha = (uint)data[srcOffset + y * 2] | ((uint)data[srcOffset + y * 2 + 1] << 8);
                 for (int x = 0; x < 4; x++)
                 {
@@ -333,22 +357,23 @@ namespace LbpArchiveToolkit.Utils
                     rowAlpha >>= 4;
                     a = (a << 4) | a;
                     
-                    if (by * 4 + y >= height || bx * 4 + x >= width) continue;
-                    int px = (by * 4 + y) * width + (bx * 4 + x);
-                    uint c = dest[px];
-                    dest[px] = (c & 0x00FFFFFF) | (a << 24);
+                    int px = startX + x;
+                    if (px >= width) continue;
+                    int destIdx = rowOffset + px;
+                    uint c = dest[destIdx];
+                    dest[destIdx] = (c & 0x00FFFFFF) | (a << 24);
                 }
             }
         }
 
-        private static void DecodeDXT5Block(byte[] data, int srcOffset, uint[] dest, int bx, int by, int width, int height)
+        private static void DecodeDXT5Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
         {
             DecodeDXT1Block(data, srcOffset + 8, dest, bx, by, width, height, false);
 
             int a0 = data[srcOffset];
             int a1 = data[srcOffset + 1];
             
-            int[] alphas = new int[8];
+            Span<int> alphas = stackalloc int[8];
             alphas[0] = a0;
             alphas[1] = a1;
             if (a0 > a1)
@@ -369,19 +394,29 @@ namespace LbpArchiveToolkit.Utils
                                  ((ulong)data[srcOffset + 6] << 32) |
                                  ((ulong)data[srcOffset + 7] << 40);
 
+            int startY = by * 4;
+            int startX = bx * 4;
             for (int y = 0; y < 4; y++)
             {
+                int py = startY + y;
+                if (py >= height)
+                {
+                    alphaIndices >>= 12; // skip 4 pixels * 3 bits
+                    continue;
+                }
+                int rowOffset = py * width;
                 for (int x = 0; x < 4; x++)
                 {
                     int idx = (int)(alphaIndices & 7);
                     alphaIndices >>= 3;
                     
-                    if (by * 4 + y >= height || bx * 4 + x >= width) continue;
+                    int px = startX + x;
+                    if (px >= width) continue;
                     
                     uint a = (uint)alphas[idx];
-                    int px = (by * 4 + y) * width + (bx * 4 + x);
-                    uint c = dest[px];
-                    dest[px] = (c & 0x00FFFFFF) | (a << 24);
+                    int destIdx = rowOffset + px;
+                    uint c = dest[destIdx];
+                    dest[destIdx] = (c & 0x00FFFFFF) | (a << 24);
                 }
             }
         }
@@ -422,32 +457,6 @@ namespace LbpArchiveToolkit.Utils
             return n + 1;
         }
 
-        private static int GetMortonOffset(int x, int y, int log2Width, int log2Height)
-        {
-            int offset = 0;
-            int shiftX = 0;
-            int shiftY = 0;
-            int outShift = 0;
-            
-            while (shiftX < log2Width || shiftY < log2Height)
-            {
-                if (shiftX < log2Width)
-                {
-                    offset |= ((x >> shiftX) & 1) << outShift;
-                    shiftX++;
-                    outShift++;
-                }
-                if (shiftY < log2Height)
-                {
-                    offset |= ((y >> shiftY) & 1) << outShift;
-                    shiftY++;
-                    outShift++;
-                }
-            }
-            
-            return offset;
-        }
-
         private static byte[] Unswizzle(byte[] data, byte format, int width, int height, int mipCount)
         {
             int bytesPerBlock = 16;
@@ -474,6 +483,9 @@ namespace LbpArchiveToolkit.Utils
             int srcOffset = 0;
             int destOffset = 0;
 
+            ReadOnlySpan<byte> srcSpan = data;
+            Span<byte> destSpan = unswizzled;
+
             for (int mip = 0; mip < mipCount; mip++)
             {
                 int mipWidth = Math.Max(1, width >> mip);
@@ -494,16 +506,46 @@ namespace LbpArchiveToolkit.Utils
                 int paddedMipDataSize = paddedBlocksX * paddedBlocksY * bytesPerBlock;
                 if (srcOffset >= data.Length) break;
 
+                int minLog = Math.Min(log2Width, log2Height);
+                int[] colOffsetMap = new int[blocksX];
+                for (int x = 0; x < blocksX; x++)
+                {
+                    int ix = (x & ((1 << minLog) - 1));
+                    ix = (ix | (ix << 8)) & 0x00FF00FF;
+                    ix = (ix | (ix << 4)) & 0x0F0F0F0F;
+                    ix = (ix | (ix << 2)) & 0x33333333;
+                    ix = (ix | (ix << 1)) & 0x55555555;
+
+                    int colOffset = ix;
+                    if (log2Width > log2Height)
+                    {
+                        colOffset |= (x >> minLog) << (2 * minLog);
+                    }
+                    colOffsetMap[x] = colOffset;
+                }
+
                 for (int y = 0; y < blocksY; y++)
                 {
+                    int iy = (y & ((1 << minLog) - 1));
+                    iy = (iy | (iy << 8)) & 0x00FF00FF;
+                    iy = (iy | (iy << 4)) & 0x0F0F0F0F;
+                    iy = (iy | (iy << 2)) & 0x33333333;
+                    iy = (iy | (iy << 1)) & 0x55555555;
+
+                    int rowOffset = iy << 1;
+                    if (log2Height > log2Width)
+                    {
+                        rowOffset |= (y >> minLog) << (2 * minLog);
+                    }
+
                     for (int x = 0; x < blocksX; x++)
                     {
-                        int mortonIndex = GetMortonOffset(x, y, log2Width, log2Height);
+                        int mortonIndex = colOffsetMap[x] | rowOffset;
                         int srcIndex = srcOffset + mortonIndex * bytesPerBlock;
 
-                        if (srcIndex + bytesPerBlock <= data.Length && destOffset + bytesPerBlock <= unswizzled.Length)
+                        if (srcIndex + bytesPerBlock <= srcSpan.Length && destOffset + bytesPerBlock <= destSpan.Length)
                         {
-                            Buffer.BlockCopy(data, srcIndex, unswizzled, destOffset, bytesPerBlock);
+                            srcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(destSpan.Slice(destOffset, bytesPerBlock));
                         }
                         destOffset += bytesPerBlock;
                     }
@@ -579,24 +621,29 @@ namespace LbpArchiveToolkit.Utils
             int offsetX = (targetWidth - scaledWidth) / 2;
             int offsetY = (targetHeight - scaledHeight) / 2;
 
-            // Nearest-neighbor manual scale (Extremely fast, zero WPF overhead)
+            double invScale = 1.0 / scale;
+            int[] srcXMap = new int[scaledWidth];
+            for (int x = 0; x < scaledWidth; x++)
+            {
+                int srcX = (int)(x * invScale);
+                if (srcX >= srcWidth) srcX = srcWidth - 1;
+                srcXMap[x] = srcX;
+            }
+
+            ReadOnlySpan<uint> sourcePixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(sourceBgra.AsSpan());
+            Span<uint> targetPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(targetBgra.AsSpan());
+
             for (int y = 0; y < scaledHeight; y++)
             {
-                int srcY = (int)(y / scale);
+                int srcY = (int)(y * invScale);
                 if (srcY >= srcHeight) srcY = srcHeight - 1;
+
+                int srcRowOffset = srcY * srcWidth;
+                int destRowOffset = (y + offsetY) * targetWidth + offsetX;
 
                 for (int x = 0; x < scaledWidth; x++)
                 {
-                    int srcX = (int)(x / scale);
-                    if (srcX >= srcWidth) srcX = srcWidth - 1;
-
-                    int srcIndex = (srcY * srcWidth + srcX) * 4;
-                    int destIndex = ((y + offsetY) * targetWidth + (x + offsetX)) * 4;
-
-                    targetBgra[destIndex] = sourceBgra[srcIndex];         // B
-                    targetBgra[destIndex + 1] = sourceBgra[srcIndex + 1]; // G
-                    targetBgra[destIndex + 2] = sourceBgra[srcIndex + 2]; // R
-                    targetBgra[destIndex + 3] = sourceBgra[srcIndex + 3]; // A
+                    targetPixels[destRowOffset + x] = sourcePixels[srcRowOffset + srcXMap[x]];
                 }
             }
 

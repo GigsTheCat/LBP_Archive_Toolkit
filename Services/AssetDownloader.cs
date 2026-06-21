@@ -56,19 +56,19 @@ namespace LbpArchiveToolkit.Services
             string part1 = hash.Substring(0, 2);
             string part2 = hash.Substring(2, 2);
 
-            var pathBuilder = _pathBuilderCache.GetOrAdd(part1, p1 =>
+            var pathBuilder = _pathBuilderCache.GetOrAdd(part1, static (p1, bDir) =>
             {
-                if (Directory.Exists(Path.Combine(baseDir, $"dry{p1}", p1)))
+                if (Directory.Exists(Path.Combine(bDir, $"dry{p1}", p1)))
                     return (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_1, p_2, h);
 
-                if (Directory.Exists(Path.Combine(baseDir, $"dry23r{p1[0]}", $"dry{p1}", p1)))
+                if (Directory.Exists(Path.Combine(bDir, $"dry23r{p1[0]}", $"dry{p1}", p1)))
                     return (b, p_1, p_2, h) => Path.Combine(b, $"dry23r{p1[0]}", $"dry{p1}", p1, p_2, h);
 
-                if (Directory.Exists(Path.Combine(baseDir, $"dry{p1}")))
-                    return (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_2, h);
+                if (Directory.Exists(Path.Combine(bDir, $"dry{p1}")))
+                    return (b, p_1, p_2, h) => Path.Combine(b, $"dry{p1}", p_2, h);
 
                 return (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
-            });
+            }, baseDir);
 
             string exactPath = pathBuilder(baseDir, part1, part2, hash);
             if (File.Exists(exactPath)) return await File.ReadAllBytesAsync(exactPath, token).ConfigureAwait(false);
@@ -424,8 +424,7 @@ namespace LbpArchiveToolkit.Services
             public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.OrdinalIgnoreCase);
 
             private readonly IProgress<(int processed, int total, string message)>? _progress;
-            private readonly HashSet<string> _downloadedHashes = new(StringComparer.OrdinalIgnoreCase);
-            private readonly object _stateLock = new();
+            private readonly ConcurrentDictionary<string, byte> _downloadedHashes = new(StringComparer.OrdinalIgnoreCase);
 
             private int _totalDiscovered;
             private int _totalProcessed;
@@ -447,15 +446,12 @@ namespace LbpArchiveToolkit.Services
 
             public bool AddDiscoveredHash(string hash)
             {
-                lock (_stateLock)
+                if (_downloadedHashes.TryAdd(hash, 0))
                 {
-                    if (_downloadedHashes.Add(hash))
-                    {
-                        _totalDiscovered++;
-                        return true;
-                    }
-                    return false;
+                    Interlocked.Increment(ref _totalDiscovered);
+                    return true;
                 }
+                return false;
             }
 
             public void AddResource(string hashStr, byte[] data)

@@ -62,18 +62,30 @@ namespace LbpArchiveToolkit.Services
     using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
     await conn.OpenAsync().ConfigureAwait(false);
 
+            string? lastReqStr = null;
+            int[]? lastParsed = null;
+            
             conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob, string requiredIndicesStr) =>
             {
                 if (blob == null) return false;
                 if (string.IsNullOrEmpty(requiredIndicesStr)) return true;
 
-                var indices = requiredIndicesStr.Split(',');
-                foreach (var indexStr in indices)
+                // Cache the parsing so it doesn't run per-row for the same query
+                if (!ReferenceEquals(requiredIndicesStr, lastReqStr) && requiredIndicesStr != lastReqStr)
                 {
-                    if (!int.TryParse(indexStr, out int i)) continue;
-                    
-                    int byteIndex = (blob.Length - 1) - (i / 8);
-                    int bitIndex = i % 8;
+                    var parts = requiredIndicesStr.Split(',');
+                    var list = new List<int>(parts.Length);
+                    foreach (var p in parts) if (int.TryParse(p, out int val)) list.Add(val);
+                    lastParsed = list.ToArray();
+                    lastReqStr = requiredIndicesStr;
+                }
+
+                if (lastParsed == null) return true;
+
+                foreach (int i in lastParsed)
+                {
+                    int byteIndex = (blob.Length - 1) - (i >> 3);
+                    int bitIndex = i & 7;
 
                     if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
                     {
@@ -172,9 +184,7 @@ namespace LbpArchiveToolkit.Services
 
                 bool isSaved = savedLevels.Contains(id);
                 bool isHearted = heartedLevels.Contains(id);
-                string savedStr = "";
-                if (isSaved) savedStr += "✓";
-                if (isHearted) savedStr += (savedStr.Length > 0 ? " ♥" : "♥");
+                string savedStr = isSaved ? (isHearted ? "✓ ♥" : "✓") : (isHearted ? "♥" : "");
 
                 var levelItem = new LevelItem
                 {
@@ -190,7 +200,7 @@ namespace LbpArchiveToolkit.Services
                     Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
                     Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
                     IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
-                    Labels = reader.IsDBNull(11) ? new List<string>() : LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(11))
+                    Labels = new List<string>() // Unused in UI, skipped parsing for performance
                 };
 
                 items.Add(levelItem);
@@ -488,19 +498,7 @@ namespace LbpArchiveToolkit.Services
 
         private static int GetTagIndex(string tagName)
         {
-            string[] tagNames = new string[] {
-                "Brilliant", "Beautiful", "Funky", "Points-Fest", "Weird", "Tricky", "Short",
-                "Vehicles", "Easy", "Cute", "Quick", "Fun", "Relaxing", "Great", "Speedy", "Race",
-                "Multi-Path", "Machines", "Complex", "Pretty", "Rubbish", "Toys", "Repetitive",
-                "Machinery", "Satisfying", "Braaains", "Fast", "Simple", "Long", "Slow", "Mad", "Hectic",
-                "Creepy", "Perilous", "Empty", "Ingenious", "Lousy", "Frustrating", "Timing", "Boss",
-                "Springy", "Funny", "Musical", "Good", "Hilarious", "Electric", "Puzzler", "Platformer",
-                "Difficult", "Mechanical", "Horizontal", "Splendid", "Fiery", "Swingy", "Single-Path",
-                "Annoying", "Co-op", "Boring", "Moody", "Bubbly", "Nerve-wracking", "Hoists", "Ugly",
-                "Daft", "Ramps", "Secrets", "Floaty", "Artistic", "Competitive", "Gas", "Varied",
-                "Stickers", "Spikes", "Collectables", "Vertical", "Balancing"
-            };
-            return Array.IndexOf(tagNames, tagName);
+            return Array.IndexOf((string[])TagParser.GetNames(), tagName); 
         }
 
         #endregion

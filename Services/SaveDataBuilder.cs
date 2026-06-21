@@ -9,10 +9,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
 using Microsoft.Win32.SafeHandles;
+
 
 namespace LbpArchiveToolkit.Services
 {
@@ -42,69 +45,76 @@ namespace LbpArchiveToolkit.Services
 
             byte method = data[3];
             byte[] workData = data;
+            byte[]? rentedBuffer = null;
             int headOffset = 4;
             int tableOffsetPos = 8;
 
-            if (method == (byte)'e')
-    {
-        uint size = ReadUInt32BE(data, 4);
-        if (8L + size > data.Length) return deps; // Use long addition to prevent uint overflow
-        
-        workData = new byte[size];
-        Array.Copy(data, 8, workData, 0, (int)size);
-                XxteaDecrypt(workData, (int)size);
-                
-                headOffset = 0;
-                tableOffsetPos = 4;
-            }
-
-            if (method == (byte)'b' || method == (byte)'e')
+            try
             {
-                uint head = ReadUInt32BE(workData, headOffset);
-                if (head >= 0x109)
+                if (method == (byte)'e')
                 {
-                    uint tableOffset = ReadUInt32BE(workData, tableOffsetPos);
-                    if (tableOffset < workData.Length)
+                    uint size = ReadUInt32BE(data, 4);
+                    if (8L + size > data.Length) return deps; 
+                    
+                    rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent((int)size);
+                    workData = rentedBuffer;
+                    Array.Copy(data, 8, workData, 0, (int)size);
+                    XxteaDecrypt(workData, (int)size);
+                    
+                    headOffset = 0;
+                    tableOffsetPos = 4;
+                }
+
+                if (method == (byte)'b' || method == (byte)'e')
+                {
+                    uint head = ReadUInt32BE(workData, headOffset);
+                    if (head >= 0x109)
                     {
-                        int ptr = (int)tableOffset;
-                        if (ptr + 4 > workData.Length) return deps;
-                        
-                        // Minimum size of a dependency entry is 4 bytes (for depType == 0)
-                        uint count = ReadUInt32BE(workData, ptr);
-                        ptr += 4;
-                        
-                        long maxPossibleDeps = (workData.Length - ptr) / 4;
-                        uint safeCount = (uint)Math.Min(count, maxPossibleDeps);
-                        
-                        // Prevent OOM and avoid resizing allocations
-                        deps.Capacity = (int)safeCount;
-                        
-                        for (int i = 0; i < safeCount; i++)
+                        uint tableOffset = ReadUInt32BE(workData, tableOffsetPos);
+                        if (tableOffset < workData.Length)
                         {
-                            if (ptr >= workData.Length) break;
-                            byte flags = workData[ptr++];
+                            int ptr = (int)tableOffset;
+                            if (ptr + 4 > workData.Length) return deps;
                             
-                            // Bit 2: Contains a 4-byte GUID
-                            if ((flags & 2) != 0)
+                            uint count = ReadUInt32BE(workData, ptr);
+                            ptr += 4;
+                            
+                            long maxPossibleDeps = (workData.Length - ptr) / 4;
+                            uint safeCount = (uint)Math.Min(count, maxPossibleDeps);
+                            
+                            deps.Capacity = (int)safeCount;
+                            
+                            for (int i = 0; i < safeCount; i++)
                             {
+                                if (ptr >= workData.Length) break;
+                                byte flags = workData[ptr++];
+                                
+                                if ((flags & 2) != 0)
+                                {
+                                    if (ptr + 4 > workData.Length) break;
+                                    ptr += 4;
+                                }
+                                
+                                if ((flags & 1) != 0)
+                                {
+                                    if (ptr + 20 > workData.Length) break;
+                                    string hashStr = Convert.ToHexStringLower(workData.AsSpan(ptr, 20));
+                                    deps.Add(hashStr);
+                                    ptr += 20; 
+                                }
+                                
                                 if (ptr + 4 > workData.Length) break;
                                 ptr += 4;
                             }
-                            
-                            // Bit 1: Contains a 20-byte SHA1 hash
-                            if ((flags & 1) != 0)
-                            {
-                                if (ptr + 20 > workData.Length) break;
-                                string hashStr = Convert.ToHexStringLower(workData.AsSpan(ptr, 20));
-                                deps.Add(hashStr);
-                                ptr += 20; 
-                            }
-                            
-                            // Always followed by a 4-byte ResourceType
-                            if (ptr + 4 > workData.Length) break;
-                            ptr += 4;
                         }
                     }
+                }
+            }
+            finally
+            {
+                if (rentedBuffer != null)
+                {
+                    System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer);
                 }
             }
             return deps;
@@ -214,7 +224,9 @@ namespace LbpArchiveToolkit.Services
 
         private static void MakeSaveArchive(uint head, ushort branchId, ushort branchRev, byte[] sltHash, SortedDictionary<string, byte[]> hashes, string bkpDir)
         {
-            using var arc = new MemoryStream();
+            // Calculate total size: Size of assets + header overhead + entry table overhead
+            int requiredCapacity = hashes.Sum(x => x.Value.Length) + 256 + (hashes.Count * 28);
+            using var arc = new MemoryStream(requiredCapacity);
             var entries = new List<(byte[] hash, uint offset, uint size)>();
 
             foreach (var kvp in hashes)
@@ -320,46 +332,59 @@ namespace LbpArchiveToolkit.Services
             });
         }
 
+        private static void SwapEndianness(Span<uint> v)
+        {
+            int i = 0;
+            if (Avx2.IsSupported)
+            {
+                // Vector mask to reverse bytes across 8 32-bit integers in a single 256-bit AVX instruction
+                Vector256<byte> shuffleMask = Vector256.Create(
+                    (byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12,
+                    19, 18, 17, 16, 23, 22, 21, 20, 27, 26, 25, 24, 31, 30, 29, 28);
+
+                for (; i <= v.Length - 8; i += 8)
+                {
+                    ref byte byteRef = ref System.Runtime.CompilerServices.Unsafe.As<uint, byte>(ref v[i]);
+                    var vec = Vector256.LoadUnsafe(ref byteRef);
+                    var swapped = Avx2.Shuffle(vec, shuffleMask);
+                    swapped.StoreUnsafe(ref byteRef);
+                }
+            }
+
+            // Fallback for remaining integers if length isn't a perfect multiple of 8
+            for (; i < v.Length; i++)
+            {
+                v[i] = BinaryPrimitives.ReverseEndianness(v[i]);
+            }
+        }
+
         private static void XxteaEncrypt(byte[] data, int end)
         {
             if (end <= 0) return;
             int n = (end / 4) - 1;
             if (n < 0) return;
 
-            uint[] v = ArrayPool<uint>.Shared.Rent(n + 1);
+            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan(0, (n + 1) * 4));
 
-            try
+            if (BitConverter.IsLittleEndian) SwapEndianness(v);
+
+            uint sum = 0;
+            uint z = v[n];
+            int rounds = 6 + 52 / (n + 1);
+
+            for (int i = 0; i < rounds; i++)
             {
-                for (int i = 0; i <= n; i++)
+                sum += 0x9e3779b9;
+                uint e = sum >> 2;
+                for (int r = 0; r <= n; r++)
                 {
-                    v[i] = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(i * 4, 4));
-                }
-
-                uint sum = 0;
-                uint z = v[n];
-                int rounds = 6 + 52 / (n + 1);
-
-                for (int i = 0; i < rounds; i++)
-                {
-                    sum += 0x9e3779b9;
-                    uint e = sum >> 2;
-                    for (int r = 0; r <= n; r++)
-                    {
-                        uint y = v[(r + 1) % (n + 1)];
-                        v[r] += (((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z));
-                        z = v[r];
-                    }
-                }
-
-                for (int i = 0; i <= n; i++)
-                {
-                    BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(i * 4, 4), v[i]);
+                    uint y = v[(r + 1) % (n + 1)];
+                    v[r] += (((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z));
+                    z = v[r];
                 }
             }
-            finally
-            {
-                ArrayPool<uint>.Shared.Return(v);
-            }
+
+            if (BitConverter.IsLittleEndian) SwapEndianness(v);
         }
 
         private static void XxteaDecrypt(byte[] data, int end)
@@ -368,40 +393,27 @@ namespace LbpArchiveToolkit.Services
             int n = (end / 4) - 1;
             if (n < 0) return;
 
-            uint[] v = ArrayPool<uint>.Shared.Rent(n + 1);
+            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan(0, (n + 1) * 4));
 
-            try
+            if (BitConverter.IsLittleEndian) SwapEndianness(v);
+
+            uint y = v[0];
+            int rounds = 6 + 52 / (n + 1);
+            uint sum = unchecked((uint)(rounds * 0x9e3779b9));
+
+            for (int i = 0; i < rounds; i++)
             {
-                for (int i = 0; i <= n; i++)
+                uint e = sum >> 2;
+                for (int r = n; r >= 0; r--)
                 {
-                    v[i] = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(i * 4, 4));
+                    uint z = v[r > 0 ? r - 1 : n];
+                    v[r] = unchecked(v[r] - ((((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z))));
+                    y = v[r];
                 }
-
-                uint y = v[0];
-                int rounds = 6 + 52 / (n + 1);
-                uint sum = unchecked((uint)(rounds * 0x9e3779b9));
-
-                for (int i = 0; i < rounds; i++)
-                {
-                    uint e = sum >> 2;
-                    for (int r = n; r >= 0; r--)
-                    {
-                        uint z = v[r > 0 ? r - 1 : n];
-                        v[r] = unchecked(v[r] - ((((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z))));
-                        y = v[r];
-                    }
-                    sum = unchecked(sum - 0x9e3779b9);
-                }
-
-                for (int i = 0; i <= n; i++)
-                {
-                    BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(i * 4, 4), v[i]);
-                }
+                sum = unchecked(sum - 0x9e3779b9);
             }
-            finally
-            {
-                ArrayPool<uint>.Shared.Return(v);
-            }
+
+            if (BitConverter.IsLittleEndian) SwapEndianness(v);
         }
 
         private static byte[] MakeSfo(string displayName, string bkpName, string npHandle, string description, int gameVersion)
@@ -535,7 +547,7 @@ namespace LbpArchiveToolkit.Services
                 msH.Write(pfKeyOrig, 0, pfKeyOrig.Length);
             }
 
-            using (var aes = Aes.Create())
+            using (var aes = System.Security.Cryptography.Aes.Create())
             {
                 aes.Key = SYSCON_MANAGER_KEY;
                 aes.IV = pfHeaderIv;
