@@ -16,4 +16,4 @@ This app allows you to search the archive for levels to download and backup. It 
 Currently Windows only. 
 
 # Credits
-Some code is heavily based on / reverse engineered from [lbp_archive_dl](https://github.com/uhwot/lbp_archive_dl), but also with several improvements / fixes.
+Some code is heavily based on / reverse engineered from [lbp_archive_dl](https://github.com/uhwot/lbp_archive_dl) and cwlib, but also with several improvements / fixes.
