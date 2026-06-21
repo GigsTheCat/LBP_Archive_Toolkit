@@ -21,7 +21,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
         
-        public static List<string> SavedLevels { get; set; } = new List<string>();
+        public static List<string> LegacySavedLevels { get; set; } = new List<string>();
         public static MainWindow.SearchState? LastSearch { get; set; }
 
         public static double WindowWidth { get; set; } = 1200;
@@ -113,7 +113,7 @@ namespace LbpArchiveToolkit.Configuration
                     WindowLeft = data.WindowLeft;
                     WindowTop = data.WindowTop;
                     IsMaximized = data.IsMaximized;
-                    SavedLevels = data.SavedLevels ?? new List<string>();
+                    LegacySavedLevels = data.SavedLevels ?? new List<string>();
                     LastSearch = data.LastSearch;
                 }
             }
@@ -144,7 +144,6 @@ namespace LbpArchiveToolkit.Configuration
                 	WindowLeft = WindowLeft,
                 	WindowTop = WindowTop,
                 	IsMaximized = IsMaximized,
-                	SavedLevels = SavedLevels,
                 	LastSearch = LastSearch
             	};
 

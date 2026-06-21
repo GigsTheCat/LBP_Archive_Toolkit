@@ -15,7 +15,7 @@ namespace LbpArchiveToolkit.Utils
 
             try
             {
-                using (FileStream fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read))
+                using (FileStream fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (BinaryReader br = new BinaryReader(fs))
                 {
                     // Check Magic Header: "\0PSF"

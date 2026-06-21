@@ -1,14 +1,22 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 
 namespace LbpArchiveToolkit.Themes
 {
     public static class ThemeManager
     {
+        // Expose safelisted themes and their display names so the UI can build its lists dynamically
+        public static readonly IReadOnlyDictionary<string, string> AvailableThemes = new Dictionary<string, string>
+        {
+            { "DefaultTheme", "Default Theme" },
+            { "CraftTheme", "Craft Theme" }
+        };
+
         public static void ApplyTheme(string themeName)
         {
-            // Security: Prevent XAML injection by explicitly safelisting allowed themes
-            if (themeName != "CraftTheme" && themeName != "DefaultTheme")
+            // Security: Prevent XAML injection by explicitly checking against our allowed themes
+            if (string.IsNullOrEmpty(themeName) || !AvailableThemes.ContainsKey(themeName))
             {
                 themeName = "DefaultTheme";
             }

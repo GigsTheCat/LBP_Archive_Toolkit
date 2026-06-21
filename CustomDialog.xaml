@@ -10,30 +10,7 @@
     <Window.Resources>
         
 
-        <!-- The Standard BubbleButton -->
-        <Style x:Key="BubbleButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="20"> 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#3D325C"/>
-                                <Setter Property="Foreground" Value="#6A5C8C"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        
         <!-- Primary Action (Yes / OK) -->
         <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
@@ -59,21 +36,10 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
+            </Window.Resources>
 
     <!-- Uses PopitCard so the dialog floats naturally with the dropshadow inside the transparent window -->
-    <Border Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
+    <ContentControl Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Title Header -->
@@ -102,5 +68,5 @@
                 <Button x:Name="btnOk" Content="OK" Style="{DynamicResource BtnPrimary}" Click="BtnOk_Click"/>
             </StackPanel>
         </Grid>
-    </Border>
+    </ContentControl>
 </Window>

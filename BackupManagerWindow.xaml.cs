@@ -142,8 +142,9 @@ namespace LbpArchiveToolkit
                         bitmap.EndInit();
                         bitmap.Freeze(); 
                     }
-                    
-                    iconEllipse.Fill = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                    var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                    brush.Freeze(); // Stop WPF Event Leak
+                    iconEllipse.Fill = brush;
                     txtIconStatus.Text = "";
                 }
                 catch

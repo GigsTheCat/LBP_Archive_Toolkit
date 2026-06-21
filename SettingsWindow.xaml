@@ -102,58 +102,6 @@
             </Style.Triggers>
         </Style>
         
-        <!-- CARD STYLE -->
-        <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- BUTTON BASE -->
-        <Style x:Key="BubbleButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="12"> 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- SECONDARY BUTTON -->
-        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
-            <Setter Property="Background" Value="#453868"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#574880"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- PRIMARY BUTTON -->
-        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
-            <Setter Property="Background" Value="{DynamicResource LbpEmerald}"/>
-            <Setter Property="Foreground" Value="#003D2A"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#29E3B4"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-        
         <!-- TEXTBOX THEME -->
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
@@ -209,11 +157,11 @@
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="templateRoot" Property="Background" Value="#3D325C"/>
+                    <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource BorderSubtle}"/>
                     <Setter TargetName="arrow" Property="Fill" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="templateRoot" Property="Background" Value="#453868"/>
+                    <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource BorderSubtle}"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -249,7 +197,7 @@
             <Setter Property="Margin" Value="2,1"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#453868"/>
+                    <Setter Property="Background" Value="{DynamicResource BorderSubtle}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
@@ -280,7 +228,7 @@
                                 <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="checkBoxBorder" Property="Background" Value="#3D325C"/>
+                                <Setter TargetName="checkBoxBorder" Property="Background" Value="{DynamicResource BorderSubtle}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -290,7 +238,11 @@
     </Window.Resources>
 
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
-                    <DockPanel>
+
+       <Grid>
+            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
+            <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
+        <DockPanel>
             <!-- Title Bar -->
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
                 <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
@@ -300,7 +252,7 @@
             </Grid>
 
             <!-- Main Card Window -->
-            <Border Style="{StaticResource PopitCard}" Margin="20,10,20,25">
+            <ContentControl Style="{DynamicResource PopitCard}" Margin="20,10,20,25">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> 
@@ -333,15 +285,15 @@
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Database Path:" Style="{StaticResource LabelText}"/>
                                 <TextBox x:Name="txtDbPath" Grid.Row="0" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="0" Grid.Column="2" Content="Browse" Style="{StaticResource BtnSecondary}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseDb_Click"/>
+                                <Button Grid.Row="0" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseDb_Click"/>
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Backup Directory:" Style="{StaticResource LabelText}"/>
                                 <TextBox x:Name="txtBackupDir" Grid.Row="1" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="1" Grid.Column="2" Content="Browse" Style="{StaticResource BtnSecondary}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseBackup_Click"/>
+                                <Button Grid.Row="1" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseBackup_Click"/>
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Local Archive Path:" Style="{StaticResource LabelText}"/>
                                 <TextBox x:Name="txtLocalArchive" Grid.Row="2" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="2" Grid.Column="2" Content="Browse" Style="{StaticResource BtnSecondary}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseLocalArchive_Click"/>
+                                <Button Grid.Row="2" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseLocalArchive_Click"/>
                             </Grid>
 
                             <Rectangle Style="{StaticResource Separator}"/>
@@ -385,8 +337,7 @@
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="App Theme:" Style="{StaticResource LabelText}"/>
                                 <ComboBox x:Name="cmbTheme" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6" SelectionChanged="CmbTheme_SelectionChanged">
-                                    <ComboBoxItem Content="Default Theme" Tag="DefaultTheme"/>
-                                    <ComboBoxItem Content="Craft Theme" Tag="CraftTheme"/>
+                                    <!-- Items are populated dynamically from ThemeManager -->
                                 </ComboBox>
                             </Grid>
 
@@ -402,8 +353,8 @@
                             <!-- DATA MANAGEMENT SECTION -->
                             <TextBlock Text="DATA MANAGEMENT" Style="{StaticResource SectionHeader}"/>
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="Forget Saved Levels" Style="{StaticResource BtnSecondary}" Padding="15,8" Margin="0,0,10,0" Click="BtnForgetLevels_Click"/>
-                                <Button Content="Reset to Default" Style="{StaticResource BtnSecondary}" Padding="15,8" Click="BtnResetDefaults_Click"/>
+                                <Button Content="Forget Saved Levels" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Margin="0,0,10,0" Click="BtnForgetLevels_Click"/>
+                                <Button Content="Reset to Default" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Click="BtnResetDefaults_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
@@ -411,12 +362,13 @@
                     <!-- FOOTER -->
                     <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="CANCEL" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="120" Click="BtnCancel_Click"/>
-                            <Button Content="SAVE SETTINGS" Style="{StaticResource BtnPrimary}" MinWidth="150" Click="BtnSave_Click"/>
+                            <Button Content="CANCEL" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,0,15,0" MinWidth="120" Click="BtnCancel_Click"/>
+                            <Button Content="SAVE SETTINGS" Style="{DynamicResource BubbleButton}" Background="{DynamicResource LbpEmerald}" Foreground="#003D2A" MinWidth="150" Click="BtnSave_Click"/>
                         </StackPanel>
                     </Border>
                 </Grid>
-            </Border>
+            </ContentControl>
         </DockPanel>
+   </Grid>
     </Border>
 </Window>

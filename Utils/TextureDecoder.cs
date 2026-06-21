@@ -524,12 +524,7 @@ namespace LbpArchiveToolkit.Utils
         private static byte[] CenterBgraToPng(byte[] bgraData, int srcWidth, int srcHeight)
         {
             if (srcWidth == 0 || srcHeight == 0) return new byte[0];
-
-            int srcStride = srcWidth * 4;
-            var bitmapSource = BitmapSource.Create(srcWidth, srcHeight, 96, 96, PixelFormats.Bgra32, null, bgraData, srcStride);
-            bitmapSource.Freeze(); 
-
-            return ScaleAndCenterWpfImage(bitmapSource);
+            return ScaleAndCenterBgra(bgraData, srcWidth, srcHeight);
         }
 
         private static byte[] CenterWpfImage(byte[] imageData)
@@ -546,7 +541,14 @@ namespace LbpArchiveToolkit.Utils
 
                 if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return new byte[0];
 
-                return ScaleAndCenterWpfImage(bitmap);
+                // Convert any image to BGRA32 format byte array safely
+                int stride = bitmap.PixelWidth * 4;
+                byte[] bgra = new byte[bitmap.PixelHeight * stride];
+                
+                var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+                converted.CopyPixels(bgra, stride, 0);
+
+                return ScaleAndCenterBgra(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
             }
             catch
             {
@@ -554,42 +556,60 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] ScaleAndCenterWpfImage(BitmapSource bitmap)
+        private static byte[] ScaleAndCenterBgra(byte[] sourceBgra, int srcWidth, int srcHeight)
         {
             int targetWidth = 320;
             int targetHeight = 176;
 
-            if (bitmap.PixelWidth == targetWidth && bitmap.PixelHeight == targetHeight)
+            if (srcWidth == targetWidth && srcHeight == targetHeight)
             {
-                var enc = new PngBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmap));
-                using var ms1 = new MemoryStream();
-                enc.Save(ms1);
-                return ms1.ToArray();
+                return EncodeToPng(sourceBgra, srcWidth, srcHeight);
             }
 
-            double scaleX = (double)targetWidth / bitmap.PixelWidth;
-            double scaleY = (double)targetHeight / bitmap.PixelHeight;
+            double scaleX = (double)targetWidth / srcWidth;
+            double scaleY = (double)targetHeight / srcHeight;
             double scale = Math.Min(scaleX, scaleY);
 
-            int scaledWidth = (int)(bitmap.PixelWidth * scale);
-            int scaledHeight = (int)(bitmap.PixelHeight * scale);
+            int scaledWidth = (int)(srcWidth * scale);
+            int scaledHeight = (int)(srcHeight * scale);
 
-            var drawingVisual = new System.Windows.Media.DrawingVisual();
-            using (var drawingContext = drawingVisual.RenderOpen())
+            // Create a transparent 320x176 buffer
+            byte[] targetBgra = new byte[targetWidth * targetHeight * 4];
+            
+            int offsetX = (targetWidth - scaledWidth) / 2;
+            int offsetY = (targetHeight - scaledHeight) / 2;
+
+            // Nearest-neighbor manual scale (Extremely fast, zero WPF overhead)
+            for (int y = 0; y < scaledHeight; y++)
             {
-                drawingContext.DrawRectangle(Brushes.Transparent, null, new System.Windows.Rect(0, 0, targetWidth, targetHeight));
+                int srcY = (int)(y / scale);
+                if (srcY >= srcHeight) srcY = srcHeight - 1;
 
-                double x = (targetWidth - scaledWidth) / 2.0;
-                double y = (targetHeight - scaledHeight) / 2.0;
-                drawingContext.DrawImage(bitmap, new System.Windows.Rect(x, y, scaledWidth, scaledHeight));
+                for (int x = 0; x < scaledWidth; x++)
+                {
+                    int srcX = (int)(x / scale);
+                    if (srcX >= srcWidth) srcX = srcWidth - 1;
+
+                    int srcIndex = (srcY * srcWidth + srcX) * 4;
+                    int destIndex = ((y + offsetY) * targetWidth + (x + offsetX)) * 4;
+
+                    targetBgra[destIndex] = sourceBgra[srcIndex];         // B
+                    targetBgra[destIndex + 1] = sourceBgra[srcIndex + 1]; // G
+                    targetBgra[destIndex + 2] = sourceBgra[srcIndex + 2]; // R
+                    targetBgra[destIndex + 3] = sourceBgra[srcIndex + 3]; // A
+                }
             }
 
-            var renderTarget = new RenderTargetBitmap(targetWidth, targetHeight, 96, 96, PixelFormats.Pbgra32);
-            renderTarget.Render(drawingVisual);
+            return EncodeToPng(targetBgra, targetWidth, targetHeight);
+        }
+
+        private static byte[] EncodeToPng(byte[] bgraData, int width, int height)
+        {
+            var bitmapSource = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, bgraData, width * 4);
+            bitmapSource.Freeze();
 
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+            encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
             using var ms = new MemoryStream();
             encoder.Save(ms);
             return ms.ToArray();

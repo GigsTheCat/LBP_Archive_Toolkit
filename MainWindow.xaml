@@ -189,41 +189,8 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="BubbleButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="20"> 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#3D325C"/>
-                                <Setter Property="Foreground" Value="#6A5C8C"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        
+        
         <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="#453868"/>
             <Style.Triggers>
@@ -369,7 +336,12 @@
             </Style>
         </Border.Style>
 
-        <DockPanel>
+        <!-- WRAP EVERYTHING IN THIS GRID -->
+        <Grid>
+            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
+            <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
+
+            <DockPanel>
             <!-- Custom Title Bar -->
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
                 <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
@@ -384,7 +356,11 @@
             <Menu DockPanel.Dock="Top" Background="Transparent" Padding="10,4">
                 <MenuItem Header="Options">
                     <MenuItem Header="Settings..." Click="MenuSettings_Click"/>
+                </MenuItem>
+                <MenuItem Header="Lists">
                     <MenuItem Header="Backup Manager..." Click="MenuBackupManager_Click"/>
+                    <MenuItem Header="Hearted Levels..." Click="MenuHeartedLevels_Click"/>
+                    <MenuItem Header="Hearted Creators..." Click="MenuHeartedCreators_Click"/>
                 </MenuItem>
                 <MenuItem Header="Info">
                     <MenuItem Header="About" Click="MenuAbout_Click"/>
@@ -398,7 +374,7 @@
                     <RowDefinition Height="Auto"/> 
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
+                <ContentControl Grid.Row="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,15">
                             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,15,0">
@@ -459,7 +435,7 @@
                             <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="15,0,0,0" FontSize="11" Click="BtnAdvanced_Click"/>
                         </WrapPanel>
                     </StackPanel>
-                </Border>
+                </ContentControl>
 
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
@@ -468,7 +444,7 @@
                         <ColumnDefinition Width="340"/>   
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
+                    <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <Grid>
                             <!-- Levels DataGrid -->
                             <DataGrid x:Name="dgResults" 
@@ -502,8 +478,9 @@
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
                                                     <TextBlock.ContextMenu>
-                                                        <ContextMenu>
+                                                        <ContextMenu Opened="CreatorContextMenu_Opened">
                                                             <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
+                                                            <MenuItem Header="Heart Creator" Click="HeartCreatorContext_Click"/>
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
                                                 </TextBlock>
@@ -586,13 +563,13 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
-                    </Border>
+                    </ContentControl>
 
                     <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
 
                     <Grid Grid.Column="2">
                         <!-- Levels Details Pane -->
-                        <Border x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Visible">
+                        <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Visible">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -608,6 +585,13 @@
                                     </Ellipse>
                                     <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
                                     <TextBlock x:Name="txtIconStatus" Text="Select a level&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    
+                                    <!-- THE NEW HEART OVERLAY -->
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Hidden">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
@@ -635,14 +619,15 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                                    <Button x:Name="btnHeartToggle" Content="♥ HEART LEVEL" Margin="0,0,0,10" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnHeartToggle_Click"/>
                                     <Button x:Name="btnCopyHash" Content="COPY HASH" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnCopyHash_Click"/>
                                     <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnExtract_Click"/>
                                 </StackPanel>
                             </Grid>
-                        </Border>
+                        </ContentControl>
 
                         <!-- Creators Details Pane -->
-                        <Border x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Collapsed">
+                        <ContentControl x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Collapsed">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -658,6 +643,12 @@
                                     </Ellipse>
                                     <Ellipse x:Name="userIconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
                                     <TextBlock x:Name="txtUserIconStatus" Text="Select a creator&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    
+                                    <TextBlock x:Name="userIconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Hidden">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
@@ -675,10 +666,12 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
+                                    <Button x:Name="btnUserHeartToggle" Content="♥ HEART CREATOR" Margin="0,0,0,10" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnUserHeartToggle_Click"/>
+                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
+                                    <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnDownloadAllLevels_Click"/>
                                 </StackPanel>
                             </Grid>
-                        </Border>
+                        </ContentControl>
                     </Grid>
                 </Grid>
 
@@ -690,5 +683,6 @@
                 </DockPanel>
             </Grid>
         </DockPanel>
+     </Grid>
     </Border>
 </Window>

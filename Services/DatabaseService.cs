@@ -52,7 +52,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, AdvancedSearchCriteria advanced)
+        public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced)
 {
     if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -169,10 +169,17 @@ namespace LbpArchiveToolkit.Services
             while (await reader.ReadAsync().ConfigureAwait(false))
             {
                 long id = reader.GetInt64(0);
+
+                bool isSaved = savedLevels.Contains(id);
+                bool isHearted = heartedLevels.Contains(id);
+                string savedStr = "";
+                if (isSaved) savedStr += "✓";
+                if (isHearted) savedStr += (savedStr.Length > 0 ? " ♥" : "♥");
+
                 var levelItem = new LevelItem
                 {
                     Id = id,
-                    Saved = savedLevels.Contains(id) ? "✓" : "",
+                    Saved = savedStr,
                     Creator = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
                     LevelName = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
                     Game = reader.IsDBNull(3) ? "Unk" : $"LBP{reader.GetInt32(3) + 1}",

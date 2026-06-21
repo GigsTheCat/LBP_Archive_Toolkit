@@ -44,13 +44,20 @@ namespace LbpArchiveToolkit
             chkForceLbp3.IsChecked = ConfigManager.ForceLbp3Backups;
             chkLbp2Beta.IsChecked = ConfigManager.Lbp2BetaToRetail;
 
-            // Load saved theme state
-            foreach (System.Windows.Controls.ComboBoxItem item in cmbTheme.Items)
+            // Dynamically populate available themes from the ThemeManager
+            cmbTheme.Items.Clear();
+            foreach (var theme in LbpArchiveToolkit.Themes.ThemeManager.AvailableThemes)
             {
-                if (item.Tag?.ToString() == ConfigManager.Theme)
+                var item = new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = theme.Value,
+                    Tag = theme.Key
+                };
+                cmbTheme.Items.Add(item);
+
+                if (theme.Key == ConfigManager.Theme)
                 {
                     cmbTheme.SelectedItem = item;
-                    break;
                 }
             }
         }
@@ -191,8 +198,7 @@ namespace LbpArchiveToolkit
                 }
                 else
                 {
-                    ConfigManager.SavedLevels.Clear();
-                    ConfigManager.SaveConfig();
+                    SavedLevelsManager.Clear();
                 }
                 
                 CustomDialog.Show(this, "All saved levels have been cleared.", "Success", isYesNo: false);

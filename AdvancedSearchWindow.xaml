@@ -65,35 +65,7 @@
             </Style.Triggers>
         </Style>
         
-        <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="BubbleButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="12"> 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        
         <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="#453868"/>
             <Style.Triggers>
@@ -185,7 +157,7 @@
                 </StackPanel>
             </Grid>
 
-            <Border Style="{StaticResource PopitCard}" Margin="20,10,20,25">
+            <ContentControl Style="{StaticResource PopitCard}" Margin="20,10,20,25">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -242,7 +214,7 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-            </Border>
+            </ContentControl>
         </DockPanel>
     </Border>
 </Window>

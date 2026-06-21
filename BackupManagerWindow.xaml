@@ -11,7 +11,51 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        
+
+        <!-- ============================================== -->
+        <!-- DATAGRID CELL VERTICAL ALIGNMENT & HIGHLIGHT FIX -->
+        <!-- ============================================== -->
+        <Style TargetType="DataGridCell">
+            <!-- Normal State Base Properties -->
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <!-- Binding the background is critical so our triggers can paint it -->
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+                <!-- 1. Active Selection Highlight (When the DataGrid has focus) -->
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsSelected" Value="True"/>
+                        <Condition Property="Selector.IsSelectionActive" Value="True"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                </MultiTrigger>
+
+                <!-- 2. Inactive Selection Highlight (When the detail panel or other controls have focus) -->
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsSelected" Value="True"/>
+                        <Condition Property="Selector.IsSelectionActive" Value="False"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
 
         <!-- ============================================== -->
         <!-- SCROLLBAR THEME                                -->
@@ -128,41 +172,8 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="PopitCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="15" ShadowDepth="4" Opacity="0.3" Direction="270" Color="Black"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="BubbleButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="20"> 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#3D325C"/>
-                                <Setter Property="Foreground" Value="#6A5C8C"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        
+        
         <Style x:Key="BtnDelete" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
@@ -194,6 +205,10 @@
                 </Style.Triggers>
             </Style>
         </Border.Style>
+      
+        <Grid>
+            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
+            <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
 
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
@@ -220,7 +235,7 @@
                         <ColumnDefinition Width="380"/> 
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
+                    <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <DataGrid x:Name="lvBackups" 
                                   Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                   Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
@@ -250,11 +265,11 @@
                                 <DataGridTextColumn Header="DATE BACKED UP ↕" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                    </Border>
+                    </ContentControl>
 
                     <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
 
-                    <Border Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
+                    <ContentControl Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/> 
@@ -288,9 +303,10 @@
                                 <Button x:Name="btnDelete" Content="DELETE SELECTED BACKUP" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
                             </StackPanel>
                         </Grid>
-                    </Border>
+                    </ContentControl>
                 </Grid>
             </Grid>
         </DockPanel>
+     </Grid>
     </Border>
 </Window>

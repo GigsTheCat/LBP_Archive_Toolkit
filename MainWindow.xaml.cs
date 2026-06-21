@@ -27,6 +27,7 @@ namespace LbpArchiveToolkit
     {
         #region State & Dependencies
 
+        private CancellationTokenSource? _iconCts;
         private HwndSource? _hwndSource;
 
         private DatabaseService _dbService;
@@ -42,14 +43,14 @@ namespace LbpArchiveToolkit
 
         private long _currentIconRequestId = -1;
 
-        private static readonly HttpClient _httpClient = new(new SocketsHttpHandler
-        {
-            MaxConnectionsPerServer = 10,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(2)
-        }) 
-        { 
-            Timeout = TimeSpan.FromMinutes(5) 
-        };
+        internal static readonly HttpClient SharedHttpClient = new(new SocketsHttpHandler
+{
+    MaxConnectionsPerServer = 10,
+    PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+}) 
+{ 
+    Timeout = TimeSpan.FromMinutes(5) 
+};
 
         [GeneratedRegex(@"(\@[a-zA-Z0-9_-]+)")]
         private static partial Regex MentionRegex();
@@ -79,6 +80,9 @@ namespace LbpArchiveToolkit
             InitializeComponent();
                         
             ConfigManager.LoadConfig();
+            SavedLevelsManager.Load(ConfigManager.LegacySavedLevels);
+            HeartedLevelsManager.Load();
+            HeartedCreatorsManager.Load();
 
             LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(ConfigManager.Theme);
             
@@ -89,9 +93,7 @@ namespace LbpArchiveToolkit
 
             dgResults.ItemsSource = _resultsList;
             dgUsers.ItemsSource = _userResultsList;
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
-
-            if (ConfigManager.SavedLevels == null) ConfigManager.SavedLevels = new List<string>();
+            SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
 
             LoadSavedLevels();
             _ = LoadGenresAsync(); 
@@ -166,7 +168,7 @@ namespace LbpArchiveToolkit
             try
             {
                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
-                var response = await _httpClient.GetStringAsync(url);
+                var response = await SharedHttpClient.GetStringAsync(url);
                 var json = JsonNode.Parse(response);
                 string? tag = json?["tag_name"]?.ToString();
                  
@@ -248,6 +250,204 @@ namespace LbpArchiveToolkit
         #endregion
 
         #region UI Event Handlers & Menus
+
+        private void MenuHeartedCreators_Click(object sender, RoutedEventArgs e)
+        {
+            var heartedWin = new HeartedCreatorsWindow { Owner = this };
+            heartedWin.ShowDialog();
+            
+            RefreshCurrentUserSelectionHeartState();
+        }
+
+        private async void HeartCreatorContext_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgResults.SelectedItem is LevelItem selected && !string.IsNullOrEmpty(selected.Creator))
+            {
+                string creatorName = selected.Creator;
+                
+                if (HeartedCreatorsManager.IsHearted(creatorName))
+                {
+                    HeartedCreatorsManager.Remove(creatorName);
+                    CustomDialog.Show(this, $"{creatorName} has been removed from your hearted creators.", "Removed", false);
+                }
+                else
+                {
+                    var users = await _dbService.SearchUsersAsync(creatorName, true, "1");
+                    var userToHeart = users.FirstOrDefault(u => u.NpHandle.Equals(creatorName, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (userToHeart == null)
+                    {
+                        userToHeart = new UserItem { NpHandle = creatorName };
+                    }
+                    
+                    HeartedCreatorsManager.Add(userToHeart);
+                    CustomDialog.Show(this, $"{creatorName} has been added to your hearted creators!", "Hearted", false);
+                }
+            }
+           
+        }
+
+        private void CreatorContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (sender is ContextMenu menu)
+            {
+                string? creatorName = null;
+                
+                // ContextMenus exist outside the standard visual tree, so we safely resolve the DataContext
+                if (menu.DataContext is LevelItem level1) 
+                    creatorName = level1.Creator;
+                else if (menu.PlacementTarget is FrameworkElement fe && fe.DataContext is LevelItem level2) 
+                    creatorName = level2.Creator;
+
+                if (!string.IsNullOrEmpty(creatorName))
+                {
+                    bool isHearted = HeartedCreatorsManager.IsHearted(creatorName);
+                    
+                    // Iterate to find the specific menu item (protects against layout order changes)
+                    foreach (var item in menu.Items)
+                    {
+                        if (item is MenuItem menuItem && 
+                           (menuItem.Header?.ToString() == "Heart Creator" || menuItem.Header?.ToString() == "Unheart Creator"))
+                        {
+                            menuItem.Header = isHearted ? "Unheart Creator" : "Heart Creator";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnUserHeartToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                bool isHearted = HeartedCreatorsManager.IsHearted(selectedUser.NpHandle);
+                if (isHearted)
+                {
+                    HeartedCreatorsManager.Remove(selectedUser.NpHandle);
+                }
+                else
+                {
+                    HeartedCreatorsManager.Add(selectedUser);
+                }
+                RefreshCurrentUserSelectionHeartState();
+            }
+        }
+
+        private void RefreshCurrentUserSelectionHeartState()
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                bool isHearted = HeartedCreatorsManager.IsHearted(selectedUser.NpHandle);
+                btnUserHeartToggle.Content = isHearted ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
+                userIconHeartOverlay.Visibility = isHearted ? Visibility.Visible : Visibility.Hidden;
+            }
+        }
+
+        public void InitiateCreatorSearch(string npHandle)
+        {
+            txtSearch.Text = npHandle;
+            chkExact.IsChecked = true;
+            chkSearchDesc.IsChecked = false;
+            cmbGame.SelectedIndex = 0;
+            cmbGenre.SelectedIndex = 0;
+            _advancedCriteria = new AdvancedSearchCriteria(); 
+
+            cmbSearchType.SelectedIndex = 0; 
+        }
+
+        public async Task InitiateBatchDownloadAsync(UserItem selectedUser)
+        {
+            bool isConfirmed = CustomDialog.Show(
+                this, 
+                $"Are you sure you want to download all {selectedUser.TotalLevels} levels by {selectedUser.NpHandle}?\nThis may take a while.", 
+                "Confirm Batch Download", 
+                isYesNo: true);
+
+            if (isConfirmed)
+            {
+                txtStatus.Text = $"Fetching levels for {selectedUser.NpHandle}...";
+                
+                var savedLevelsSnapshot = _savedLevels.ToHashSet();
+                var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
+
+                var creatorLevels = await _dbService.SearchLevelsAsync(
+                    selectedUser.NpHandle, 
+                    exact: true, 
+                    searchDesc: false, 
+                    gameFilter: 0, 
+                    genreFilter: "All Genres", 
+                    limitFilter: "All", 
+                    savedLevelsSnapshot, 
+                    heartedLevelsSnapshot, 
+                    new AdvancedSearchCriteria());
+                
+                var strictlyCreatorLevels = creatorLevels
+                    .Where(l => l.Creator != null && l.Creator.Equals(selectedUser.NpHandle, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (!strictlyCreatorLevels.Any())
+                {
+                    CustomDialog.Show(this, "Could not find any levels for this creator.", "Notice", false);
+                    txtStatus.Text = "No levels found.";
+                    return;
+                }
+
+                await ExtractLevelsAsync(strictlyCreatorLevels);
+            }
+        }
+
+        private void UpdateLevelSavedString(LevelItem lvl)
+        {
+            bool isSaved = _savedLevels.Contains(lvl.Id);
+            bool isHearted = HeartedLevelsManager.IsHearted(lvl.Id);
+            string str = "";
+            if (isSaved) str += "✓";
+            if (isHearted) str += (str.Length > 0 ? " ♥" : "♥");
+            lvl.Saved = str;
+        }
+
+        private void MenuHeartedLevels_Click(object sender, RoutedEventArgs e)
+        {
+            var heartedWin = new HeartedLevelsWindow { Owner = this };
+            heartedWin.ShowDialog();
+            
+            RefreshCurrentSelectionHeartState();
+            
+            // Refresh grid visual states in case we unhearted items from the sub-window
+            foreach (var item in _resultsList)
+            {
+                UpdateLevelSavedString(item);
+            }
+        }
+
+        private void RefreshCurrentSelectionHeartState()
+{
+    if (dgResults.SelectedItem is LevelItem selectedLevel)
+    {
+        bool isHearted = HeartedLevelsManager.IsHearted(selectedLevel.Id);
+        btnHeartToggle.Content = isHearted ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
+        iconHeartOverlay.Visibility = isHearted ? Visibility.Visible : Visibility.Hidden;
+    }
+}
+
+private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgResults.SelectedItem is LevelItem selectedLevel)
+            {
+                bool isHearted = HeartedLevelsManager.IsHearted(selectedLevel.Id);
+                if (isHearted)
+                {
+                    HeartedLevelsManager.Remove(selectedLevel.Id);
+                }
+                else
+                {
+                    HeartedLevelsManager.Add(selectedLevel);
+                }
+                RefreshCurrentSelectionHeartState();
+                UpdateLevelSavedString(selectedLevel);
+            }
+        }
 
         private void MenuSettings_Click(object sender, RoutedEventArgs e)
         {
@@ -365,12 +565,13 @@ namespace LbpArchiveToolkit
             string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             var savedLevelsSnapshot = _savedLevels.ToHashSet();
+            var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
 
             try
             {
                 if (searchType == 0)
                 {
-                    var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, _advancedCriteria);
+                    var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria);
                      
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = results.Count;
@@ -623,13 +824,24 @@ namespace LbpArchiveToolkit
                 btnExtract.IsEnabled = true;
                 btnCopyHash.IsEnabled = !string.IsNullOrEmpty(selectedLevel.Hash);
 
+                btnHeartToggle.IsEnabled = true;
+                RefreshCurrentSelectionHeartState();
+
                 _currentIconRequestId = selectedLevel.Id;
-                await LoadIconAsync(selectedLevel.IconHash);
+                
+                _iconCts?.Cancel();
+                _iconCts?.Dispose();
+                _iconCts = new CancellationTokenSource();
+                
+                await LoadIconAsync(selectedLevel.IconHash, _iconCts.Token);
             }
             else
             {
                 btnExtract.IsEnabled = false;
                 btnCopyHash.IsEnabled = false;
+                btnHeartToggle.IsEnabled = false;
+            btnHeartToggle.Content = "♥ HEART LEVEL";
+            iconHeartOverlay.Visibility = Visibility.Hidden;
                 iconEllipse.Fill = (Brush)FindResource("BgPrimary"); // Changed to (Brush)
                 txtIconStatus.Text = "Select a level\nto view details";
                 
@@ -652,13 +864,24 @@ namespace LbpArchiveToolkit
                                       $"Click the button below to view all levels published by {selectedUser.NpHandle}.";
 
                 btnViewUserLevels.IsEnabled = true;
-
+                btnDownloadAllLevels.IsEnabled = true;
+                btnUserHeartToggle.IsEnabled = true;
+                RefreshCurrentUserSelectionHeartState();
                 _currentIconRequestId = selectedUser.NpHandle.GetHashCode();
-                await LoadUserIconAsync(selectedUser.IconHash, selectedUser.NpHandle);
+                
+                _iconCts?.Cancel();
+                _iconCts?.Dispose();
+                _iconCts = new CancellationTokenSource();
+                
+                await LoadUserIconAsync(selectedUser.IconHash, selectedUser.NpHandle, _iconCts.Token);
             }
             else
             {
                 btnViewUserLevels.IsEnabled = false;
+                btnDownloadAllLevels.IsEnabled = false;
+                btnUserHeartToggle.IsEnabled = false;
+                btnUserHeartToggle.Content = "♥ HEART CREATOR";
+                userIconHeartOverlay.Visibility = Visibility.Hidden;
                 userIconEllipse.Fill = (Brush)FindResource("BgPrimary"); 
                 txtUserIconStatus.Text = "Select a creator\nto view details";
                 txtUserNpHandle.Text = "";
@@ -671,14 +894,7 @@ namespace LbpArchiveToolkit
         {
             if (dgUsers.SelectedItem is UserItem selectedUser)
             {
-                txtSearch.Text = selectedUser.NpHandle;
-                chkExact.IsChecked = true;
-                chkSearchDesc.IsChecked = false;
-                cmbGame.SelectedIndex = 0;
-                cmbGenre.SelectedIndex = 0;
-                _advancedCriteria = new AdvancedSearchCriteria(); // Reset filters
-
-                cmbSearchType.SelectedIndex = 0; // Switch UI to Levels, CmbSearchType_SelectionChanged triggers search
+                InitiateCreatorSearch(selectedUser.NpHandle);
             }
         }
 
@@ -724,7 +940,7 @@ namespace LbpArchiveToolkit
             doc.Blocks.Add(para);
         }
 
-        private async Task LoadIconAsync(string? hash)
+        private async Task LoadIconAsync(string? hash, CancellationToken token)
         {
             iconEllipse.Fill = (Brush)FindResource("BgPrimary");
 
@@ -735,14 +951,7 @@ namespace LbpArchiveToolkit
             }
 
             txtIconStatus.Text = "Loading Icon...";
-
             long expectedRequestId = _currentIconRequestId;
-
-            if (dgResults.SelectedItem is LevelItem currentSelection)
-            {
-                if (currentSelection.Id != expectedRequestId) return;
-            }
-            else return;
 
             try
             {
@@ -752,16 +961,13 @@ namespace LbpArchiveToolkit
                 {
                     try
                     {
-                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, CancellationToken.None);
+                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, token);
 
                         if (rawResource != null)
                         {
-                            byte[] pngBytes = await Task.Run(() =>
-                            {
-                                return TextureDecoder.DecodeToPngCentered(rawResource);
-                            });
+                            byte[] pngBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawResource), token);
 
-                            if (_currentIconRequestId != expectedRequestId) return;
+                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
                             var bmp = new BitmapImage();
                             using (var ms = new MemoryStream(pngBytes))
@@ -773,7 +979,9 @@ namespace LbpArchiveToolkit
                             }
                             bmp.Freeze();
 
-                            iconEllipse.Fill = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            var localBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            localBrush.Freeze(); // Freezing prevents WPF memory leak
+                            iconEllipse.Fill = localBrush;
                             txtIconStatus.Text = "";
                             return; 
                         }
@@ -781,9 +989,12 @@ namespace LbpArchiveToolkit
                     catch { }
                 }
 
-                byte[] imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
+                // Pass the token to the HTTP Client to cancel requests when you scroll fast
+                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", token);
+                response.EnsureSuccessStatusCode();
+                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
 
-                if (_currentIconRequestId != expectedRequestId) return;
+                if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
                 var webBmp = new BitmapImage();
                 using (var ms = new MemoryStream(imageBytes))
@@ -796,9 +1007,13 @@ namespace LbpArchiveToolkit
                 webBmp.Freeze(); 
 
                 var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                brush.Freeze();
+                brush.Freeze(); // Freezing prevents WPF memory leak
                 iconEllipse.Fill = brush;
                 txtIconStatus.Text = "";
+            }
+            catch (OperationCanceledException)
+            {
+                // Silently drop if canceled by fast scrolling
             }
             catch
             {
@@ -809,7 +1024,7 @@ namespace LbpArchiveToolkit
             }
         }
 
-        private async Task LoadUserIconAsync(string? hash, string npHandle)
+        private async Task LoadUserIconAsync(string? hash, string npHandle, CancellationToken token)
         {
             userIconEllipse.Fill = (Brush)FindResource("BgPrimary");
 
@@ -820,14 +1035,7 @@ namespace LbpArchiveToolkit
             }
 
             txtUserIconStatus.Text = "Loading Icon...";
-
             long expectedRequestId = npHandle.GetHashCode();
-
-            if (dgUsers.SelectedItem is UserItem currentSelection)
-            {
-                if (currentSelection.NpHandle.GetHashCode() != expectedRequestId) return;
-            }
-            else return;
 
             try
             {
@@ -837,16 +1045,13 @@ namespace LbpArchiveToolkit
                 {
                     try
                     {
-                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, CancellationToken.None);
+                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, token);
 
                         if (rawResource != null)
                         {
-                            byte[] pngBytes = await Task.Run(() =>
-                            {
-                                return TextureDecoder.DecodeToPngCentered(rawResource);
-                            });
+                            byte[] pngBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawResource), token);
 
-                            if (_currentIconRequestId != expectedRequestId) return;
+                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
                             var bmp = new BitmapImage();
                             using (var ms = new MemoryStream(pngBytes))
@@ -858,7 +1063,9 @@ namespace LbpArchiveToolkit
                             }
                             bmp.Freeze();
 
-                            userIconEllipse.Fill = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            var localBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                            localBrush.Freeze(); // Freezing prevents WPF memory leak
+                            userIconEllipse.Fill = localBrush;
                             txtUserIconStatus.Text = "";
                             return; 
                         }
@@ -866,9 +1073,11 @@ namespace LbpArchiveToolkit
                     catch { }
                 }
 
-                byte[] imageBytes = await _httpClient.GetByteArrayAsync($"https://zaprit.fish/icon/{hash}");
+                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", token);
+                response.EnsureSuccessStatusCode();
+                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
 
-                if (_currentIconRequestId != expectedRequestId) return;
+                if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
                 var webBmp = new BitmapImage();
                 using (var ms = new MemoryStream(imageBytes))
@@ -881,9 +1090,13 @@ namespace LbpArchiveToolkit
                 webBmp.Freeze(); 
 
                 var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                brush.Freeze();
+                brush.Freeze(); // Freezing prevents WPF memory leak
                 userIconEllipse.Fill = brush;
                 txtUserIconStatus.Text = "";
+            }
+            catch (OperationCanceledException)
+            {
+                // Silently drop if canceled by fast scrolling
             }
             catch
             {
@@ -902,7 +1115,20 @@ namespace LbpArchiveToolkit
         {
             var selectedItems = dgResults.SelectedItems.Cast<LevelItem>().ToList();
             if (!selectedItems.Any()) return;
+            await ExtractLevelsAsync(selectedItems);
+        }
 
+        private async void BtnDownloadAllLevels_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                await InitiateBatchDownloadAsync(selectedUser);
+            }
+        }
+        
+
+        private async Task ExtractLevelsAsync(List<LevelItem> levelsToExtract)
+        {
             var progressWin = new ProgressWindow { Owner = this };
             progressWin.Show();
             this.IsEnabled = false;
@@ -916,7 +1142,7 @@ namespace LbpArchiveToolkit
             {
                 var token = progressWin.CancellationTokenSource.Token;
 
-                for (int i = 0; i < selectedItems.Count; i++)
+                for (int i = 0; i < levelsToExtract.Count; i++)
                 {
                     if (token.IsCancellationRequested) 
                     {
@@ -924,8 +1150,8 @@ namespace LbpArchiveToolkit
                         break;
                     }
 
-                    var lvl = selectedItems[i];
-                    string baseStatus = $"[{i + 1}/{selectedItems.Count}] Extracting: {lvl.LevelName}";
+                    var lvl = levelsToExtract[i];
+                    string baseStatus = $"[{i + 1}/{levelsToExtract.Count}] Extracting: {lvl.LevelName}";
                     
                     progressWin.UpdateProgress(0, 1, baseStatus, "Initializing download...");
 
@@ -936,17 +1162,22 @@ namespace LbpArchiveToolkit
 
                     try
                     {
-                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, _httpClient, token, progressIndicator);
+                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, SharedHttpClient, token, progressIndicator);
                         
                         if (result.Success)
                         {
                             successCount++;
-                            lvl.Saved = "✓";
                             _savedLevels.Add(lvl.Id);
                             
-                            if (!ConfigManager.SavedLevels.Contains(lvl.Id.ToString()))
+                            // Synchronize with visual instances currently active on the UI Thread
+                            var existingItem = _resultsList.FirstOrDefault(x => x.Id == lvl.Id);
+                            if (existingItem != null) UpdateLevelSavedString(existingItem);
+                            
+                            UpdateLevelSavedString(lvl);
+                            
+                            if (!SavedLevelsManager.Contains(lvl.Id.ToString()))
                             {
-                                ConfigManager.SavedLevels.Add(lvl.Id.ToString());
+                                SavedLevelsManager.SavedLevels.Add(lvl.Id.ToString());
                             }
                         }
                         else
@@ -967,7 +1198,8 @@ namespace LbpArchiveToolkit
                 
                 if (successCount > 0)
                 {
-                    ConfigManager.SaveConfig();
+                    SavedLevelsManager.Save();
+                    dgResults.Items.Refresh(); // Refresh datagrid visual icons
                 }
             }
             finally
@@ -1000,7 +1232,7 @@ namespace LbpArchiveToolkit
 
         private void LoadSavedLevels()
         {
-            foreach (var levelId in ConfigManager.SavedLevels)
+            foreach (var levelId in SavedLevelsManager.SavedLevels)
             {
                 if (long.TryParse(levelId, out long parsedId))
                 {
@@ -1010,7 +1242,7 @@ namespace LbpArchiveToolkit
             
             if (Directory.Exists(ConfigManager.BackupDirectory))
             {
-                bool configNeedsUpdate = false;
+                bool needsUpdate = false;
 
                 foreach (var dir in Directory.EnumerateDirectories(ConfigManager.BackupDirectory))
                 {
@@ -1022,40 +1254,39 @@ namespace LbpArchiveToolkit
                         {
                             _savedLevels.Add(id);
                             string idStr = id.ToString();
-                            if (!ConfigManager.SavedLevels.Contains(idStr))
+                            if (!SavedLevelsManager.Contains(idStr))
                             {
-                                ConfigManager.SavedLevels.Add(idStr);
-                                configNeedsUpdate = true;
+                                SavedLevelsManager.SavedLevels.Add(idStr);
+                                needsUpdate = true;
                             }
                         }
                     }
                 }
                 
-                if (configNeedsUpdate) ConfigManager.SaveConfig();
+                if (needsUpdate) SavedLevelsManager.Save();
             }
         }
 
         public void ClearSavedLevels()
         {
             _savedLevels.Clear();
-            ConfigManager.SavedLevels.Clear();
-            ConfigManager.SaveConfig();
+            SavedLevelsManager.Clear();
 
-            foreach (var item in _resultsList) item.Saved = string.Empty;
+            foreach (var item in _resultsList) UpdateLevelSavedString(item);
             
             if (_currentSearch?.Results != null)
             {
-                foreach (var item in _currentSearch.Results) item.Saved = string.Empty;
+                foreach (var item in _currentSearch.Results) UpdateLevelSavedString(item);
             }
 
             foreach (var state in _searchHistory.Where(s => s.Results != null))
             {
-                foreach (var item in state.Results) item.Saved = string.Empty;
+                foreach (var item in state.Results) UpdateLevelSavedString(item);
             }
 
             foreach (var state in _forwardHistory.Where(s => s.Results != null))
             {
-                foreach (var item in state.Results) item.Saved = string.Empty;
+                foreach (var item in state.Results) UpdateLevelSavedString(item);
             }
 
             dgResults.Items.Refresh(); 
