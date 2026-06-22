@@ -241,9 +241,13 @@ namespace LbpArchiveToolkit
                 txtStatus.Text = "Update failed.";
             }
             finally
-            {
-                this.IsEnabled = true;
-            }
+{
+    this.IsEnabled = true;
+    if (!string.IsNullOrEmpty(newIcon) && newIcon.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+    {
+        try { File.Delete(newIcon); } catch { }
+    }
+}
         }
     }
 }

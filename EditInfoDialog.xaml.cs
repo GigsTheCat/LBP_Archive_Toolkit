@@ -39,36 +39,58 @@ namespace LbpArchiveToolkit
         }
 
         private void BtnChangeIcon_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-                Title = "Select New Icon"
-            };
+{
+    var dlg = new Microsoft.Win32.OpenFileDialog
+    {
+        Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
+        Title = "Select New Icon"
+    };
 
-            if (dlg.ShowDialog() == true)
+    if (dlg.ShowDialog() == true)
+    {
+        // Intercept selection and pipe it to our custom interactive cropper
+        var cropDialog = new ImageCropDialog(dlg.FileName)
+        {
+            Owner = this
+        };
+
+        if (cropDialog.ShowDialog() == true)
+        {
+            NewIconPath = cropDialog.CroppedImagePath;
+            try
             {
-                NewIconPath = dlg.FileName;
-                try
+                var bmp = new BitmapImage();
+                using (var ms = new FileStream(NewIconPath!, FileMode.Open, FileAccess.Read))
                 {
-                    var bmp = new BitmapImage();
-                    using (var ms = new FileStream(NewIconPath, FileMode.Open, FileAccess.Read))
-                    {
-                        bmp.BeginInit();
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.StreamSource = ms;
-                        bmp.EndInit();
-                    }
-                    bmp.Freeze();
-                    imgIcon.Source = bmp;
+                    bmp.BeginInit();
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.StreamSource = ms;
+                    bmp.EndInit();
                 }
-                catch
-                {
-                    CustomDialog.Show(this, "Failed to load the selected image.", "Error");
-                    NewIconPath = null;
-                }
+                bmp.Freeze();
+                imgIcon.Source = bmp;
+            }
+            catch
+            {
+                CustomDialog.Show(this, "Failed to load the cropped image preview.", "Error");
+                NewIconPath = null;
             }
         }
+    }
+}
+
+// Add this override block to clean up temp files if the user cancels out of the edit panel:
+protected override void OnClosed(EventArgs e)
+{
+    if (DialogResult != true && !string.IsNullOrEmpty(NewIconPath))
+    {
+        if (NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+        {
+            try { File.Delete(NewIconPath); } catch { }
+        }
+    }
+    base.OnClosed(e);
+}
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
