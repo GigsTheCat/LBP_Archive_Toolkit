@@ -177,6 +177,10 @@ namespace LbpArchiveToolkit.Services
                 cmd.Parameters.Add(param);
             }
 
+            var creatorCache = new Dictionary<string, string>();
+            var dateCache = new Dictionary<string, string>();
+            var nameCache = new Dictionary<string, string>();
+
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -186,21 +190,82 @@ namespace LbpArchiveToolkit.Services
                 bool isHearted = heartedLevels.Contains(id);
                 string savedStr = isSaved ? (isHearted ? "✓ ♥" : "✓") : (isHearted ? "♥" : "");
 
+                string creator = "Unknown";
+                if (!reader.IsDBNull(1))
+                {
+                    string? raw = reader.GetString(1);
+                    if (raw != null)
+                    {
+                        if (creatorCache.TryGetValue(raw, out var cachedCreator) && cachedCreator != null)
+                        {
+                            creator = cachedCreator;
+                        }
+                        else
+                        {
+                            creatorCache[raw] = raw;
+                            creator = raw;
+                        }
+                    }
+                }
+
+                string levelName = "Unknown";
+                if (!reader.IsDBNull(2))
+                {
+                    string? raw = reader.GetString(2);
+                    if (raw != null)
+                    {
+                        if (nameCache.TryGetValue(raw, out var cachedName) && cachedName != null)
+                        {
+                            levelName = cachedName;
+                        }
+                        else
+                        {
+                            nameCache[raw] = raw;
+                            levelName = raw;
+                        }
+                    }
+                }
+
+                int gameInt = reader.IsDBNull(3) ? -1 : reader.GetInt32(3);
+                string gameStr = gameInt switch {
+                    0 => "LBP1",
+                    1 => "LBP2",
+                    2 => "LBP3",
+                    _ => "Unk"
+                };
+
+                string date = "Unknown";
+                if (!reader.IsDBNull(4))
+                {
+                    string? raw = FormatDate(reader.GetValue(4));
+                    if (raw != null)
+                    {
+                        if (dateCache.TryGetValue(raw, out var cachedDate) && cachedDate != null)
+                        {
+                            date = cachedDate;
+                        }
+                        else
+                        {
+                            dateCache[raw] = raw;
+                            date = raw;
+                        }
+                    }
+                }
+
                 var levelItem = new LevelItem
                 {
                     Id = id,
                     Saved = savedStr,
-                    Creator = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
-                    LevelName = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
-                    Game = reader.IsDBNull(3) ? "Unk" : $"LBP{reader.GetInt32(3) + 1}",
-                    Date = reader.IsDBNull(4) ? "Unknown" : FormatDate(reader.GetValue(4)),
+                    Creator = creator,
+                    LevelName = levelName,
+                    Game = gameStr,
+                    Date = date,
                     Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
                     Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
                     Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
                     Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
                     Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
-                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
-                    Labels = new List<string>() // Unused in UI, skipped parsing for performance
+                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10))
                 };
 
                 items.Add(levelItem);

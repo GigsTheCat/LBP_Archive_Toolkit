@@ -65,8 +65,6 @@ namespace LbpArchiveToolkit
             public int LimitIndex { get; set; }
             public bool Exact { get; set; }
             public bool SearchDesc { get; set; }
-            public List<LevelItem> Results { get; set; } = new();
-            public List<UserItem> UserResults { get; set; } = new();
             public LevelItem? SelectedItem { get; set; }
             public UserItem? SelectedUser { get; set; }
         }
@@ -98,7 +96,7 @@ namespace LbpArchiveToolkit
             _ = LoadSavedLevelsAsync();
             _ = LoadGenresAsync(); 
             
-            if (ConfigManager.LastSearch?.Results != null)
+            if (ConfigManager.LastSearch != null)
             {
                 ApplySearchState(ConfigManager.LastSearch);
             }
@@ -534,16 +532,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             progressBar.Visibility = Visibility.Visible;
             progressBar.IsIndeterminate = true;
 
-            // Clear previous results to avoid old icons flashing
-            _resultsList = new List<LevelItem>();
-            dgResults.ItemsSource = _resultsList;
-            
-            _userResultsList = new List<UserItem>();
-            dgUsers.ItemsSource = _userResultsList;
-
             if (_currentSearch != null)
             {
-                // FIX: Check the actual search state type, not the UI dropdown
+                // Save the currently selected item BEFORE we clear the DataGrid
                 if (_currentSearch.SearchTypeIndex == 0)
                     _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
@@ -551,6 +542,13 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
                 PushToHistory(_searchHistory, _currentSearch);
             }
+
+            // Clear previous results to avoid old icons flashing
+            _resultsList = new List<LevelItem>();
+            dgResults.ItemsSource = _resultsList;
+            
+            _userResultsList = new List<UserItem>();
+            dgUsers.ItemsSource = _userResultsList;
 
             _forwardHistory.Clear();
             btnForward.IsEnabled = false;
@@ -602,8 +600,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             MinPlays = _advancedCriteria.MinPlays,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
-                        },
-                        Results = new List<LevelItem>(results) 
+                        }
                     };
                 }
                 else
@@ -636,8 +633,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             MinPlays = _advancedCriteria.MinPlays,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
-                        },
-                        UserResults = new List<UserItem>(results)
+                        }
                     };
                 }
 
@@ -733,7 +729,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
         private bool _isApplyingState = false;
 
-        private void ApplySearchState(SearchState state)
+        private async void ApplySearchState(SearchState state)
         {
             _isApplyingState = true;
             try
@@ -748,57 +744,97 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 cmbLimit.SelectedIndex = state.LimitIndex;
                 chkExact.IsChecked = state.Exact;
                 chkSearchDesc.IsChecked = state.SearchDesc;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
 
+            SetUIState(isSearching: true);
+            txtStatus.Text = "Restoring search...";
+            progressBar.Visibility = Visibility.Visible;
+            progressBar.IsIndeterminate = true;
+
+            _resultsList = new List<LevelItem>();
+            dgResults.ItemsSource = _resultsList;
+            
+            _userResultsList = new List<UserItem>();
+            dgUsers.ItemsSource = _userResultsList;
+
+            var savedLevelsSnapshot = _savedLevels.ToHashSet();
+            var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
+            string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            string? genreFilter = (cmbGenre.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            try
+            {
                 if (state.SearchTypeIndex == 0)
                 {
-                    _resultsList = state.Results.ToList();
-                    dgResults.ItemsSource = _resultsList;
-                    dgResults.SelectedItem = null;
+                    var results = await _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria);
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Maximum = results.Count;
+                    progressBar.Value = results.Count; 
 
+                    _resultsList = results;
+                    dgResults.ItemsSource = _resultsList;
+                    txtStatus.Text = $"Restored {results.Count} levels for '{state.SearchText}'.";
+
+                    dgResults.SelectedItem = null;
                     if (state.SelectedItem != null)
                     {
                         var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
                         if (itemToSelect != null)
                         {
                             dgResults.SelectedItem = itemToSelect;
+                            dgResults.UpdateLayout();
                             dgResults.ScrollIntoView(itemToSelect);
                         }
                     }
-                    
                     if (dgResults.SelectedItem == null && _resultsList.Any())
                     {
                         dgResults.SelectedIndex = 0;
+                        dgResults.UpdateLayout();
                         dgResults.ScrollIntoView(_resultsList[0]);
                     }
                 }
                 else
                 {
-                    _userResultsList = state.UserResults.ToList();
-                    dgUsers.ItemsSource = _userResultsList;
-                    dgUsers.SelectedItem = null;
+                    var results = await _dbService.SearchUsersAsync(state.SearchText, state.Exact, limitFilter);
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Maximum = results.Count;
+                    progressBar.Value = results.Count;
 
+                    _userResultsList = results;
+                    dgUsers.ItemsSource = _userResultsList;
+                    txtStatus.Text = $"Restored {results.Count} creators matching '{state.SearchText}'.";
+
+                    dgUsers.SelectedItem = null;
                     if (state.SelectedUser != null)
                     {
                         var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
                         if (userToSelect != null)
                         {
                             dgUsers.SelectedItem = userToSelect;
+                            dgUsers.UpdateLayout();
                             dgUsers.ScrollIntoView(userToSelect);
                         }
                     }
-                    
                     if (dgUsers.SelectedItem == null && _userResultsList.Any())
                     {
                         dgUsers.SelectedIndex = 0;
+                        dgUsers.UpdateLayout();
                         dgUsers.ScrollIntoView(_userResultsList[0]);
                     }
                 }
-
-                txtStatus.Text = $"Restored search for '{state.SearchText}'.";
+            }
+            catch (Exception)
+            {
+                txtStatus.Text = "Failed to restore search.";
             }
             finally
             {
-                _isApplyingState = false;
+                SetUIState(isSearching: false);
+                progressBar.Visibility = Visibility.Hidden;
             }
         }
 
@@ -1284,21 +1320,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
             foreach (var item in _resultsList) UpdateLevelSavedString(item);
             
-            if (_currentSearch?.Results != null)
-            {
-                foreach (var item in _currentSearch.Results) UpdateLevelSavedString(item);
-            }
-
-            foreach (var state in _searchHistory.Where(s => s.Results != null))
-            {
-                foreach (var item in state.Results) UpdateLevelSavedString(item);
-            }
-
-            foreach (var state in _forwardHistory.Where(s => s.Results != null))
-            {
-                foreach (var item in state.Results) UpdateLevelSavedString(item);
-            }
-
             dgResults.Items.Refresh(); 
         }
 

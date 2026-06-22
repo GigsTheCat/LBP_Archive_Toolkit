@@ -17,7 +17,7 @@ namespace LbpArchiveToolkit.Models
         public string? Hash { get; set; }
         public string? IconHash { get; set; }
         public string? Description { get; set; }
-        public List<string> Labels { get; set; } = new List<string>();
+        public List<string>? Labels { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
