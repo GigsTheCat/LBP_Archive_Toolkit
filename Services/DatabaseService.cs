@@ -60,7 +60,7 @@ namespace LbpArchiveToolkit.Services
 
     var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
     using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    await conn.OpenAsync().ConfigureAwait(false);
+    conn.Open();
 
             string? lastReqStr = null;
             int[]? lastParsed = null;
@@ -177,8 +177,8 @@ namespace LbpArchiveToolkit.Services
                 cmd.Parameters.Add(param);
             }
 
-            using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
-            while (await reader.ReadAsync().ConfigureAwait(false))
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
                 long id = reader.GetInt64(0);
 
@@ -217,7 +217,7 @@ namespace LbpArchiveToolkit.Services
 
     var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
     using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    await conn.OpenAsync().ConfigureAwait(false);
+    conn.Open();
 
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
@@ -251,8 +251,8 @@ namespace LbpArchiveToolkit.Services
             using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
             foreach (var param in parameters) cmd.Parameters.Add(param);
 
-            using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
-            while (await reader.ReadAsync().ConfigureAwait(false))
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
                 items.Add(new UserItem
                 {
@@ -277,13 +277,13 @@ namespace LbpArchiveToolkit.Services
 
     var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
     using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    await conn.OpenAsync().ConfigureAwait(false);
+    conn.Open();
 
             string query = $"SELECT DISTINCT {_colGenre} FROM slot WHERE {_colGenre} IS NOT NULL AND {_colGenre} != ''";
             using var cmd = new SqliteCommand(query, conn);
-            using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+            using var reader = cmd.ExecuteReader();
             
-            while (await reader.ReadAsync().ConfigureAwait(false))
+            while (reader.Read())
             {
                 string g = MapGenreToString(reader.GetValue(0));
                 if (g != "Unknown" && !string.IsNullOrWhiteSpace(g)) genres.Add(g);

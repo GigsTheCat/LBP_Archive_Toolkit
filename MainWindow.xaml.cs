@@ -990,8 +990,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 }
 
                 // Pass the token to the HTTP Client to cancel requests when you scroll fast
-                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", token);
+                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
+                if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
                 byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
 
                 if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
@@ -1225,7 +1226,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 if (CustomDialog.Show(this, msg, "Finished", true))
                 {
                     string fullPath = Path.GetFullPath(ConfigManager.BackupDirectory);
-                    if (Directory.Exists(fullPath)) Process.Start("explorer.exe", fullPath);
+                    if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
                 }
             }
         }

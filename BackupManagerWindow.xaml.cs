@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Utils;
+using LbpArchiveToolkit.Services;
 
 namespace LbpArchiveToolkit
 {
@@ -118,6 +119,14 @@ namespace LbpArchiveToolkit
             {
                 var data = SfoReader.GetLevelData(sfoPath);
                 levelName = data.Title ?? levelName;
+                
+                // Fix: Strip out the " by [Creator]" suffix so editing only targets the pure level name
+                int byIndex = levelName.LastIndexOf(" by ");
+                if (byIndex >= 0) 
+                {
+                    levelName = levelName.Substring(0, byIndex);
+                }
+                
                 description = data.Description ?? description;
             }
 
@@ -170,8 +179,9 @@ namespace LbpArchiveToolkit
         #region UI Event Handlers
 
         private void LvBackups_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            btnDelete.IsEnabled = lvBackups.SelectedItems.Count > 0;
+{
+    btnDelete.IsEnabled = lvBackups.SelectedItems.Count > 0;
+    btnEdit.IsEnabled = lvBackups.SelectedItems.Count == 1;
 
             if (lvBackups.SelectedItem is BackupItem selected)
             {
@@ -187,6 +197,56 @@ namespace LbpArchiveToolkit
                 txtIconStatus.Text = "Select a backup";
             }
         }
+
+        private async void BtnEdit_Click(object sender, RoutedEventArgs e)
+{
+    if (lvBackups.SelectedItem is BackupItem selected && selected.FullPath != null)
+    {
+        var dialog = new EditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath)
+        {
+            Owner = this
+        };
+        
+        if (dialog.ShowDialog() == true)
+        {
+            string newName = dialog.LevelName;
+            string newDesc = dialog.Description;
+            string? newIcon = dialog.NewIconPath;
+            
+            if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null) return;
+
+            txtStatus.Text = "Updating and re-encrypting backup...";
+            this.IsEnabled = false;
+
+            try
+            {
+                await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(selected.FullPath, newName, newDesc, newIcon));
+                
+                selected.LevelName = newName;
+                selected.Description = newDesc;
+                txtLevelTitle.Text = newName;
+                txtDescription.Text = newDesc;
+                lvBackups.Items.Refresh();
+
+                if (newIcon != null)
+                {
+                    LoadIconPreview(selected.IconPath);
+                }
+                
+                txtStatus.Text = "Level info updated successfully!";
+            }
+            catch (Exception ex)
+            {
+                CustomDialog.Show(this, $"Failed to update info:\n{ex.Message}", "Error");
+                txtStatus.Text = "Update failed.";
+            }
+            finally
+            {
+                this.IsEnabled = true;
+            }
+        }
+    }
+}
 
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {

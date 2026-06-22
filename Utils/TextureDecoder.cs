@@ -563,6 +563,32 @@ namespace LbpArchiveToolkit.Utils
             return (ushort)((b[0] << 8) | b[1]);
         }
 
+        public static byte[] CreateIconFromImage(string filePath)
+        {
+            try
+            {
+                byte[] fileBytes = File.ReadAllBytes(filePath);
+                using var ms = new MemoryStream(fileBytes);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = ms;
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                int stride = bitmap.PixelWidth * 4;
+                byte[] bgra = new byte[bitmap.PixelHeight * stride];
+                var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+                converted.CopyPixels(bgra, stride, 0);
+
+                return ScaleAndCenterBgra(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
+            }
+            catch
+            {
+                return Array.Empty<byte>();
+            }
+        }
+
         private static byte[] CenterBgraToPng(byte[] bgraData, int srcWidth, int srcHeight)
         {
             if (srcWidth == 0 || srcHeight == 0) return new byte[0];

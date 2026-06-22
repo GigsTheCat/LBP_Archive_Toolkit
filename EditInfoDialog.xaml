@@ -1,0 +1,111 @@
+<Window x:Class="LbpArchiveToolkit.EditInfoDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit Level Info" Width="480" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        FontFamily="Segoe UI" Topmost="False">
+
+    <Window.Resources>
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
+            <Setter Property="Foreground" Value="#002D3D"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Margin" Value="15,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#7EE0FA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Margin" Value="15,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF4A9F"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="BtnActionBlue" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
+            <Setter Property="Foreground" Value="#002D3D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#7EE0FA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Use the same TextBox ControlTemplate from the rest of the app for rounded corners -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <ContentControl Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="EDIT LEVEL INFO" Foreground="{DynamicResource LbpOrange}" FontSize="22" FontWeight="Black" Margin="0,0,0,12"/>
+            <Rectangle Grid.Row="1" Fill="{DynamicResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
+
+            <DockPanel Grid.Row="2" Margin="0,0,0,20">
+                <Border DockPanel.Dock="Left" Width="100" Height="55" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="6" Margin="0,0,15,0" ClipToBounds="True" Background="{DynamicResource BgCardDarker}">
+                    <Image x:Name="imgIcon" Stretch="UniformToFill"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="LEVEL ICON" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <Button Content="CHANGE ICON..." Style="{DynamicResource BtnActionBlue}" HorizontalAlignment="Left" Padding="15,6" FontSize="11" Click="BtnChangeIcon_Click"/>
+                </StackPanel>
+            </DockPanel>
+
+            <StackPanel Grid.Row="3" Margin="0,0,0,15">
+                <DockPanel Margin="0,0,0,5">
+                    <TextBlock Text="LEVEL NAME" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                    <TextBlock x:Name="txtTitleCount" Text="0 / 100" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+                </DockPanel>
+                <TextBox x:Name="txtTitle" MaxLength="100" TextChanged="TxtTitle_TextChanged"/>
+             </StackPanel>
+
+            <StackPanel Grid.Row="4" Margin="0,0,0,25">
+                <DockPanel Margin="0,0,0,5">
+                    <TextBlock Text="DESCRIPTION" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
+                    <TextBlock x:Name="txtDescCount" Text="0 / 1000" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+                </DockPanel>
+                 <!-- VerticalContentAlignment="Top" keeps the text starting at the top in a multiline box -->
+                <TextBox x:Name="txtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="100" VerticalContentAlignment="Top" MaxLength="1000" TextChanged="TxtDescription_TextChanged"/>
+             </StackPanel>
+
+            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="CANCEL" Style="{DynamicResource BtnSecondary}" Click="BtnCancel_Click"/>
+                <Button Content="SAVE" Style="{DynamicResource BtnPrimary}" Click="BtnSave_Click"/>
+            </StackPanel>
+        </Grid>
+    </ContentControl>
+</Window>

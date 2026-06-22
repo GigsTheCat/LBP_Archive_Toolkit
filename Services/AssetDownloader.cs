@@ -37,14 +37,10 @@ namespace LbpArchiveToolkit.Services
 
         private static bool IsValidHash(string hash)
         {
-            if (string.IsNullOrWhiteSpace(hash)) return false;
-            if (hash.Length > 40) return false;
-            foreach (char c in hash)
+            if (string.IsNullOrWhiteSpace(hash) || hash.Length > 40) return false;
+            for (int i = 0; i < hash.Length; i++)
             {
-                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
-                {
-                    return false;
-                }
+                if (!char.IsAsciiHexDigit(hash[i])) return false;
             }
             return true;
         }
@@ -275,6 +271,7 @@ namespace LbpArchiveToolkit.Services
             bool success = false;
             byte[]? fileData = null;
             string url = GetDownloadUrl(currentHash, ConfigManager.DownloadServer);
+            if (string.IsNullOrEmpty(url)) return (false, null);
 
             while (!success && currentTry < maxRetries)
             {
@@ -341,13 +338,25 @@ namespace LbpArchiveToolkit.Services
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    long? contentLength = response.Content.Headers.ContentLength;
-                    if (contentLength.HasValue && contentLength.Value > 104857600) // Hard 100 MB limit to prevent Memory Exhaustion / DoS
+                    using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
                     {
-                        throw new InvalidOperationException("File exceeds maximum allowed size.");
+                        using var ms = new MemoryStream();
+                        byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
+                        try
+                        {
+                            int bytesRead;
+                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ctx.Token).ConfigureAwait(false)) > 0)
+                            {
+                                ms.Write(buffer, 0, bytesRead);
+                                if (ms.Length > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
+                            }
+                        }
+                        finally
+                        {
+                            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                        }
+                        fileData = ms.ToArray();
                     }
-
-                    fileData = await response.Content.ReadAsByteArrayAsync(ctx.Token).ConfigureAwait(false);
                     string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
                     
                     if (computedHash == currentHash) success = true;
@@ -410,6 +419,7 @@ namespace LbpArchiveToolkit.Services
         private static string GetDownloadUrl(string hash, string server)
         {
             string h = hash.ToLowerInvariant();
+            if (h.Length < 4) return string.Empty;
             string srv = server.ToLowerInvariant();
             if (srv == "bonsai" || srv == "refresh") return $"https://lbp.lbpbonsai.com/api/v3/assets/{h}/download";
             if (srv == "archive") return $"https://archive.org/download/dry23r{h[0]}/dry{h.Substring(0, 2)}.zip/{h.Substring(0, 2)}%2F{h.Substring(2, 2)}%2F{h}";

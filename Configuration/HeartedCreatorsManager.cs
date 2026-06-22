@@ -34,7 +34,9 @@ namespace LbpArchiveToolkit.Configuration
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
                 string json = JsonSerializer.Serialize(HeartedCreators, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(FilePath, json);
+                string tempPath = FilePath + ".tmp";
+                File.WriteAllText(tempPath, json);
+                File.Move(tempPath, FilePath, overwrite: true);
             }
             catch { }
         }

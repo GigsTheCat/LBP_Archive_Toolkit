@@ -74,13 +74,14 @@ namespace LbpArchiveToolkit.Utils
         public static List<uint> ParseLabelHashes(byte[] blob)
         {
             var labels = new List<uint>();
+            int len = blob.Length;
+            if (len == 0) return labels;
+
             for (int i = 0; i < LabelHashes.Length; i++)
             {
                 // Calculate from the END of the array because it is Big-Endian
-                int byteIndex = (blob.Length - 1) - (i / 8); 
-                int bitIndex = i % 8;
-
-                if (byteIndex >= 0 && byteIndex < blob.Length && (blob[byteIndex] & (1 << bitIndex)) != 0)
+                int byteIndex = (len - 1) - (i >> 3); 
+                if (byteIndex >= 0 && byteIndex < len && (blob[byteIndex] & (1 << (i & 7))) != 0)
                 {
                     labels.Add(LabelHashes[i]);
                 }
