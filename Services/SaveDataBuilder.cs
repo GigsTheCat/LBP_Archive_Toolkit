@@ -491,9 +491,10 @@ namespace LbpArchiveToolkit.Services
             resources[sltHashStr] = sltBytes;
 
             string hexId = lvl.Id.ToString("X8");
+            string titleId = GetTitleId(slotInfo.GameVersion);
             string bkpDirName = slotInfo.IsAdventurePlanet 
-                ? ((slotInfo.GameVersion == 3 ? "BCES01663" : "BCES00850") + "ADVLBP3AAZ" + hexId)
-                : ((slotInfo.GameVersion == 3 ? "BCES01663" : (slotInfo.GameVersion == 2 ? "BCES00850" : "BCES00141")) + "LEVEL" + hexId);
+                ? (titleId + "ADVLBP3AAZ" + hexId)
+                : (titleId + "LEVEL" + hexId);
 
             string bkpPath = Path.Combine(backupDir, bkpDirName);
             Directory.CreateDirectory(bkpPath);
@@ -764,6 +765,7 @@ namespace LbpArchiveToolkit.Services
                 ("DETAIL", 4, 1024, TruncateStr(description, 1024)),
                 ("PARAMS", 4, 1024, new byte[1024]),
                 ("PARAMS2", 4, 12, new byte[12]),
+                ("PARENTAL_LEVEL", 4, 4, new byte[] { 0, 0, 0, 0 }),
                 ("SAVEDATA_DIRECTORY", 4, 64, TruncateStr(bkpName, 64)),
                 ("SAVEDATA_LIST_PARAM", 4, 8, TruncateStr("", 8)),
                 ("SUB_TITLE", 4, 128, TruncateStr(subtitle, 128)),
@@ -771,8 +773,8 @@ namespace LbpArchiveToolkit.Services
             };
 
             var keyTable = new MemoryStream();
-            int[] keyOffsets = new int[10];
-            for (int i = 0; i < 10; i++)
+            int[] keyOffsets = new int[11];
+            for (int i = 0; i < 11; i++)
             {
                 keyOffsets[i] = (int)keyTable.Position;
                 byte[] kb = Encoding.ASCII.GetBytes(entries[i].key);
@@ -781,8 +783,8 @@ namespace LbpArchiveToolkit.Services
             }
 
             var dataTable = new MemoryStream();
-            var dataInfos = new (int size, int offset)[10];
-            for (int i = 0; i < 10; i++)
+            var dataInfos = new (int size, int offset)[11];
+            for (int i = 0; i < 11; i++)
             {
                 int size = entries[i].data.Length;
                 int offset = (int)dataTable.Position;
@@ -796,12 +798,12 @@ namespace LbpArchiveToolkit.Services
             w.Write(new byte[] { 0x01, 0x01, 0x00, 0x00 });
             w.WriteUInt32LE(0);
             w.WriteUInt32LE(0);
-            w.WriteUInt32LE(10);
+            w.WriteUInt32LE(11);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 11; i++)
             {
                 w.WriteUInt16LE((ushort)keyOffsets[i]);
-                if (entries[i].fmt == 4 && entries[i].maxLen == 4 && entries[i].key == "ATTRIBUTE") w.Write(new byte[] { 0x04, 0x04 });
+                if (entries[i].fmt == 4 && entries[i].maxLen == 4 && (entries[i].key == "ATTRIBUTE" || entries[i].key == "PARENTAL_LEVEL")) w.Write(new byte[] { 0x04, 0x04 });
                 else if (entries[i].key == "ACCOUNT_ID" || entries[i].key == "PARAMS" || entries[i].key == "PARAMS2") w.Write(new byte[] { 0x04, 0x00 });
                 else w.Write(new byte[] { 0x04, 0x02 });
 
@@ -1140,6 +1142,23 @@ namespace LbpArchiveToolkit.Services
         #endregion
 
         #region Utilities
+
+        private static string GetTitleId(int gameVersion)
+        {
+            string region = ConfigManager.GameRegion ?? "EU";
+            if (region == "US")
+            {
+                return gameVersion == 3 ? "BCUS98362" : (gameVersion == 2 ? "BCUS98245" : "BCUS98148");
+            }
+            else if (region == "JP")
+            {
+                return gameVersion == 3 ? "BCJS30095" : (gameVersion == 2 ? "BCJS30058" : "BCJS30018");
+            }
+            else // EU
+            {
+                return gameVersion == 3 ? "BCES01663" : (gameVersion == 2 ? "BCES00850" : "BCES00141");
+            }
+        }
 
         private static uint ReadUInt32BE(byte[] data, int offset)
         {

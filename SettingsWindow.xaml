@@ -344,6 +344,14 @@
                             <!-- BEHAVIOR SECTION -->
                             <TextBlock Text="ADVANCED BEHAVIOR" Style="{StaticResource SectionHeader}"/>
                             <StackPanel>
+                                <DockPanel Margin="0,0,0,10">
+                                    <TextBlock Text="Backup Game Region:" Style="{StaticResource LabelText}" Width="160"/>
+                                    <ComboBox x:Name="cmbRegion" HorizontalAlignment="Left" Width="200">
+                                        <ComboBoxItem Content="US (NTSC-U)"/>
+                                        <ComboBoxItem Content="EU (PAL)"/>
+                                        <ComboBoxItem Content="JP (NTSC-J)"/>
+                                    </ComboBox>
+                                </DockPanel>
                                 <CheckBox x:Name="chkForceLbp3" Content="Force LBP3 Backups (Useful if playing on retail LBP3)"/>
                                 <CheckBox x:Name="chkLbp2Beta" Content="LBP2 Beta to Retail (Enable if importing corrupt errors)"/>
                             </StackPanel>

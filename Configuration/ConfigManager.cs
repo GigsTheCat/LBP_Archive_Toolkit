@@ -17,6 +17,7 @@ namespace LbpArchiveToolkit.Configuration
         public static string DownloadServer { get; set; } = "zaprit";
         public static string LocalArchivePath { get; set; } = "";
         public static string Theme { get; set; } = "DefaultTheme";
+        public static string GameRegion { get; set; } = "EU";
         public static int MaxParallelDownloads { get; set; } = 10;
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
@@ -58,6 +59,7 @@ namespace LbpArchiveToolkit.Configuration
             public string? DownloadServer { get; set; }
             public string? LocalArchivePath { get; set; }
             public string? Theme { get; set; }
+            public string? GameRegion { get; set; }
             public int MaxParallelDownloads { get; set; }
             public bool ForceLbp3Backups { get; set; }
             public bool Lbp2BetaToRetail { get; set; }
@@ -105,6 +107,7 @@ namespace LbpArchiveToolkit.Configuration
                     DownloadServer = data.DownloadServer ?? DownloadServer;
                     LocalArchivePath = data.LocalArchivePath ?? LocalArchivePath;
                     Theme = data.Theme ?? Theme;
+                    GameRegion = data.GameRegion ?? GameRegion;
                     MaxParallelDownloads = data.MaxParallelDownloads;
                     ForceLbp3Backups = data.ForceLbp3Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail;
@@ -136,6 +139,7 @@ namespace LbpArchiveToolkit.Configuration
                 	DownloadServer = DownloadServer,
                 	LocalArchivePath = LocalArchivePath,
                         Theme = Theme,
+                        GameRegion = GameRegion,
                 	MaxParallelDownloads = MaxParallelDownloads,
                 	ForceLbp3Backups = ForceLbp3Backups,
                 	Lbp2BetaToRetail = Lbp2BetaToRetail,

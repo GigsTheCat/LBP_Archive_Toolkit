@@ -52,7 +52,27 @@
             <Rectangle Grid.Row="1" Fill="{DynamicResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
 
             <!-- 3. Workspace Cropper Box -->
-            <Border Grid.Row="2" Width="484" Height="364" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="8" ClipToBounds="True" Background="#111115" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Grid.Row="2" Width="484" Height="364" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="8" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Background>
+                    <DrawingBrush Viewport="0,0,16,16" ViewportUnits="Absolute" TileMode="Tile">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="#111115">
+                                    <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,16,16"/></GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                                <GeometryDrawing Brush="#1A1A20">
+                                    <GeometryDrawing.Geometry>
+                                        <GeometryGroup>
+                                            <RectangleGeometry Rect="0,0,8,8"/>
+                                            <RectangleGeometry Rect="8,8,8,8"/>
+                                        </GeometryGroup>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </Border.Background>
+                
                 <Grid x:Name="gridWorkspace" Background="Transparent" ClipToBounds="True"
                       MouseLeftButtonDown="GridWorkspace_MouseLeftButtonDown" 
                       MouseLeftButtonUp="GridWorkspace_MouseLeftButtonUp" 
@@ -60,7 +80,7 @@
                       MouseWheel="GridWorkspace_MouseWheel">
                     
                     <!-- This container holds the image and is rendered to RenderTargetBitmap -->
-                    <Canvas x:Name="canvasWorkspace" Width="480" Height="360" Background="#120F1D" ClipToBounds="True">
+                    <Canvas x:Name="canvasWorkspace" Width="480" Height="360" Background="Transparent" ClipToBounds="True">
                         <Image x:Name="imgSource" Stretch="Fill" RenderTransformOrigin="0,0">
                             <Image.RenderTransform>
                                 <TransformGroup>
@@ -86,8 +106,23 @@
                     </Path>
 
                     <!-- Guide borders showing the crop boundary box -->
-                    <Border Width="320" Height="176" BorderBrush="{DynamicResource LbpOrange}" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                </Grid>
+<!-- Guide borders showing the crop boundary box -->
+<Border Width="320" Height="176" BorderBrush="{DynamicResource LbpOrange}" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+    
+    <!-- Circular guide for in-game badge preview -->
+    <Ellipse Width="176" Height="176" 
+             Stroke="{DynamicResource LbpCyan}" 
+             StrokeThickness="3" 
+             StrokeDashArray="3 3" 
+             HorizontalAlignment="Center" 
+             VerticalAlignment="Center">
+        <Ellipse.Effect>
+            <!-- Adds a harsh black outline/glow behind the dashes so they pop on bright backgrounds -->
+            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="1.0" Color="Black" />
+        </Ellipse.Effect>
+    </Ellipse>
+             
+</Border>                </Grid>
             </Border>
 
             <!-- 4. Zoom Slider Control -->

@@ -60,6 +60,16 @@ namespace LbpArchiveToolkit
                     cmbTheme.SelectedItem = item;
                 }
             }
+
+            foreach (System.Windows.Controls.ComboBoxItem item in cmbRegion.Items)
+            {
+                if (item.Content.ToString()!.StartsWith(ConfigManager.GameRegion))
+                {
+                    cmbRegion.SelectedItem = item;
+                    break;
+                }
+            }
+            if (cmbRegion.SelectedItem == null) cmbRegion.SelectedIndex = 1;
         }
 
         #endregion
@@ -231,6 +241,15 @@ namespace LbpArchiveToolkit
                 txtThreads.Text = "10";
                 chkForceLbp3.IsChecked = false;
                 chkLbp2Beta.IsChecked = true;
+
+                foreach (System.Windows.Controls.ComboBoxItem item in cmbRegion.Items)
+                {
+                    if (item.Content.ToString()!.StartsWith("EU"))
+                    {
+                        cmbRegion.SelectedItem = item;
+                        break;
+                    }
+                }
             }
         }
 
@@ -260,6 +279,9 @@ namespace LbpArchiveToolkit
             {
                 ConfigManager.Theme = selectedThemeItem.Tag?.ToString() ?? "DefaultTheme";
             }
+
+            string regionStr = (cmbRegion.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "EU";
+            ConfigManager.GameRegion = regionStr.Substring(0, 2);
 
             ConfigManager.SaveConfig();
             this.DialogResult = true; 
