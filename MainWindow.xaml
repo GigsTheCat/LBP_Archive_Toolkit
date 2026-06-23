@@ -479,7 +479,7 @@
                                                     <TextBlock.ContextMenu>
                                                         <ContextMenu Opened="CreatorContextMenu_Opened">
                                                             <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
-                                                            <MenuItem Header="Heart Creator" Click="HeartCreatorContext_Click"/>
+                                                            <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Click="HeartCreatorContext_Click"/>
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
                                                 </TextBlock>

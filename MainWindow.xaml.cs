@@ -304,11 +304,10 @@ namespace LbpArchiveToolkit
                 {
                     bool isHearted = HeartedCreatorsManager.IsHearted(creatorName);
                     
-                    // Iterate to find the specific menu item (protects against layout order changes)
+                    // Iterate to find the specific menu item by its x:Name instead of its Header string
                     foreach (var item in menu.Items)
                     {
-                        if (item is MenuItem menuItem && 
-                           (menuItem.Header?.ToString() == "Heart Creator" || menuItem.Header?.ToString() == "Unheart Creator"))
+                        if (item is MenuItem menuItem && menuItem.Name == "MenuHeartCreator")
                         {
                             menuItem.Header = isHearted ? "Unheart Creator" : "Heart Creator";
                             break;
