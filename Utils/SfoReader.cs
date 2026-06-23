@@ -51,7 +51,10 @@ namespace LbpArchiveToolkit.Utils
                     // Loop through all entries and look for both SUB_TITLE and DETAIL
                     foreach (var entry in entries)
                     {
-                        fs.Position = keyTableStart + entry.keyOffset;
+                        long keyPos = (long)keyTableStart + entry.keyOffset;
+                        if (keyPos < 0 || keyPos >= fs.Length) continue;
+
+                        fs.Position = keyPos;
                         List<byte> keyBytes = new List<byte>();
                         byte b;
                         while (fs.Position < fs.Length && (b = br.ReadByte()) != 0) keyBytes.Add(b);
@@ -59,10 +62,12 @@ namespace LbpArchiveToolkit.Utils
 
                         if (key == "SUB_TITLE" || key == "DETAIL")
                         {
-                            
                             if (entry.dataLen > 1024 * 1024) continue; 
 
-                            fs.Position = dataTableStart + entry.dataOffset;
+                            long dataPos = (long)dataTableStart + entry.dataOffset;
+                            if (dataPos < 0 || dataPos >= fs.Length) continue;
+
+                            fs.Position = dataPos;
                             
                             // Bounds safety check to prevent EndOfStreamException on corrupted files
                             int safeLength = (int)Math.Min(entry.dataLen, fs.Length - fs.Position);

@@ -136,35 +136,27 @@ namespace LbpArchiveToolkit
 
         private void BtnBrowseBackup_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog 
+            var dialog = new OpenFolderDialog 
             { 
-                ValidateNames = false, 
-                CheckFileExists = false, 
-                CheckPathExists = true, 
-                FileName = "Folder Selection.", 
                 Title = "Select Backup Directory" 
             };
             
             if (dialog.ShowDialog() == true)
             {
-                txtBackupDir.Text = Path.GetDirectoryName(dialog.FileName);
+                txtBackupDir.Text = dialog.FolderName;
             }
         }
         
         private void BtnBrowseLocalArchive_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog 
+            var dialog = new OpenFolderDialog 
             { 
-                ValidateNames = false, 
-                CheckFileExists = false, 
-                CheckPathExists = true, 
-                FileName = "Folder Selection.", 
                 Title = "Select Local Archive Directory" 
             };
             
             if (dialog.ShowDialog() == true)
             {
-                txtLocalArchive.Text = Path.GetDirectoryName(dialog.FileName);
+                txtLocalArchive.Text = dialog.FolderName;
             }
         }
 

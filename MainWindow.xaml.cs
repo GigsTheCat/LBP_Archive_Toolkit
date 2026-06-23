@@ -1277,7 +1277,14 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
                     try
                     {
-                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, SharedHttpClient, token, progressIndicator);
+                        var config = new ExtractionConfig
+                        {
+                            DownloadServer = ConfigManager.DownloadServer,
+                            LocalArchivePath = ConfigManager.LocalArchivePath,
+                            MaxParallelDownloads = ConfigManager.MaxParallelDownloads
+                        };
+
+                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, SharedHttpClient, config, token, progressIndicator);
                         
                         if (result.Success)
                         {

@@ -15,6 +15,13 @@ using LbpArchiveToolkit.Utils;
 
 namespace LbpArchiveToolkit.Services
 {
+    public class ExtractionConfig
+    {
+        public string DownloadServer { get; set; } = "zaprit";
+        public string LocalArchivePath { get; set; } = "";
+        public int MaxParallelDownloads { get; set; } = 10;
+    }
+
     /// <summary>
     /// Orchestrates the fetching of LBP level assets via HTTP or Local Archives. 
     /// Manages concurrency, rate-limiting, and flat dependency queue processing.
@@ -89,7 +96,7 @@ namespace LbpArchiveToolkit.Services
             return null;
         }
 
-        public static async Task<(bool Success, string ErrorMessage)> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
+        public static async Task<(bool Success, string ErrorMessage)> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, ExtractionConfig config, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
         {
             if (string.IsNullOrEmpty(lvl.Hash)) return (false, "Level hash is missing or empty.");
             if (!IsValidHash(lvl.Hash)) return (false, "Level hash contains invalid path characters.");
@@ -100,7 +107,7 @@ namespace LbpArchiveToolkit.Services
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
             var token = cts.Token;
 
-            int maxConcurrent = ConfigManager.MaxParallelDownloads > 0 ? ConfigManager.MaxParallelDownloads : 10;
+            int maxConcurrent = config.MaxParallelDownloads > 0 ? config.MaxParallelDownloads : 10;
 
             var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
             {
@@ -108,7 +115,7 @@ namespace LbpArchiveToolkit.Services
                 SingleWriter = false
             });
 
-            var ctx = new DownloadContext(client, token, progress, channel.Writer);
+            var ctx = new DownloadContext(client, token, progress, channel.Writer, config);
 
             try
             {
@@ -186,7 +193,7 @@ namespace LbpArchiveToolkit.Services
                     if (ctx.Token.IsCancellationRequested) break;
                     if (!IsValidHash(currentHash)) continue;
 
-                    bool isLocal = ConfigManager.DownloadServer.ToLowerInvariant() == "local";
+                    bool isLocal = ctx.Config.DownloadServer.ToLowerInvariant() == "local";
                     bool success = false;
                     byte[]? fileData = null; 
 
@@ -194,7 +201,7 @@ namespace LbpArchiveToolkit.Services
                     {
                         try
                         {
-                            fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ConfigManager.LocalArchivePath ?? "", ctx.Token).ConfigureAwait(false);
+                            fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ctx.Config.LocalArchivePath, ctx.Token).ConfigureAwait(false);
                             success = fileData != null; 
                         }
                         catch (OperationCanceledException) { break; }
@@ -287,7 +294,7 @@ namespace LbpArchiveToolkit.Services
             int currentTry = 0;
             bool success = false;
             byte[]? fileData = null;
-            string url = GetDownloadUrl(currentHash, ConfigManager.DownloadServer);
+            string url = GetDownloadUrl(currentHash, ctx.Config.DownloadServer);
             if (string.IsNullOrEmpty(url)) return (false, null);
 
             while (!success && currentTry < maxRetries)
@@ -320,14 +327,14 @@ namespace LbpArchiveToolkit.Services
                     string failReason = "Network Timeout";
                     bool hitRateLimit = false;
 
-                    int requiredPacingMs = GetServerPacingDelay(ConfigManager.DownloadServer);
+                    int requiredPacingMs = GetServerPacingDelay(ctx.Config.DownloadServer);
                     
                     if (requiredPacingMs > 0)
                     {
                         TokenBucketRateLimiter currentLimiter;
                         lock (_limiterLock)
                         {
-                            if (_rateLimiter == null || _lastConfiguredServer != ConfigManager.DownloadServer)
+                            if (_rateLimiter == null || _lastConfiguredServer != ctx.Config.DownloadServer)
                             {
                                 _rateLimiter?.Dispose();
                                 _rateLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
@@ -339,7 +346,7 @@ namespace LbpArchiveToolkit.Services
                                     TokensPerPeriod = 1,
                                     AutoReplenishment = true
                                 });
-                                _lastConfiguredServer = ConfigManager.DownloadServer;
+                                _lastConfiguredServer = ctx.Config.DownloadServer;
                             }
                             currentLimiter = _rateLimiter;
                         }
@@ -357,61 +364,25 @@ namespace LbpArchiveToolkit.Services
                         if (response.IsSuccessStatusCode)
                         {
                             long? contentLength = response.Content.Headers.ContentLength;
-                            using var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false);
-
-                            if (contentLength.HasValue && contentLength.Value > 0)
-                            {
-                                if (contentLength.Value > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
-                                
-                                int expectedLength = (int)contentLength.Value;
-                                byte[] data = new byte[expectedLength];
-                                int bytesReadTotal = 0;
-                                int bytesRead;
-                                
-                                byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
-                                try
-                                {
-                                    while (bytesReadTotal < expectedLength && 
-                                           (bytesRead = await stream.ReadAsync(buffer, 0, Math.Min(buffer.Length, expectedLength - bytesReadTotal), ctx.Token).ConfigureAwait(false)) > 0)
-                                    {
-                                        Buffer.BlockCopy(buffer, 0, data, bytesReadTotal, bytesRead);
-                                        bytesReadTotal += bytesRead;
-                                    }
-                                }
-                                finally
-                                {
-                                    System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                                }
-
-                                if (bytesReadTotal == expectedLength)
-                                {
-                                    fileData = data;
-                                }
-                                else
-                                {
-                                    throw new InvalidOperationException("Incomplete stream read.");
-                                }
-                            }
-                            else
-                            {
-                                // Fallback if Content-Length is missing or chunked
-                                using var ms = new MemoryStream();
-                                byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
-                                try
-                                {
-                                    int bytesRead;
-                                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ctx.Token).ConfigureAwait(false)) > 0)
-                                    {
-                                        ms.Write(buffer, 0, bytesRead);
-                                        if (ms.Length > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
-                                    }
-                                }
-                                finally
-                                {
-                                    System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                                }
-                                fileData = ms.ToArray();
-                            }
+                            using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
+{
+    using var ms = new MemoryStream();
+    byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
+    try
+    {
+        int bytesRead;
+        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ctx.Token).ConfigureAwait(false)) > 0)
+        {
+            ms.Write(buffer, 0, bytesRead);
+            if (ms.Length > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
+        }
+    }
+    finally
+    {
+        System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+    }
+    fileData = ms.ToArray();
+}
 
                             if (fileData != null)
                             {
@@ -495,6 +466,7 @@ namespace LbpArchiveToolkit.Services
             public readonly CancellationToken Token;
             public readonly ChannelWriter<string> QueueWriter;
             public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.OrdinalIgnoreCase);
+            public readonly ExtractionConfig Config;
 
             private readonly IProgress<(int processed, int total, string message)>? _progress;
             private readonly ConcurrentDictionary<string, byte> _downloadedHashes = new(StringComparer.OrdinalIgnoreCase);
@@ -509,12 +481,13 @@ namespace LbpArchiveToolkit.Services
 
             public int PendingItems => Volatile.Read(ref _pendingItems);
 
-            public DownloadContext(HttpClient client, CancellationToken token, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter)
+            public DownloadContext(HttpClient client, CancellationToken token, IProgress<(int, int, string)>? progress, ChannelWriter<string> queueWriter, ExtractionConfig config)
             {
                 Client = client;
                 Token = token;
                 _progress = progress;
                 QueueWriter = queueWriter;
+                Config = config;
             }
 
             public bool AddDiscoveredHash(string hash)
@@ -574,7 +547,7 @@ namespace LbpArchiveToolkit.Services
                 int processed = Volatile.Read(ref _totalProcessed);
                 int discovered = Volatile.Read(ref _totalDiscovered);
 
-                bool isLocal = ConfigManager.DownloadServer.ToLowerInvariant() == "local";
+                bool isLocal = Config.DownloadServer.ToLowerInvariant() == "local";
                 
                 string status = overrideMessage ?? (paused > 0 
                     ? $"Server Paused ({paused} thread(s) waiting)..." 

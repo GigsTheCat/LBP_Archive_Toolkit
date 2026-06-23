@@ -234,7 +234,14 @@ namespace LbpArchiveToolkit
 
                     try
                     {
-                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, token, progressIndicator);
+                        var config = new ExtractionConfig
+                        {
+                            DownloadServer = ConfigManager.DownloadServer,
+                            LocalArchivePath = ConfigManager.LocalArchivePath,
+                            MaxParallelDownloads = ConfigManager.MaxParallelDownloads
+                        };
+
+                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
                         
                         if (result.Success)
                         {

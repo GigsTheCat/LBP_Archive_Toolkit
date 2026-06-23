@@ -171,16 +171,40 @@ namespace LbpArchiveToolkit
         {
             try
             {
-                RenderTargetBitmap rtb = new RenderTargetBitmap(480, 360, 96, 96, PixelFormats.Pbgra32);
+                DpiScale dpi = VisualTreeHelper.GetDpi(canvasWorkspace);
+                
+                int rtbW = (int)Math.Round(480 * dpi.DpiScaleX);
+                int rtbH = (int)Math.Round(360 * dpi.DpiScaleY);
+
+                RenderTargetBitmap rtb = new RenderTargetBitmap(rtbW, rtbH, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
                 
                 canvasWorkspace.Measure(new Size(480, 360));
                 canvasWorkspace.Arrange(new Rect(new Size(480, 360)));
                 rtb.Render(canvasWorkspace);
 
-                CroppedBitmap cropped = new CroppedBitmap(rtb, new Int32Rect(80, 92, 320, 176));
+                int cropX = (int)Math.Round(80 * dpi.DpiScaleX);
+                int cropY = (int)Math.Round(92 * dpi.DpiScaleY);
+                int cropW = (int)Math.Round(320 * dpi.DpiScaleX);
+                int cropH = (int)Math.Round(176 * dpi.DpiScaleY);
+
+                // Ensure crop boundaries remain within rendered limits
+                cropX = Math.Max(0, Math.Min(cropX, rtbW - 1));
+                cropY = Math.Max(0, Math.Min(cropY, rtbH - 1));
+                cropW = Math.Max(1, Math.Min(cropW, rtbW - cropX));
+                cropH = Math.Max(1, Math.Min(cropH, rtbH - cropY));
+
+                CroppedBitmap cropped = new CroppedBitmap(rtb, new Int32Rect(cropX, cropY, cropW, cropH));
+
+                // Standardize output back to exactly 320x176 pixels
+                BitmapSource finalBitmap = cropped;
+                if (dpi.DpiScaleX != 1.0 || dpi.DpiScaleY != 1.0)
+                {
+                    var scale = new ScaleTransform(1.0 / dpi.DpiScaleX, 1.0 / dpi.DpiScaleY);
+                    finalBitmap = new TransformedBitmap(cropped, scale);
+                }
 
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(cropped));
+                encoder.Frames.Add(BitmapFrame.Create(finalBitmap));
 
                 string tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".png");
                 using (var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write))
