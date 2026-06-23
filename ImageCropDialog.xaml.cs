@@ -206,7 +206,7 @@ namespace LbpArchiveToolkit
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(finalBitmap));
 
-                string tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".png");
+                string tempFile = Path.Combine(Path.GetTempPath(), "LbpArchiveToolkit_TempCrop.png");
                 using (var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write))
                 {
                     encoder.Save(fs);

@@ -48,15 +48,19 @@ public static class LogManager
     private static readonly System.Threading.Lock LockObj = new();
 
     public static void Log(string context, Exception ex)
-    {
-        try
         {
-            lock (LockObj)
+            try
             {
-                Directory.CreateDirectory(AppDataFolder);
-                File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR in {context}: {ex.GetType().Name} - {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}{Environment.NewLine}");
+                lock (LockObj)
+                {
+                    Directory.CreateDirectory(AppDataFolder);
+                    
+                    if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
+                        File.Delete(LogPath);
+
+                    File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR in {context}: {ex.GetType().Name} - {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}{Environment.NewLine}");
+                }
             }
-        }
         catch
         {
             // Fail silently to prevent recursive logging failures
@@ -64,15 +68,19 @@ public static class LogManager
     }
 
     public static void LogWarning(string context, string message)
-    {
-        try
         {
-            lock (LockObj)
+            try
             {
-                Directory.CreateDirectory(AppDataFolder);
-                File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] WARNING in {context}: {message}{Environment.NewLine}{Environment.NewLine}");
+                lock (LockObj)
+                {
+                    Directory.CreateDirectory(AppDataFolder);
+                    
+                    if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
+                        File.Delete(LogPath);
+
+                    File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] WARNING in {context}: {message}{Environment.NewLine}{Environment.NewLine}");
+                }
             }
-        }
         catch
         {
             // Fail silently

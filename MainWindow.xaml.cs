@@ -64,7 +64,7 @@ namespace LbpArchiveToolkit
             public int SearchTypeIndex { get; set; } = 0;
             public int GameIndex { get; set; }
             public AdvancedSearchCriteria AdvancedCriteria { get; set; } = new();
-            public int GenreIndex { get; set; }
+            public string Genre { get; set; } = "All Genres";
             public int LimitIndex { get; set; }
             public bool Exact { get; set; }
             public bool SearchDesc { get; set; }
@@ -97,12 +97,6 @@ namespace LbpArchiveToolkit
             SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
 
             _ = LoadSavedLevelsAsync();
-            _ = LoadGenresAsync(); 
-            
-            if (ConfigManager.LastSearch != null)
-            {
-                ApplySearchState(ConfigManager.LastSearch);
-            }
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -161,13 +155,24 @@ namespace LbpArchiveToolkit
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            await LoadGenresAsync();
+            
+            if (ConfigManager.LastSearch != null)
+            {
+                ApplySearchState(ConfigManager.LastSearch);
+            }
+            
             await CheckForUpdatesAsync();
         }
 
         private async Task CheckForUpdatesAsync()
         {
+            if ((DateTime.Now - ConfigManager.LastUpdateCheck).TotalHours < 12)
+                return;
+
             try
             {
+                ConfigManager.LastUpdateCheck = DateTime.Now;
                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
                 var response = await SharedHttpClient.GetStringAsync(url);
                 var json = JsonNode.Parse(response);
@@ -563,7 +568,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             bool exact = chkExact.IsChecked == true;
             bool searchDesc = chkSearchDesc.IsChecked == true;
             int gameFilter = cmbGame.SelectedIndex;
-            int genreFilterIdx = cmbGenre.SelectedIndex;
             int limitFilterIdx = cmbLimit.SelectedIndex;
             string? genreFilter = (cmbGenre.SelectedItem as ComboBoxItem)?.Content?.ToString();
             string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
@@ -612,7 +616,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         SearchText = keyword,
                         SearchTypeIndex = 0,
                         GameIndex = gameFilter,
-                        GenreIndex = genreFilterIdx,
+                        Genre = genreFilter ?? "All Genres",
                         LimitIndex = limitFilterIdx,
                         Exact = exact,
                         SearchDesc = searchDesc,
@@ -762,7 +766,17 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 txtSearch.Text = state.SearchText;
                 _advancedCriteria = state.AdvancedCriteria;
                 cmbGame.SelectedIndex = state.GameIndex;
-                cmbGenre.SelectedIndex = state.GenreIndex;
+                
+                cmbGenre.SelectedIndex = 0;
+                foreach (ComboBoxItem item in cmbGenre.Items)
+                {
+                    if (item.Content?.ToString() == state.Genre)
+                    {
+                        cmbGenre.SelectedItem = item;
+                        break;
+                    }
+                }
+                
                 cmbLimit.SelectedIndex = state.LimitIndex;
                 chkExact.IsChecked = state.Exact;
                 chkSearchDesc.IsChecked = state.SearchDesc;
@@ -1099,13 +1113,20 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     }
                 }
 
+                
+                string server = ConfigManager.DownloadServer;
+                string url = AssetDownloader.GetDownloadUrl(hash, server);
+                if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("Invalid icon hash");
+
                 // Pass the token to the HTTP Client to cancel requests when you scroll fast
-                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", HttpCompletionOption.ResponseHeadersRead, token);
+                using var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
                 if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
-                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
+                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token);
 
                 if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
+
+                byte[] imageBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token);
 
                 var webBmp = new BitmapImage();
                 using (var ms = new MemoryStream(imageBytes))
@@ -1187,11 +1208,18 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     }
                 }
 
-                using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", token);
+                string server = ConfigManager.DownloadServer;
+                string url = AssetDownloader.GetDownloadUrl(hash, server);
+                if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("Invalid icon hash");
+
+                using var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
-                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
+                if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
+                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token);
 
                 if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
+
+                byte[] imageBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token);
 
                 var webBmp = new BitmapImage();
                 using (var ms = new MemoryStream(imageBytes))

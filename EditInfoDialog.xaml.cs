@@ -56,6 +56,11 @@ namespace LbpArchiveToolkit
 
         if (cropDialog.ShowDialog() == true)
         {
+            if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+            {
+                try { File.Delete(NewIconPath); } catch { }
+            }
+
             NewIconPath = cropDialog.CroppedImagePath;
             try
             {

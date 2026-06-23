@@ -139,12 +139,18 @@ namespace LbpArchiveToolkit
                     }
                 }
 
-                using var response = await MainWindow.SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", HttpCompletionOption.ResponseHeadersRead, token);
+                string server = ConfigManager.DownloadServer;
+                string url = AssetDownloader.GetDownloadUrl(hash, server);
+                if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("Invalid icon hash");
+
+                using var response = await MainWindow.SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
                 if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
-                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync(token);
+                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token);
 
                 if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
+
+                byte[] imageBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token);
 
                 var webBmp = new BitmapImage();
                 using (var ms = new MemoryStream(imageBytes))

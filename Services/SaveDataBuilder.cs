@@ -748,13 +748,21 @@ namespace LbpArchiveToolkit.Services
                 { 
                     try 
                     {
-                        using var response = await client.GetAsync($"https://zaprit.fish/icon/{iconHash}", HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-                        if (response.IsSuccessStatusCode)
+                        string server = ConfigManager.DownloadServer;
+                        string url = AssetDownloader.GetDownloadUrl(iconHash, server);
+                        
+                        if (!string.IsNullOrEmpty(url))
                         {
-                            if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
-                            byte[] pngData = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-                            await File.WriteAllBytesAsync(Path.Combine(bkpPath, "ICON0.PNG"), pngData, token).ConfigureAwait(false);
-                            iconSaved = true;
+                            using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                            if (response.IsSuccessStatusCode)
+                            {
+                                if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
+                                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+                                
+                                byte[] pngData = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token).ConfigureAwait(false);
+                                await File.WriteAllBytesAsync(Path.Combine(bkpPath, "ICON0.PNG"), pngData, token).ConfigureAwait(false);
+                                iconSaved = true;
+                            }
                         }
                     } catch { } 
                 } 

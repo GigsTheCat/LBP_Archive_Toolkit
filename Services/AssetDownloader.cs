@@ -450,7 +450,7 @@ namespace LbpArchiveToolkit.Services
             return 70;                                          
         }
 
-        private static string GetDownloadUrl(string hash, string server)
+        public static string GetDownloadUrl(string hash, string server)
         {
             string h = hash.ToLowerInvariant();
             if (h.Length < 4) return string.Empty;

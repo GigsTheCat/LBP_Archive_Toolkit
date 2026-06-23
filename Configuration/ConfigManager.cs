@@ -32,6 +32,7 @@ namespace LbpArchiveToolkit.Configuration
         public static double WindowLeft { get; set; } = -1;
         public static double WindowTop { get; set; } = -1;
         public static bool IsMaximized { get; set; } = false;
+        public static DateTime LastUpdateCheck { get; set; } = DateTime.MinValue;
 
         #endregion
 
@@ -71,6 +72,7 @@ namespace LbpArchiveToolkit.Configuration
             public double WindowLeft { get; set; }
             public double WindowTop { get; set; }
             public bool IsMaximized { get; set; }
+            public DateTime LastUpdateCheck { get; set; }
             public List<string>? SavedLevels { get; set; }
             public MainWindow.SearchState? LastSearch { get; set; }
         }
@@ -122,6 +124,7 @@ namespace LbpArchiveToolkit.Configuration
                     WindowLeft = data.WindowLeft;
                     WindowTop = data.WindowTop;
                     IsMaximized = data.IsMaximized;
+                    LastUpdateCheck = data.LastUpdateCheck;
                     LegacySavedLevels = data.SavedLevels ?? new List<string>();
                     LastSearch = data.LastSearch;
                 }
@@ -157,6 +160,7 @@ namespace LbpArchiveToolkit.Configuration
                         WindowLeft = WindowLeft,
                         WindowTop = WindowTop,
                         IsMaximized = IsMaximized,
+                        LastUpdateCheck = LastUpdateCheck,
                         LastSearch = LastSearch
                     };
 
@@ -199,6 +203,7 @@ namespace LbpArchiveToolkit.Configuration
                     WindowLeft = WindowLeft,
                     WindowTop = WindowTop,
                     IsMaximized = IsMaximized,
+                    LastUpdateCheck = LastUpdateCheck,
                     LastSearch = LastSearch
                 };
 
