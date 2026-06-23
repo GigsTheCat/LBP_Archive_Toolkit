@@ -22,7 +22,7 @@ This app allows you to search the LBP archive for levels to download and backup.
 If you'd like to compile the application yourself instead of downloading the pre-packaged release, follow these steps:
 
 ### Requirements
-* [Visual Studio 2022](https://visualstudio.microsoft.com/) (with the **.NET Desktop Development** workload) OR the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) if using the command line.
+* [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/) (with the **.NET Desktop Development** workload) OR the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) if using the command line.
 
 ### Command Line Instructions
 1. Clone the repository:
