@@ -22,12 +22,13 @@
     <Product>LBP Archive Toolkit</Product>
     <Description>A tool for searching for archived LBP levels.</Description>
     
-    <Version>1.1.7</Version>
+    <Version>1.1.8</Version>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="System.Threading.RateLimiting" Version="10.0.0" />
     <EmbeddedResource Include="Assets/MissingIcon.png" />
   </ItemGroup>
 

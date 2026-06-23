@@ -217,7 +217,6 @@
         </Border.Style>
       
         <Grid>
-            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
 
         <DockPanel>

@@ -12,7 +12,7 @@ namespace LbpArchiveToolkit.Configuration
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
             "LbpArchiveToolkit", "heartedcreators.json");
 
-        public static List<UserItem> HeartedCreators { get; set; } = new List<UserItem>();
+        public static List<UserItem> HeartedCreators { get; set; } = [];
 
         public static void Load()
         {

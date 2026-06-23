@@ -28,6 +28,8 @@ namespace LbpArchiveToolkit
         #region State & Dependencies
 
         private CancellationTokenSource? _iconCts;
+        private CancellationTokenSource? _selectionCts;
+        private CancellationTokenSource? _userSelectionCts;
         private HwndSource? _hwndSource;
 
         private DatabaseService _dbService;
@@ -46,7 +48,8 @@ namespace LbpArchiveToolkit
         internal static readonly HttpClient SharedHttpClient = new(new SocketsHttpHandler
 {
     MaxConnectionsPerServer = 10,
-    PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+    PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+    ConnectTimeout = TimeSpan.FromSeconds(15) // Fails fast if a proxy/server stalls on connection
 }) 
 { 
     Timeout = TimeSpan.FromMinutes(5) 
@@ -369,7 +372,8 @@ namespace LbpArchiveToolkit
                 var savedLevelsSnapshot = _savedLevels.ToHashSet();
                 var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
 
-                var creatorLevels = await _dbService.SearchLevelsAsync(
+                var creatorLevels = new List<LevelItem>();
+                await foreach (var lvl in _dbService.SearchLevelsAsync(
                     selectedUser.NpHandle, 
                     exact: true, 
                     searchDesc: false, 
@@ -378,7 +382,10 @@ namespace LbpArchiveToolkit
                     limitFilter: "All", 
                     savedLevelsSnapshot, 
                     heartedLevelsSnapshot, 
-                    new AdvancedSearchCriteria());
+                    new AdvancedSearchCriteria()))
+                {
+                    creatorLevels.Add(lvl);
+                }
                 
                 var strictlyCreatorLevels = creatorLevels
                     .Where(l => l.Creator != null && l.Creator.Equals(selectedUser.NpHandle, StringComparison.OrdinalIgnoreCase))
@@ -502,15 +509,15 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             if (cmbSearchType == null) return;
             bool isLevels = cmbSearchType.SelectedIndex == 0;
 
-            if (panelLevelFilters != null) panelLevelFilters.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            if (chkSearchDesc != null) chkSearchDesc.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            if (btnAdvanced != null) btnAdvanced.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            panelLevelFilters?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            chkSearchDesc?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            btnAdvanced?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
 
-            if (dgResults != null) dgResults.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            if (dgUsers != null) dgUsers.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
+            dgResults?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            dgUsers?.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
 
-            if (panelLevelDetails != null) panelLevelDetails.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            if (panelUserDetails != null) panelUserDetails.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
+            panelLevelDetails?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            panelUserDetails?.Visibility = isLevels ? Visibility.Collapsed : Visibility.Visible;
 
             if (this.IsLoaded && !_isApplyingState && txtSearch != null && !string.IsNullOrWhiteSpace(txtSearch.Text))
             {
@@ -569,20 +576,36 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             {
                 if (searchType == 0)
                 {
-                    var results = await _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria);
+                    _resultsList = new List<LevelItem>();
+                    dgResults.ItemsSource = _resultsList;
+                    
+                    int count = 0;
+                    var sw = Stopwatch.StartNew();
+
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria))
+                    {
+                        _resultsList.Add(lvl);
+                        count++;
+                        
+                        if (sw.ElapsedMilliseconds > 100)
+                        {
+                            dgResults.Items.Refresh();
+                            txtStatus.Text = $"Found {count} levels for '{keyword}'...";
+                            sw.Restart();
+                        }
+                    }
                      
                     progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = results.Count;
-                    progressBar.Value = results.Count; 
+                    progressBar.Maximum = count;
+                    progressBar.Value = count; 
 
-                    _resultsList = results;
-                    dgResults.ItemsSource = _resultsList;
-                    txtStatus.Text = $"Found {results.Count} levels for '{keyword}'.";
+                    dgResults.Items.Refresh();
+                    txtStatus.Text = $"Found {count} levels for '{keyword}'.";
 
-                    if (results.Any())
+                    if (_resultsList.Any())
                     {
                         dgResults.SelectedIndex = 0;
-                        dgResults.ScrollIntoView(results[0]);
+                        dgResults.ScrollIntoView(_resultsList[0]);
                     }
 
                     _currentSearch = new SearchState
@@ -770,14 +793,31 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             {
                 if (state.SearchTypeIndex == 0)
                 {
-                    var results = await _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria);
-                    progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = results.Count;
-                    progressBar.Value = results.Count; 
-
-                    _resultsList = results;
+                    _resultsList = new List<LevelItem>();
                     dgResults.ItemsSource = _resultsList;
-                    txtStatus.Text = $"Restored {results.Count} levels for '{state.SearchText}'.";
+                    
+                    int count = 0;
+                    var sw = Stopwatch.StartNew();
+                    
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria))
+                    {
+                        _resultsList.Add(lvl);
+                        count++;
+                        
+                        if (sw.ElapsedMilliseconds > 100)
+                        {
+                            dgResults.Items.Refresh();
+                            txtStatus.Text = $"Restored {count} levels for '{state.SearchText}'...";
+                            sw.Restart();
+                        }
+                    }
+                    
+                    progressBar.IsIndeterminate = false;
+                    progressBar.Maximum = count;
+                    progressBar.Value = count; 
+
+                    dgResults.Items.Refresh();
+                    txtStatus.Text = $"Restored {count} levels for '{state.SearchText}'.";
 
                     dgResults.SelectedItem = null;
                     if (state.SelectedItem != null)
@@ -850,8 +890,24 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
         private async void DgResults_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            _selectionCts?.Cancel();
+            _selectionCts?.Dispose();
+            _selectionCts = null;
+
             if (dgResults.SelectedItem is LevelItem selectedLevel)
             {
+                _selectionCts = new CancellationTokenSource();
+                var token = _selectionCts.Token;
+
+                try
+                {
+                    await Task.Delay(100, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+
                 txtLevelName.Text = selectedLevel.LevelName;
                 txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}  |  ♥ {selectedLevel.Hearts}";
                 
@@ -876,9 +932,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 btnExtract.IsEnabled = false;
                 btnCopyHash.IsEnabled = false;
                 btnHeartToggle.IsEnabled = false;
-            btnHeartToggle.Content = "♥ HEART LEVEL";
-            iconHeartOverlay.Visibility = Visibility.Hidden;
-                iconEllipse.Fill = (Brush)FindResource("BgPrimary"); // Changed to (Brush)
+                btnHeartToggle.Content = "♥ HEART LEVEL";
+                iconHeartOverlay.Visibility = Visibility.Hidden;
+                iconEllipse.Fill = (Brush)FindResource("BgPrimary"); 
                 txtIconStatus.Text = "Select a level\nto view details";
                 
                 txtDescription.Document.Blocks.Clear();
@@ -889,8 +945,24 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
         private async void DgUsers_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            _userSelectionCts?.Cancel();
+            _userSelectionCts?.Dispose();
+            _userSelectionCts = null;
+
             if (dgUsers.SelectedItem is UserItem selectedUser)
             {
+                _userSelectionCts = new CancellationTokenSource();
+                var token = _userSelectionCts.Token;
+
+                try
+                {
+                    await Task.Delay(100, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+
                 txtUserNpHandle.Text = selectedUser.NpHandle;
                 txtUserStats.Text = $"Hearts: {selectedUser.HeartCount}  |  Total Levels: {selectedUser.TotalLevels}";
                 txtUserSummary.Text = $"Published Level slots summary:\n" +
@@ -1022,7 +1094,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             return; 
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        LogManager.Log("MainWindow.LoadIconAsync (Local Archive)", ex);
+                    }
                 }
 
                 // Pass the token to the HTTP Client to cancel requests when you scroll fast
@@ -1107,7 +1182,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             return; 
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        LogManager.Log("MainWindow.LoadUserIconAsync (Local Archive)", ex);
+                    }
                 }
 
                 using var response = await SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", token);

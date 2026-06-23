@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Collections.Frozen;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
 
@@ -15,7 +17,7 @@ namespace LbpArchiveToolkit.Services
         #region State & Caching
 
         private readonly string _dbPath;
-        private readonly object _schemaLock = new();
+        private readonly System.Threading.Lock _schemaLock = new();
         
         private volatile bool _isSchemaResolved = false;
         private bool _hasFtsTable = false; 
@@ -52,37 +54,49 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async Task<List<LevelItem>> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced)
-{
-    if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, [EnumeratorCancellation] CancellationToken token = default)
+        {
+            if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
-    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
-    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    conn.Open();
+            var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+            using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+            await conn.OpenAsync(token);
 
-            string? lastReqStr = null;
-            int[]? lastParsed = null;
-            
-            conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob, string requiredIndicesStr) =>
+            var friendlyNames = LabelParser.GetFriendlyNames();
+            var reqLabelIndices = new List<int>();
+            if (advanced.RequiredLabels.Count > 0)
+            {
+                foreach (var reqLabel in advanced.RequiredLabels)
+                {
+                    for (int i = 0; i < friendlyNames.Count; i++)
+                    {
+                        if (friendlyNames[i] == reqLabel)
+                        {
+                            reqLabelIndices.Add(i);
+                            break;
+                        }
+                    }
+                }
+            }
+            int[] requiredLabelIndices = reqLabelIndices.ToArray();
+
+            var reqTagIndices = new List<int>();
+            if (advanced.RequiredTags.Count > 0)
+            {
+                for (int i = 0; i < advanced.RequiredTags.Count; i++)
+                {
+                    int index = GetTagIndex(advanced.RequiredTags[i]);
+                    if (index >= 0) reqTagIndices.Add(index);
+                }
+            }
+            int[] requiredTagIndices = reqTagIndices.ToArray();
+
+            conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob) =>
             {
                 if (blob == null) return false;
-                if (string.IsNullOrEmpty(requiredIndicesStr)) return true;
-
-                // Cache the parsing so it doesn't run per-row for the same query
-                if (!ReferenceEquals(requiredIndicesStr, lastReqStr) && requiredIndicesStr != lastReqStr)
-                {
-                    var parts = requiredIndicesStr.Split(',');
-                    var list = new List<int>(parts.Length);
-                    foreach (var p in parts) if (int.TryParse(p, out int val)) list.Add(val);
-                    lastParsed = list.ToArray();
-                    lastReqStr = requiredIndicesStr;
-                }
-
-                if (lastParsed == null) return true;
-
-                foreach (int i in lastParsed)
+                foreach (int i in requiredLabelIndices)
                 {
                     int byteIndex = (blob.Length - 1) - (i >> 3);
                     int bitIndex = i & 7;
@@ -95,38 +109,21 @@ namespace LbpArchiveToolkit.Services
                 return true;
             });
 
-            string reqIndicesStr = "";
-            if (advanced.RequiredLabels.Count > 0)
+            conn.CreateFunction("HAS_ALL_TAGS", (byte[] blob) =>
             {
-                var friendlyNames = LabelParser.GetFriendlyNames();
-                var reqIndices = new List<int>();
-                foreach (var reqLabel in advanced.RequiredLabels)
+                if (blob == null) return false;
+                foreach (int i in requiredTagIndices)
                 {
-                    for (int i = 0; i < friendlyNames.Count; i++)
+                    int byteIndex = (blob.Length - 1) - (i >> 3);
+                    int bitIndex = i & 7;
+
+                    if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
                     {
-                        if (friendlyNames[i] == reqLabel)
-                        {
-                            reqIndices.Add(i);
-                            break;
-                        }
+                        return false;
                     }
                 }
-                reqIndicesStr = string.Join(",", reqIndices);
-            }
-
-            string reqTagIndicesStr = "";
-            if (advanced.RequiredTags.Count > 0)
-            {
-                var tagNames = TagParser.ParseTagNames(new byte[0]); // Safe fallback or direct inline fetch
-                // We map them directly to indices inside SearchLevelsAsync
-                var reqTagIndices = new List<int>();
-                for (int i = 0; i < advanced.RequiredTags.Count; i++)
-                {
-                    int index = GetTagIndex(advanced.RequiredTags[i]);
-                    if (index >= 0) reqTagIndices.Add(index);
-                }
-                reqTagIndicesStr = string.Join(",", reqTagIndices);
-            }
+                return true;
+            });
 
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
@@ -160,7 +157,9 @@ namespace LbpArchiveToolkit.Services
                 BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
             }
             
-            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqIndicesStr, reqTagIndicesStr);
+            bool hasRequiredLabels = requiredLabelIndices.Length > 0;
+            bool hasRequiredTags = requiredTagIndices.Length > 0;
+            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, hasRequiredLabels, hasRequiredTags);
 
             if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
             
@@ -169,7 +168,6 @@ namespace LbpArchiveToolkit.Services
                 queryBuilder.Append($" LIMIT {limit}");
             }
             
-            var items = new List<LevelItem>();
             using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
 
             foreach (var param in parameters)
@@ -181,8 +179,8 @@ namespace LbpArchiveToolkit.Services
             var dateCache = new Dictionary<string, string>();
             var nameCache = new Dictionary<string, string>();
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            using var reader = await cmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token))
             {
                 long id = reader.GetInt64(0);
 
@@ -268,9 +266,8 @@ namespace LbpArchiveToolkit.Services
                     IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10))
                 };
 
-                items.Add(levelItem);
+                yield return levelItem;
             }
-            return items;
         }
 
         public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter)
@@ -414,7 +411,7 @@ namespace LbpArchiveToolkit.Services
             parameters.Add(new SqliteParameter("@match", matchTerm));
         }
 
-        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, string reqIndicesStr, string reqTagIndicesStr)
+        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, bool hasRequiredLabels, bool hasRequiredTags)
         {
             if (gameFilter > 0 && _colGame != "NULL")
             {
@@ -450,16 +447,14 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
-            if (!string.IsNullOrEmpty(reqIndicesStr) && _colLabels != "NULL")
+            if (hasRequiredLabels && _colLabels != "NULL")
             {
-                query.Append($" AND HAS_ALL_LABELS({pfx}{_colLabels}, @reqIndices)");
-                parameters.Add(new SqliteParameter("@reqIndices", reqIndicesStr));
+                query.Append($" AND HAS_ALL_LABELS({pfx}{_colLabels})");
             }
 
-            if (!string.IsNullOrEmpty(reqTagIndicesStr) && _colTags != "NULL")
+            if (hasRequiredTags && _colTags != "NULL")
             {
-                query.Append($" AND HAS_ALL_LABELS({pfx}{_colTags}, @reqTagIndices)");
-                parameters.Add(new SqliteParameter("@reqTagIndices", reqTagIndicesStr));
+                query.Append($" AND HAS_ALL_TAGS({pfx}{_colTags})");
             }
         }
 
@@ -484,7 +479,10 @@ namespace LbpArchiveToolkit.Services
                     using var cmdPragma = new SqliteCommand("PRAGMA journal_mode = WAL;", conn);
                     cmdPragma.ExecuteNonQuery();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LbpArchiveToolkit.LogManager.Log("DatabaseService.EnsureSchemaResolved (WAL Mode)", ex);
+                }
 
                 var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using (var cmdInfo = new SqliteCommand("PRAGMA table_info(slot)", conn))
@@ -532,7 +530,11 @@ namespace LbpArchiveToolkit.Services
                 if (v > 9999999999) v /= 1000;
                 return DateTimeOffset.FromUnixTimeSeconds(v).ToString("yyyy-MM-dd");
             }
-            catch { return "Unknown"; }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("DatabaseService.FormatDate", ex);
+                return "Unknown";
+            }
         }
 
         private static string GetHashString(object val)

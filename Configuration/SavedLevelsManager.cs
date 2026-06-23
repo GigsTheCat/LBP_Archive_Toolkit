@@ -11,7 +11,7 @@ namespace LbpArchiveToolkit.Configuration
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
             "LbpArchiveToolkit", "savedlevels.json");
 
-        public static List<string> SavedLevels { get; set; } = new List<string>();
+        public static List<string> SavedLevels { get; set; } = [];
 
         public static void Load(List<string> legacyLevels)
         {

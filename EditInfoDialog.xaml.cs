@@ -79,7 +79,6 @@ namespace LbpArchiveToolkit
     }
 }
 
-// Add this override block to clean up temp files if the user cancels out of the edit panel:
 protected override void OnClosed(EventArgs e)
 {
     if (DialogResult != true && !string.IsNullOrEmpty(NewIconPath))
@@ -103,13 +102,7 @@ protected override void OnClosed(EventArgs e)
         private void TxtTitle_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateTitleCount();
         private void TxtDescription_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateDescCount();
 
-        private void UpdateTitleCount()
-        {
-            if (txtTitleCount != null) txtTitleCount.Text = $"{txtTitle.Text.Length} / 100";
-        }
-        private void UpdateDescCount()
-        {
-            if (txtDescCount != null) txtDescCount.Text = $"{txtDescription.Text.Length} / 1000";
-        }
+        private void UpdateTitleCount() => txtTitleCount?.Text = $"{txtTitle.Text.Length} / 100";
+        private void UpdateDescCount() => txtDescCount?.Text = $"{txtDescription.Text.Length} / 1000";
     }
 }

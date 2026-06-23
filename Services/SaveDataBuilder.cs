@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics.Arm;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
@@ -277,7 +278,6 @@ namespace LbpArchiveToolkit.Services
                 byte guidFlag = version < 0x191 ? (byte)1 : (byte)2;
                 byte hashFlag = version < 0x191 ? (byte)2 : (byte)1;
                 
-                // Fix: Properly handle GUID compression if the backup requires it!
                 if ((flags & guidFlag) != 0) ReadU32(); 
                 if ((flags & hashFlag) != 0) 
                 {
@@ -349,8 +349,8 @@ namespace LbpArchiveToolkit.Services
             // Correct the Dependency Table absolute offset
             if (depOffsetPos != -1)
             {
-                uint oldDepOffset = BinaryPrimitives.ReadUInt32BigEndian(sltData.AsSpan(depOffsetPos, 4));
-                BinaryPrimitives.WriteUInt32BigEndian(patched.AsSpan(depOffsetPos, 4), (uint)((int)oldDepOffset + delta));
+                uint oldDepOffset = BinaryPrimitives.ReadUInt32BigEndian(sltData[depOffsetPos..(depOffsetPos + 4)]);
+                BinaryPrimitives.WriteUInt32BigEndian(patched[depOffsetPos..(depOffsetPos + 4)], (uint)((int)oldDepOffset + delta));
             }
             
             return (patched, npHandle, gameVersion);
@@ -429,7 +429,7 @@ namespace LbpArchiveToolkit.Services
                                 if ((flags & 1) != 0)
                                 {
                                     if (ptr + 20 > workData.Length) break;
-                                    string hashStr = Convert.ToHexStringLower(workData.AsSpan(ptr, 20));
+                                    string hashStr = Convert.ToHexStringLower(workData[ptr..(ptr + 20)]);
                                     deps.Add(hashStr);
                                     ptr += 20; 
                                 }
@@ -501,7 +501,7 @@ namespace LbpArchiveToolkit.Services
 
             await SaveLevelIconAsync(lvl.IconHash, resources, bkpPath, client, token).ConfigureAwait(false);
 
-            await Task.Run(() => MakeSaveArchive(head, branchId, branchRev, sltHash, resources, bkpPath)).ConfigureAwait(false);
+            await Task.Run(() => MakeSaveArchive(head, branchId, branchRev, sltHash, resources, bkpPath, token)).ConfigureAwait(false);
 
             byte[] sfo = MakeSfo(lvl.LevelName ?? "", bkpDirName, lvl.Creator ?? "", lvl.Description ?? "", slotInfo.GameVersion);
             await File.WriteAllBytesAsync(Path.Combine(bkpPath, "PARAM.SFO"), sfo, token).ConfigureAwait(false);
@@ -556,114 +556,121 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        private static void MakeSaveArchive(uint head, ushort branchId, ushort branchRev, byte[] sltHash, SortedDictionary<string, byte[]> hashes, string bkpDir)
+        private static void MakeSaveArchive(uint head, ushort branchId, ushort branchRev, byte[] sltHash, SortedDictionary<string, byte[]> hashes, string bkpDir, CancellationToken token = default)
         {
-            // Calculate total size: Size of assets + header overhead + entry table overhead
-            int requiredCapacity = hashes.Sum(x => x.Value.Length) + 256 + (hashes.Count * 28);
-            using var arc = new MemoryStream(requiredCapacity);
-            var entries = new List<(byte[] hash, uint offset, uint size)>();
-
-            foreach (var kvp in hashes)
-            {
-                uint offset = (uint)arc.Position;
-                arc.Write(kvp.Value, 0, kvp.Value.Length);
-
-                byte[] hashBytes = StringToByteArray(kvp.Key);
-                entries.Add((hashBytes, offset, (uint)kvp.Value.Length));
-            }
-
-            uint pad = (uint)(arc.Position % 4);
-            if (pad != 0) { pad = 4 - pad; arc.Write(new byte[pad], 0, (int)pad); }
-
-            var w = new BinaryWriter(arc);
-            w.WriteUInt32BE(head);
-            w.WriteUInt16BE(branchId);
-            w.WriteUInt16BE(branchRev);
-            w.WriteUInt32BE(1);
-            w.WriteUInt32BE(0); // backupID
-            w.WriteUInt32BE(0); // localUserID
-            w.Write(new byte[4 * 10]);
-            w.WriteUInt32BE(0);
-            w.WriteUInt32BE(29);
-            w.Write(new byte[4 * 3]);
-            w.Write(sltHash);
-            w.Write(new byte[4 * 10]);
-
-            foreach (var entry in entries)
-            {
-                w.Write(entry.hash);
-                w.WriteUInt32BE(entry.offset);
-                w.WriteUInt32BE(entry.size);
-            }
-
-            uint hashinateOffset = (uint)arc.Position;
-            w.Write(new byte[0x14]);
-            w.WriteUInt32BE((uint)entries.Count);
-            w.Write(Encoding.ASCII.GetBytes("FAR4"));
-            w.Flush();
-
-            if (!arc.TryGetBuffer(out ArraySegment<byte> buffer))
-            {
-                throw new InvalidOperationException("Could not get stream buffer.");
-            }
-
+            string tempPath = Path.Combine(bkpDir, "plain.tmp");
             byte[] hashinateKey = new byte[] { 0x2A, 0xFD, 0xA3, 0xCA, 0x86, 0x02, 0x19, 0xB3, 0xE6, 0x8A, 0xFF, 0xCC, 0x82, 0xC7, 0x6B, 0x8A, 0xFE, 0x0A, 0xD8, 0x13, 0x5F, 0x60, 0x47, 0x5B, 0xDF, 0x5D, 0x37, 0xBC, 0x57, 0x1C, 0xB5, 0xE7, 0x96, 0x75, 0xD5, 0x28, 0xA2, 0xFA, 0x90, 0xED, 0xDF, 0xA3, 0x45, 0xB4, 0x1F, 0xF9, 0x1F, 0x25, 0xE7, 0x42, 0x45, 0x3B, 0x2B, 0xB5, 0x3E, 0x16, 0xC9, 0x58, 0x19, 0x7B, 0xE7, 0x18, 0xC0, 0x80 };
+            
+            long hashinateOffset = 0;
+            long finalLength = 0;
 
-            int finalLength = (int)arc.Length;
-            byte[] mac;
-
-            using (var incrementalHash = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hashinateKey))
+            // Stream plaintext directly to disk, hashing incrementally to completely avoid LOH allocations
+            using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 65536))
             {
-                int hashChunkSize = 0x100000; // 1 MB chunks
-                int offset = buffer.Offset;
-                int remaining = finalLength;
-
-                while (remaining > 0)
+                using (var hmac = new HMACSHA1(hashinateKey))
                 {
-                    int toHash = Math.Min(remaining, hashChunkSize);
-                    incrementalHash.AppendData(buffer.Array!, offset, toHash);
-                    offset += toHash;
-                    remaining -= toHash;
+                    using (var cs = new CryptoStream(fs, hmac, CryptoStreamMode.Write, leaveOpen: true))
+                    using (var w = new BinaryWriter(cs, Encoding.UTF8, leaveOpen: true))
+                    {
+                        uint currentOffset = 0;
+                        var entries = new List<(byte[] hash, uint offset, uint size)>();
+
+                        foreach (var kvp in hashes)
+                        {
+                            uint offset = currentOffset;
+                            w.Write(kvp.Value);
+                            currentOffset += (uint)kvp.Value.Length;
+
+                            byte[] hashBytes = StringToByteArray(kvp.Key);
+                            entries.Add((hashBytes, offset, (uint)kvp.Value.Length));
+                        }
+
+                        uint pad = currentOffset % 4;
+                        if (pad != 0)
+                        {
+                            pad = 4 - pad;
+                            w.Write(new byte[pad]);
+                            currentOffset += pad;
+                        }
+
+                        w.WriteUInt32BE(head);
+                        w.WriteUInt16BE(branchId);
+                        w.WriteUInt16BE(branchRev);
+                        w.WriteUInt32BE(1);
+                        w.WriteUInt32BE(0); // backupID
+                        w.WriteUInt32BE(0); // localUserID
+                        w.Write(new byte[4 * 10]);
+                        w.WriteUInt32BE(0);
+                        w.WriteUInt32BE(29);
+                        w.Write(new byte[4 * 3]);
+                        w.Write(sltHash);
+                        w.Write(new byte[4 * 10]);
+                        currentOffset += 140;
+
+                        foreach (var entry in entries)
+                        {
+                            w.Write(entry.hash);
+                            w.WriteUInt32BE(entry.offset);
+                            w.WriteUInt32BE(entry.size);
+                            currentOffset += 28;
+                        }
+
+                        hashinateOffset = currentOffset;
+                        w.Write(new byte[0x14]);
+                        w.WriteUInt32BE((uint)entries.Count);
+                        w.Write(Encoding.ASCII.GetBytes("FAR4"));
+                    } // Flushes the CryptoStream and finalizes the HMAC
+
+                    finalLength = fs.Position;
+                    byte[] mac = hmac.Hash!;
+                    
+                    fs.Position = hashinateOffset;
+                    fs.Write(mac, 0, mac.Length);
                 }
-                mac = incrementalHash.GetHashAndReset();
             }
 
-            arc.Position = hashinateOffset;
-            arc.Write(mac, 0, mac.Length);
-
+            // Stream chunks back into rented arrays, encrypt concurrently, and dump to OS kernel handles
             int chunkSize = 0x240000;
-            int numChunks = (finalLength + chunkSize - 1) / chunkSize;
+            int numChunks = (int)((finalLength + chunkSize - 1) / chunkSize);
 
-            Parallel.For(0, numChunks, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, i =>
+            using (SafeFileHandle tempFileHandle = File.OpenHandle(tempPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                int start = i * chunkSize;
-                int len = Math.Min(chunkSize, finalLength - start);
-
-                byte[] chunk = System.Buffers.ArrayPool<byte>.Shared.Rent(len);
-                try
+                Parallel.For(0, numChunks, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = token }, i =>
                 {
-                    Array.Copy(buffer.Array!, buffer.Offset + start, chunk, 0, len);
+                    long start = (long)i * chunkSize;
+                    int len = (int)Math.Min((long)chunkSize, finalLength - start);
 
-                    int xxteaEnd = len;
-                    if (i == numChunks - 1) xxteaEnd -= 4;
+                    byte[] chunk = System.Buffers.ArrayPool<byte>.Shared.Rent(len);
+                    try
+                    {
+                        int bytesRead = RandomAccess.Read(tempFileHandle, chunk[..len], start);
+                        if (bytesRead < len)
+                        {
+                            throw new IOException($"Incomplete read from temporary file at offset {start}. Expected {len} bytes, read {bytesRead} bytes.");
+                        }
 
-                    XxteaEncrypt(chunk, xxteaEnd);
+                        int xxteaEnd = len;
+                        if (i == numChunks - 1) xxteaEnd -= 4; // Exclude FAR4 trailing bytes from decryption
 
-                    using SafeFileHandle handle = File.OpenHandle(
-                    Path.Combine(bkpDir, i.ToString()), 
-                    FileMode.Create, 
-                    FileAccess.Write, 
-                    FileShare.None, 
-                    FileOptions.None);
+                        XxteaEncrypt(chunk, xxteaEnd);
 
-                    // Writes the exact Span length directly to the disk via the OS kernel
-                    RandomAccess.Write(handle, chunk.AsSpan(0, len), 0);
-                }
-                finally
-                {
-                    System.Buffers.ArrayPool<byte>.Shared.Return(chunk);
-                }
-            });
+                        using SafeFileHandle handle = File.OpenHandle(
+                            Path.Combine(bkpDir, i.ToString()), 
+                            FileMode.Create, 
+                            FileAccess.Write, 
+                            FileShare.None, 
+                            FileOptions.None);
+
+                        RandomAccess.Write(handle, chunk[..len], 0);
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<byte>.Shared.Return(chunk);
+                    }
+                });
+            }
+
+            File.Delete(tempPath);
         }
 
         private static void SwapEndianness(Span<uint> v)
@@ -684,6 +691,19 @@ namespace LbpArchiveToolkit.Services
                     swapped.StoreUnsafe(ref byteRef);
                 }
             }
+            else if (AdvSimd.IsSupported)
+            {
+                for (; i <= v.Length - 4; i += 4)
+                {
+                    // Load exactly 4 uints (128 bits) directly
+                    var vec = Vector128.LoadUnsafe(ref v[i]);
+                    
+                    // Reverse the 8-bit elements inside each 32-bit chunk (Translates to ARM: REV32)
+                    var swapped = AdvSimd.ReverseElement8(vec);
+                    
+                    swapped.StoreUnsafe(ref v[i]);
+                }
+            }
 
             // Fallback for remaining integers if length isn't a perfect multiple of 8
             for (; i < v.Length; i++)
@@ -698,7 +718,7 @@ namespace LbpArchiveToolkit.Services
             int n = (end / 4) - 1;
             if (n < 0) return;
 
-            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan(0, (n + 1) * 4));
+            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan()[..((n + 1) * 4)]);
 
             if (BitConverter.IsLittleEndian) SwapEndianness(v);
 
@@ -727,7 +747,7 @@ namespace LbpArchiveToolkit.Services
             int n = (end / 4) - 1;
             if (n < 0) return;
 
-            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan(0, (n + 1) * 4));
+            var v = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan()[..((n + 1) * 4)]);
 
             if (BitConverter.IsLittleEndian) SwapEndianness(v);
 
@@ -918,7 +938,7 @@ namespace LbpArchiveToolkit.Services
             byte method = rootLevelData[3];
             if (method == 'b' || method == 'e')
             {
-                head = BinaryPrimitives.ReadUInt32BigEndian(rootLevelData.AsSpan(4, 4));
+                head = BinaryPrimitives.ReadUInt32BigEndian(rootLevelData[4..8]);
                 string resrcType = Encoding.ASCII.GetString(rootLevelData, 0, 3);
                 
                 if (resrcType != "SMH" && head >= 0x271)
@@ -926,8 +946,8 @@ namespace LbpArchiveToolkit.Services
                     int offset = head >= 0x109 ? 12 : 8;
                     if (rootLevelData.Length >= offset + 4)
                     {
-                        branchId = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData.AsSpan(offset, 2));
-                        branchRev = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData.AsSpan(offset + 2, 2));
+                        branchId = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData[offset..(offset + 2)]);
+                        branchRev = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData[(offset + 2)..(offset + 4)]);
                     }
                 }
             }
@@ -1218,7 +1238,10 @@ namespace LbpArchiveToolkit.Services
                     return;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("SaveDataBuilder.CreatePlaceholderIcon", ex);
+            }
 
             // Pure WPF fallback if MissingIcon.png is lost
             int width = 320;

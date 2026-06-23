@@ -12,7 +12,7 @@ namespace LbpArchiveToolkit.Configuration
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
             "LbpArchiveToolkit", "heartedlevels.json");
 
-        public static List<LevelItem> HeartedLevels { get; set; } = new List<LevelItem>();
+        public static List<LevelItem> HeartedLevels { get; set; } = [];
 
         public static void Load()
         {

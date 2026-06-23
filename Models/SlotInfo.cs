@@ -17,7 +17,7 @@ namespace LbpArchiveToolkit.Models
         public bool IsSubLevel = false;
         public int MinPlayers = 1;
         public int MaxPlayers = 4;
-        public List<uint> Labels = new List<uint>();
+        public List<uint> Labels = [];
         public int GameVersion = 1;
     }
 }

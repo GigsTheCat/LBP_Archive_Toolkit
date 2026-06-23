@@ -53,7 +53,6 @@
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- Added standard hover and click effects natively to the style -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bgBorder" Property="Opacity" Value="0.85"/>
                         </Trigger>

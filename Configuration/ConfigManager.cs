@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace LbpArchiveToolkit.Configuration
 {
@@ -22,7 +24,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
         
-        public static List<string> LegacySavedLevels { get; set; } = new List<string>();
+        public static List<string> LegacySavedLevels { get; set; } = [];
         public static MainWindow.SearchState? LastSearch { get; set; }
 
         public static double WindowWidth { get; set; } = 1200;
@@ -35,7 +37,8 @@ namespace LbpArchiveToolkit.Configuration
 
         #region Paths & Constants
 
-        private static readonly object _saveLock = new object();
+        private static readonly System.Threading.Lock _saveLock = new();
+        private static readonly SemaphoreSlim _saveLockAsync = new SemaphoreSlim(1, 1);
 
         private static readonly string AppDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
@@ -89,7 +92,10 @@ namespace LbpArchiveToolkit.Configuration
                     Directory.CreateDirectory(AppDataFolder);
                     File.Move(LegacyConfigPath, ConfigPath);
                 }
-                catch { /* Allow graceful fallback if migration fails */ }
+                catch (Exception ex)
+                {
+                    LbpArchiveToolkit.LogManager.Log("ConfigManager.LoadConfig (Migration)", ex);
+                }
             }
 
             string? pathToLoad = File.Exists(ConfigPath) ? ConfigPath : (File.Exists(LegacyConfigPath) ? LegacyConfigPath : null);
@@ -120,48 +126,99 @@ namespace LbpArchiveToolkit.Configuration
                     LastSearch = data.LastSearch;
                 }
             }
-            catch { /* Return standard defaults if parsing fails */ }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("ConfigManager.LoadConfig (Parsing)", ex);
+            }
         }
 
         /// <summary>
         /// Commits the current static state out to the configuration JSON file in AppData.
         /// </summary>
         public static void SaveConfig()
-	{
-    	   lock (_saveLock)
-    	   {
-       		try
+        {
+            lock (_saveLock)
+            {
+                try
                 {
-                     	var data = new ConfigData
-            	     	{
-                	DatabasePath = DatabasePath,
-                	BackupDirectory = BackupDirectory,
-                	DownloadServer = DownloadServer,
-                	LocalArchivePath = LocalArchivePath,
+                    var data = new ConfigData
+                    {
+                        DatabasePath = DatabasePath,
+                        BackupDirectory = BackupDirectory,
+                        DownloadServer = DownloadServer,
+                        LocalArchivePath = LocalArchivePath,
                         Theme = Theme,
                         GameRegion = GameRegion,
-                	MaxParallelDownloads = MaxParallelDownloads,
-                	ForceLbp3Backups = ForceLbp3Backups,
-                	Lbp2BetaToRetail = Lbp2BetaToRetail,
-                	WindowWidth = WindowWidth,
-                	WindowHeight = WindowHeight,
-                	WindowLeft = WindowLeft,
-                	WindowTop = WindowTop,
-                	IsMaximized = IsMaximized,
-                	LastSearch = LastSearch
-            	};
+                        MaxParallelDownloads = MaxParallelDownloads,
+                        ForceLbp3Backups = ForceLbp3Backups,
+                        Lbp2BetaToRetail = Lbp2BetaToRetail,
+                        WindowWidth = WindowWidth,
+                        WindowHeight = WindowHeight,
+                        WindowLeft = WindowLeft,
+                        WindowTop = WindowTop,
+                        IsMaximized = IsMaximized,
+                        LastSearch = LastSearch
+                    };
 
-            	var options = new JsonSerializerOptions { WriteIndented = true };
-            	string json = JsonSerializer.Serialize(data, options);
-            
-            	Directory.CreateDirectory(AppDataFolder);
-            	string tempPath = ConfigPath + ".tmp";
-            	File.WriteAllText(tempPath, json);
-            	File.Move(tempPath, ConfigPath, overwrite: true);
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    string json = JsonSerializer.Serialize(data, options);
+
+                    Directory.CreateDirectory(AppDataFolder);
+                    string tempPath = ConfigPath + ".tmp";
+                    File.WriteAllText(tempPath, json);
+                    File.Move(tempPath, ConfigPath, overwrite: true);
+                }
+                catch (Exception ex)
+                {
+                    LbpArchiveToolkit.LogManager.Log("ConfigManager.SaveConfig", ex);
+                }
+            }
         }
-        catch { /* Fails silently if directory locks occur */ }
-    }
-}
+
+        /// <summary>
+        /// Commits the current static state out to the configuration JSON file in AppData asynchronously.
+        /// </summary>
+        public static async Task SaveConfigAsync()
+        {
+            await _saveLockAsync.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var data = new ConfigData
+                {
+                    DatabasePath = DatabasePath,
+                    BackupDirectory = BackupDirectory,
+                    DownloadServer = DownloadServer,
+                    LocalArchivePath = LocalArchivePath,
+                    Theme = Theme,
+                    GameRegion = GameRegion,
+                    MaxParallelDownloads = MaxParallelDownloads,
+                    ForceLbp3Backups = ForceLbp3Backups,
+                    Lbp2BetaToRetail = Lbp2BetaToRetail,
+                    WindowWidth = WindowWidth,
+                    WindowHeight = WindowHeight,
+                    WindowLeft = WindowLeft,
+                    WindowTop = WindowTop,
+                    IsMaximized = IsMaximized,
+                    LastSearch = LastSearch
+                };
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(data, options);
+
+                Directory.CreateDirectory(AppDataFolder);
+                string tempPath = ConfigPath + ".tmp";
+                await File.WriteAllTextAsync(tempPath, json).ConfigureAwait(false);
+                File.Move(tempPath, ConfigPath, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("ConfigManager.SaveConfigAsync", ex);
+            }
+            finally
+            {
+                _saveLockAsync.Release();
+            }
+        }
 
         #endregion
     }

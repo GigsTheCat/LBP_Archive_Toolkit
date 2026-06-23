@@ -133,7 +133,10 @@ namespace LbpArchiveToolkit
                             return; 
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        LogManager.Log("HeartedCreatorsWindow.LoadUserIconAsync (Local Archive)", ex);
+                    }
                 }
 
                 using var response = await MainWindow.SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", HttpCompletionOption.ResponseHeadersRead, token);
@@ -215,7 +218,7 @@ namespace LbpArchiveToolkit
         }
 
         #region Win32 Interop
-        // ... standard window drag logic omitted for brevity ...
+        
         private void Window_SourceInitialized(object? sender, EventArgs e)
         {
             var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;

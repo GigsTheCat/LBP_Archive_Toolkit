@@ -240,7 +240,6 @@
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
 
        <Grid>
-            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
         <DockPanel>
             <!-- Title Bar -->

@@ -75,7 +75,10 @@ namespace LbpArchiveToolkit.Utils
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogManager.Log("SfoReader.GetLevelData", ex);
+            }
 
             return result;
         }

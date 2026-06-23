@@ -338,7 +338,6 @@
 
         <!-- WRAP EVERYTHING IN THIS GRID -->
         <Grid>
-            <!-- THIS ENABLES YOUR BACKGROUND ANIMATIONS -->
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
 
             <DockPanel>
@@ -585,8 +584,7 @@
                                     </Ellipse>
                                     <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
                                     <TextBlock x:Name="txtIconStatus" Text="Select a level&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                                    
-                                    <!-- THE NEW HEART OVERLAY -->
+
                                     <TextBlock x:Name="iconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Hidden">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>

@@ -130,7 +130,10 @@ namespace LbpArchiveToolkit
                             return; 
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        LogManager.Log("HeartedLevelsWindow.LoadIconAsync (Local Archive)", ex);
+                    }
                 }
 
                 using var response = await MainWindow.SharedHttpClient.GetAsync($"https://zaprit.fish/icon/{hash}", HttpCompletionOption.ResponseHeadersRead, token);

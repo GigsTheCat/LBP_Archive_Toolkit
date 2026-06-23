@@ -8,7 +8,7 @@ namespace LbpArchiveToolkit.Models
         public int MinPlays { get; set; } = 0;
         
         // List of labels/tags the level MUST have to appear in the results
-        public List<string> RequiredLabels { get; set; } = new();
-        public List<string> RequiredTags { get; set; } = new();
+        public List<string> RequiredLabels { get; set; } = [];
+        public List<string> RequiredTags { get; set; } = [];
     }
 }

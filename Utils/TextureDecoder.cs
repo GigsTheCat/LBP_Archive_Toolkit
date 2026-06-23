@@ -8,23 +8,24 @@ namespace LbpArchiveToolkit.Utils
 {
     /// <summary>
     /// Handles the decryption and formatting of proprietary LBP texture files into standard image formats.
+    /// Utilizes System.Buffers.ArrayPool to heavily minimize Garbage Collection LOH fragmentation.
     /// </summary>
     public static class TextureDecoder
     {
         public static byte[] DecodeToPngCentered(byte[] resourceData)
-{
-    if (resourceData == null || resourceData.Length < 4) return new byte[0];
+        {
+            if (resourceData == null || resourceData.Length < 4) return Array.Empty<byte>();
 
-    uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
-    if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
-    {
-        return CenterWpfImage(resourceData);
-    }
-    if (resourceData.Length < 44) return new byte[0]; // Protection against short header buffers for GTF/DDS/TEX
-    if (magic == 0x44445320)
-    {
-        return DecodeDdsToPngCentered(resourceData);
-    }
+            uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData[..4]);
+            if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
+            {
+                return CenterWpfImage(resourceData);
+            }
+            if (resourceData.Length < 44) return Array.Empty<byte>(); // Protection against short header buffers for GTF/DDS/TEX
+            if (magic == 0x44445320)
+            {
+                return DecodeDdsToPngCentered(resourceData, resourceData.Length);
+            }
 
             using var ms = new MemoryStream(resourceData);
             using var br = new BinaryReader(ms);
@@ -82,85 +83,100 @@ namespace LbpArchiveToolkit.Utils
                 throw new InvalidDataException("Decompressed texture size exceeds safety limits.");
             }
             
-            byte[] finalData = new byte[(int)totalDecompSize];
-            int currentPos = 0;
-            
-            for (int i = 0; i < numChunks; i++)
+            // Rent from pool to completely bypass Large Object Heap fragmentation
+            byte[] finalData = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalDecompSize);
+            byte[]? unswizzled = null;
+            byte[]? bgraData = null;
+
+            try
             {
-                var info = chunkInfos[i];
-                
-                if (info.comp == info.decomp)
+                int currentPos = 0;
+                for (int i = 0; i < numChunks; i++)
                 {
-                    int uncompBytesRead = br.Read(finalData, currentPos, info.comp);
-                    if (uncompBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading uncompressed texture chunk.");
-                }
-                else
-                {
-                    byte[] deflatedData = System.Buffers.ArrayPool<byte>.Shared.Rent(info.comp);
-                    try
+                    var info = chunkInfos[i];
+                    if (info.comp == info.decomp)
                     {
-                        int compBytesRead = br.Read(deflatedData, 0, info.comp);
-                        if (compBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading compressed texture chunk.");
-                        
-                        using var msIn = new MemoryStream(deflatedData, 0, info.comp);
-                        using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);                        
-                        int bytesRead = 0;
-                        while (bytesRead < info.decomp)
+                        int uncompBytesRead = br.Read(finalData, currentPos, info.comp);
+                        if (uncompBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading uncompressed texture chunk.");
+                    }
+                    else
+                    {
+                        byte[] deflatedData = System.Buffers.ArrayPool<byte>.Shared.Rent(info.comp);
+                        try
                         {
-                            int r = zlib.Read(finalData, currentPos + bytesRead, info.decomp - bytesRead);
-                            if (r == 0) break;
-                            bytesRead += r;
+                            int compBytesRead = br.Read(deflatedData, 0, info.comp);
+                            if (compBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading compressed texture chunk.");
+                            
+                            using var msIn = new MemoryStream(deflatedData, 0, info.comp);
+                            using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);                        
+                            int bytesRead = 0;
+                            while (bytesRead < info.decomp)
+                            {
+                                int r = zlib.Read(finalData, currentPos + bytesRead, info.decomp - bytesRead);
+                                if (r == 0) break;
+                                bytesRead += r;
+                            }
+                        }
+                        finally
+                        {
+                            System.Buffers.ArrayPool<byte>.Shared.Return(deflatedData);
                         }
                     }
-                    finally
+                    currentPos += info.decomp;
+                }
+
+                if (typeStr == "TEX")
+                {
+                    if (finalData.Length >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
                     {
-                        System.Buffers.ArrayPool<byte>.Shared.Return(deflatedData);
+                        return DecodeDdsToPngCentered(finalData, (int)totalDecompSize);
+                    }
+                    else
+                    {
+                        // Some valid TEX files are literally just JPGs/PNGs embedded without format blocks
+                        return CenterWpfImage(finalData, (int)totalDecompSize);
                     }
                 }
-                currentPos += info.decomp;
-            }
-
-            if (typeStr == "TEX")
-            {
-                if (finalData.Length >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
+                else // GTF files are raw console textures that need unswizzling
                 {
-                    return DecodeDdsToPngCentered(finalData);
-                }
-                else
-                {
-                    return CenterWpfImage(finalData);
-                }
-            }
-            else // GTF files are raw console textures that need unswizzling
-            {
-                // Unswizzle based purely on the hardware texture flag, ignoring flawed serialization hints.
-                if (!isLinear)
-                {
-                    finalData = Unswizzle(finalData, format, width, height, mipCount);
-                }
-
-                // FIX 1: Restore 16-bit blocks back to Little-Endian for the GPU
-                if (format == 0x86 || format == 0x87 || format == 0x88)
-                {
-                    for (int i = 0; i < finalData.Length - 1; i += 2)
+                    if (!isLinear)
                     {
-                        byte temp = finalData[i];
-                        finalData[i] = finalData[i + 1];
-                        finalData[i + 1] = temp;
+                        // Unswizzle rents a new array for mapping, so swap their references so it's disposed
+                        unswizzled = Unswizzle(finalData, format, width, height, mipCount);
+                        var temp = finalData;
+                        finalData = unswizzled;
+                        unswizzled = temp; 
+                    }
+
+                    // Restore 16-bit blocks back to Little-Endian for the GPU
+                    if (format == 0x86 || format == 0x87 || format == 0x88)
+                    {
+                        for (int i = 0; i < (int)totalDecompSize - 1; i += 2)
+                        {
+                            byte temp = finalData[i];
+                            finalData[i] = finalData[i + 1];
+                            finalData[i + 1] = temp;
+                        }
                     }
                 }
+
+                if (width == 0 || height == 0) return Array.Empty<byte>();
+
+                bgraData = DecodeFormatToBgra32(finalData, format, width, height);
+                return CenterBgraToPng(bgraData, width, height);
             }
-
-            if (width == 0 || height == 0) return new byte[0];
-
-            byte[] bgraData = DecodeFormatToBgra32(finalData, format, width, height);
-
-            return CenterBgraToPng(bgraData, width, height);
+            finally
+            {
+                // Release all enormous memory buffers back to the .NET memory allocator instantly
+                System.Buffers.ArrayPool<byte>.Shared.Return(finalData);
+                if (unswizzled != null) System.Buffers.ArrayPool<byte>.Shared.Return(unswizzled);
+                if (bgraData != null) System.Buffers.ArrayPool<byte>.Shared.Return(bgraData);
+            }
         }
 
-        private static byte[] DecodeDdsToPngCentered(byte[] finalData)
+        private static byte[] DecodeDdsToPngCentered(byte[] finalData, int dataLength)
         {
-            if (finalData.Length < 128) return new byte[0];
+            if (dataLength < 128) return Array.Empty<byte>();
 
             int width = BitConverter.ToInt32(finalData, 16);
             int height = BitConverter.ToInt32(finalData, 12);
@@ -185,65 +201,71 @@ namespace LbpArchiveToolkit.Utils
                 else format = 0x89; 
             }
 
-            byte[] pixels = new byte[finalData.Length - 128];
-            Buffer.BlockCopy(finalData, 128, pixels, 0, pixels.Length);
-            
-            if (width == 0 || height == 0) return new byte[0];
+            if (width == 0 || height == 0) return Array.Empty<byte>();
 
-            byte[] bgraData = DecodeFormatToBgra32(pixels, format, width, height);
-            return CenterBgraToPng(bgraData, width, height);
+            byte[]? bgraData = null;
+            try
+            {
+                ReadOnlySpan<byte> pixelsSpan = finalData[128..dataLength];
+                bgraData = DecodeFormatToBgra32(pixelsSpan, format, width, height);
+                return CenterBgraToPng(bgraData, width, height);
+            }
+            finally
+            {
+                if (bgraData != null) System.Buffers.ArrayPool<byte>.Shared.Return(bgraData);
+            }
         }
 
-        private static byte[] DecodeFormatToBgra32(byte[] data, byte format, int width, int height)
-{
-    long totalPixels = (long)width * height;
-    if (totalPixels <= 0 || totalPixels > 16777216) // Max 16M pixels (e.g. 4096x4096) to prevent overflow/OOM
-    {
-        return new byte[0];
-    }
-
-    byte[] bgra = new byte[totalPixels * 4];
-
-    if (format == 0x85)
-    {
-        for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
+        private static byte[] DecodeFormatToBgra32(ReadOnlySpan<byte> data, byte format, int width, int height)
         {
-            bgra[i]     = data[i + 3];
-            bgra[i + 1] = data[i + 2];
-            bgra[i + 2] = data[i + 1];
-            bgra[i + 3] = data[i];    
-        }
-        return bgra;
-    }
-    else if (format == 0x89)
-    {
-        for (int i = 0; i < data.Length && i < bgra.Length; i += 4)
-        {
-            bgra[i]     = data[i];    
-            bgra[i + 1] = data[i + 1];
-            bgra[i + 2] = data[i + 2];
-            bgra[i + 3] = data[i + 3];
-        }
-        return bgra;
-    }
-    else if (format == 0x81)
-    {
-        for (int i = 0; i < data.Length && i * 4 < bgra.Length; i++)
-        {
-            byte val = data[i];
-            bgra[i * 4]     = val;
-            bgra[i * 4 + 1] = val;
-            bgra[i * 4 + 2] = val;
-            bgra[i * 4 + 3] = 255;
-        }
-        return bgra;
-    }
+            long totalPixels = (long)width * height;
+            if (totalPixels <= 0 || totalPixels > 16777216) // Max 16M pixels to prevent overflow
+            {
+                return Array.Empty<byte>();
+            }
 
-    int blocksX = (width + 3) / 4;
-    int blocksY = (height + 3) / 4;
-    int srcOffset = 0;
+            byte[] bgra = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalPixels * 4);
 
-    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
+            if (format == 0x85)
+            {
+                for (int i = 0; i < data.Length && i < totalPixels * 4; i += 4)
+                {
+                    bgra[i]     = data[i + 3];
+                    bgra[i + 1] = data[i + 2];
+                    bgra[i + 2] = data[i + 1];
+                    bgra[i + 3] = data[i];    
+                }
+                return bgra;
+            }
+            else if (format == 0x89)
+            {
+                for (int i = 0; i < data.Length && i < totalPixels * 4; i += 4)
+                {
+                    bgra[i]     = data[i];    
+                    bgra[i + 1] = data[i + 1];
+                    bgra[i + 2] = data[i + 2];
+                    bgra[i + 3] = data[i + 3];
+                }
+                return bgra;
+            }
+            else if (format == 0x81)
+            {
+                for (int i = 0; i < data.Length && i * 4 < totalPixels * 4; i++)
+                {
+                    byte val = data[i];
+                    bgra[i * 4]     = val;
+                    bgra[i * 4 + 1] = val;
+                    bgra[i * 4 + 2] = val;
+                    bgra[i * 4 + 3] = 255;
+                }
+                return bgra;
+            }
+
+            int blocksX = (width + 3) / 4;
+            int blocksY = (height + 3) / 4;
+            int srcOffset = 0;
+
+            Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
 
             if (format == 0x86) // DXT1
             {
@@ -292,7 +314,7 @@ namespace LbpArchiveToolkit.Utils
             return bgra;
         }
 
-        private static void DecodeDXT1Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height, bool isDxt1)
+        private static void DecodeDXT1Block(ReadOnlySpan<byte> data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height, bool isDxt1)
         {
             ushort c0 = (ushort)(data[srcOffset] | (data[srcOffset + 1] << 8));
             ushort c1 = (ushort)(data[srcOffset + 2] | (data[srcOffset + 3] << 8));
@@ -324,7 +346,7 @@ namespace LbpArchiveToolkit.Utils
                 int py = startY + y;
                 if (py >= height) 
                 {
-                    indices >>= 8; // skip 4 pixels * 2 bits
+                    indices >>= 8; 
                     continue;
                 }
                 int rowOffset = py * width;
@@ -339,7 +361,7 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static void DecodeDXT3Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
+        private static void DecodeDXT3Block(ReadOnlySpan<byte> data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
         {
             DecodeDXT1Block(data, srcOffset + 8, dest, bx, by, width, height, false);
 
@@ -366,7 +388,7 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static void DecodeDXT5Block(byte[] data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
+        private static void DecodeDXT5Block(ReadOnlySpan<byte> data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height)
         {
             DecodeDXT1Block(data, srcOffset + 8, dest, bx, by, width, height, false);
 
@@ -401,7 +423,7 @@ namespace LbpArchiveToolkit.Utils
                 int py = startY + y;
                 if (py >= height)
                 {
-                    alphaIndices >>= 12; // skip 4 pixels * 3 bits
+                    alphaIndices >>= 12; 
                     continue;
                 }
                 int rowOffset = py * width;
@@ -479,7 +501,7 @@ namespace LbpArchiveToolkit.Utils
                 totalUnswizzledSize += blocksX * blocksY * bytesPerBlock;
             }
 
-            byte[] unswizzled = new byte[totalUnswizzledSize];
+            byte[] unswizzled = System.Buffers.ArrayPool<byte>.Shared.Rent(totalUnswizzledSize);
             int srcOffset = 0;
             int destOffset = 0;
 
@@ -545,7 +567,7 @@ namespace LbpArchiveToolkit.Utils
 
                         if (srcIndex + bytesPerBlock <= srcSpan.Length && destOffset + bytesPerBlock <= destSpan.Length)
                         {
-                            srcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(destSpan.Slice(destOffset, bytesPerBlock));
+                            srcSpan[srcIndex..(srcIndex + bytesPerBlock)].CopyTo(destSpan[destOffset..(destOffset + bytesPerBlock)]);
                         }
                         destOffset += bytesPerBlock;
                     }
@@ -568,20 +590,7 @@ namespace LbpArchiveToolkit.Utils
             try
             {
                 byte[] fileBytes = File.ReadAllBytes(filePath);
-                using var ms = new MemoryStream(fileBytes);
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.StreamSource = ms;
-                bitmap.EndInit();
-                bitmap.Freeze();
-
-                int stride = bitmap.PixelWidth * 4;
-                byte[] bgra = new byte[bitmap.PixelHeight * stride];
-                var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
-                converted.CopyPixels(bgra, stride, 0);
-
-                return ScaleAndCenterBgra(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
+                return CenterWpfImage(fileBytes, fileBytes.Length);
             }
             catch
             {
@@ -591,15 +600,16 @@ namespace LbpArchiveToolkit.Utils
 
         private static byte[] CenterBgraToPng(byte[] bgraData, int srcWidth, int srcHeight)
         {
-            if (srcWidth == 0 || srcHeight == 0) return new byte[0];
+            if (srcWidth == 0 || srcHeight == 0) return Array.Empty<byte>();
             return ScaleAndCenterBgra(bgraData, srcWidth, srcHeight);
         }
 
-        private static byte[] CenterWpfImage(byte[] imageData)
+        private static byte[] CenterWpfImage(byte[] imageData, int length = -1)
         {
+            byte[]? bgra = null;
             try
             {
-                using var ms = new MemoryStream(imageData);
+                using var ms = new MemoryStream(imageData, 0, length == -1 ? imageData.Length : length);
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
@@ -607,11 +617,10 @@ namespace LbpArchiveToolkit.Utils
                 bitmap.EndInit();
                 bitmap.Freeze();
 
-                if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return new byte[0];
+                if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return Array.Empty<byte>();
 
-                // Convert any image to BGRA32 format byte array safely
                 int stride = bitmap.PixelWidth * 4;
-                byte[] bgra = new byte[bitmap.PixelHeight * stride];
+                bgra = System.Buffers.ArrayPool<byte>.Shared.Rent(bitmap.PixelHeight * stride);
                 
                 var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
                 converted.CopyPixels(bgra, stride, 0);
@@ -620,7 +629,11 @@ namespace LbpArchiveToolkit.Utils
             }
             catch
             {
-                return new byte[0];
+                return Array.Empty<byte>();
+            }
+            finally
+            {
+                if (bgra != null) System.Buffers.ArrayPool<byte>.Shared.Return(bgra);
             }
         }
 
@@ -641,39 +654,46 @@ namespace LbpArchiveToolkit.Utils
             int scaledWidth = (int)(srcWidth * scale);
             int scaledHeight = (int)(srcHeight * scale);
 
-            // Create a transparent 320x176 buffer
-            byte[] targetBgra = new byte[targetWidth * targetHeight * 4];
-            
-            int offsetX = (targetWidth - scaledWidth) / 2;
-            int offsetY = (targetHeight - scaledHeight) / 2;
-
-            double invScale = 1.0 / scale;
-            int[] srcXMap = new int[scaledWidth];
-            for (int x = 0; x < scaledWidth; x++)
+            byte[] targetBgra = System.Buffers.ArrayPool<byte>.Shared.Rent(targetWidth * targetHeight * 4);
+            try
             {
-                int srcX = (int)(x * invScale);
-                if (srcX >= srcWidth) srcX = srcWidth - 1;
-                srcXMap[x] = srcX;
-            }
+                Array.Clear(targetBgra, 0, targetWidth * targetHeight * 4);
+                
+                int offsetX = (targetWidth - scaledWidth) / 2;
+                int offsetY = (targetHeight - scaledHeight) / 2;
 
-            ReadOnlySpan<uint> sourcePixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(sourceBgra.AsSpan());
-            Span<uint> targetPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(targetBgra.AsSpan());
-
-            for (int y = 0; y < scaledHeight; y++)
-            {
-                int srcY = (int)(y * invScale);
-                if (srcY >= srcHeight) srcY = srcHeight - 1;
-
-                int srcRowOffset = srcY * srcWidth;
-                int destRowOffset = (y + offsetY) * targetWidth + offsetX;
-
+                double invScale = 1.0 / scale;
+                int[] srcXMap = new int[scaledWidth];
                 for (int x = 0; x < scaledWidth; x++)
                 {
-                    targetPixels[destRowOffset + x] = sourcePixels[srcRowOffset + srcXMap[x]];
+                    int srcX = (int)(x * invScale);
+                    if (srcX >= srcWidth) srcX = srcWidth - 1;
+                    srcXMap[x] = srcX;
                 }
-            }
 
-            return EncodeToPng(targetBgra, targetWidth, targetHeight);
+                ReadOnlySpan<uint> sourcePixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(sourceBgra.AsSpan());
+                Span<uint> targetPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(targetBgra.AsSpan());
+
+                for (int y = 0; y < scaledHeight; y++)
+                {
+                    int srcY = (int)(y * invScale);
+                    if (srcY >= srcHeight) srcY = srcHeight - 1;
+
+                    int srcRowOffset = srcY * srcWidth;
+                    int destRowOffset = (y + offsetY) * targetWidth + offsetX;
+
+                    for (int x = 0; x < scaledWidth; x++)
+                    {
+                        targetPixels[destRowOffset + x] = sourcePixels[srcRowOffset + srcXMap[x]];
+                    }
+                }
+
+                return EncodeToPng(targetBgra, targetWidth, targetHeight);
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(targetBgra);
+            }
         }
 
         private static byte[] EncodeToPng(byte[] bgraData, int width, int height)

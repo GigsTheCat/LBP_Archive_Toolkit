@@ -119,8 +119,7 @@ namespace LbpArchiveToolkit
             {
                 var data = SfoReader.GetLevelData(sfoPath);
                 levelName = data.Title ?? levelName;
-                
-                // Fix: Strip out the " by [Creator]" suffix so editing only targets the pure level name
+
                 int byIndex = levelName.LastIndexOf(" by ");
                 if (byIndex >= 0) 
                 {
@@ -282,7 +281,21 @@ namespace LbpArchiveToolkit
                     {
                         if (item.FullPath != null)
                         {
-                            Directory.Delete(item.FullPath, true); 
+                            string resolvedPath = Path.GetFullPath(item.FullPath);
+                            string resolvedBackupDir = Path.GetFullPath(_backupDir);
+                            string separator = Path.DirectorySeparatorChar.ToString();
+                            
+                            if (!resolvedBackupDir.EndsWith(separator))
+                            {
+                                resolvedBackupDir += separator;
+                            }
+                            
+                            if (!resolvedPath.StartsWith(resolvedBackupDir, StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw new InvalidOperationException("Path traversal detected; delete target resides outside the backup directory.");
+                            }
+
+                            Directory.Delete(resolvedPath, true); 
                         }
                         
                         BackupList.Remove(item);

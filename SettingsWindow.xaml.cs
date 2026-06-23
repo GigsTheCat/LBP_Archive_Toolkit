@@ -112,7 +112,10 @@ namespace LbpArchiveToolkit
                      }
                  }
              }
-             catch { }
+             catch (Exception ex)
+             {
+                 LbpArchiveToolkit.LogManager.Log("SettingsWindow.CheckFtsSupport", ex);
+             }
          }
  
 
@@ -169,7 +172,6 @@ namespace LbpArchiveToolkit
 
         #region Configuration Actions
 
-        // Add this method to handle dynamic theme previewing
         private void CmbTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (!_isInitialized) return;
@@ -181,7 +183,6 @@ namespace LbpArchiveToolkit
             }
         }
 
-        // Add this method to handle cancellation and reverting themes
         protected override void OnClosed(EventArgs e)
         {
             if (this.DialogResult != true)
@@ -253,7 +254,7 @@ namespace LbpArchiveToolkit
             }
         }
 
-        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        private async void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(txtThreads.Text, out int threads) || threads < 1 || threads > 10)
             {
@@ -283,7 +284,7 @@ namespace LbpArchiveToolkit
             string regionStr = (cmbRegion.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "EU";
             ConfigManager.GameRegion = regionStr.Substring(0, 2);
 
-            ConfigManager.SaveConfig();
+            await ConfigManager.SaveConfigAsync();
             this.DialogResult = true; 
             this.Close();
         }
