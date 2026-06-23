@@ -27,8 +27,8 @@ namespace LbpArchiveToolkit.Configuration
         public static List<string> LegacySavedLevels { get; set; } = [];
         public static MainWindow.SearchState? LastSearch { get; set; }
 
-        public static double WindowWidth { get; set; } = 1200;
-        public static double WindowHeight { get; set; } = 700;
+        public static double WindowWidth { get; set; } = 1250;
+        public static double WindowHeight { get; set; } = 720;
         public static double WindowLeft { get; set; } = -1;
         public static double WindowTop { get; set; } = -1;
         public static bool IsMaximized { get; set; } = false;
