@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -162,7 +163,7 @@ namespace LbpArchiveToolkit.Utils
 
                 if (width == 0 || height == 0) return Array.Empty<byte>();
 
-                bgraData = DecodeFormatToBgra32(finalData, format, width, height);
+                bgraData = DecodeFormatToBgra32(finalData, 0, (int)totalDecompSize, format, width, height);
                 return CenterBgraToPng(bgraData, width, height);
             }
             finally
@@ -206,8 +207,7 @@ namespace LbpArchiveToolkit.Utils
             byte[]? bgraData = null;
             try
             {
-                ReadOnlySpan<byte> pixelsSpan = finalData[128..dataLength];
-                bgraData = DecodeFormatToBgra32(pixelsSpan, format, width, height);
+                bgraData = DecodeFormatToBgra32(finalData, 128, dataLength - 128, format, width, height);
                 return CenterBgraToPng(bgraData, width, height);
             }
             finally
@@ -216,7 +216,7 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] DecodeFormatToBgra32(ReadOnlySpan<byte> data, byte format, int width, int height)
+        private static byte[] DecodeFormatToBgra32(byte[] data, int dataOffset, int dataLength, byte format, int width, int height)
         {
             long totalPixels = (long)width * height;
             if (totalPixels <= 0 || totalPixels > 16777216) // Max 16M pixels to prevent overflow
@@ -228,87 +228,102 @@ namespace LbpArchiveToolkit.Utils
 
             if (format == 0x85)
             {
-                for (int i = 0; i < data.Length && i < totalPixels * 4; i += 4)
+                for (int i = 0; i < dataLength / 4 && i < totalPixels; i++)
                 {
-                    bgra[i]     = data[i + 3];
-                    bgra[i + 1] = data[i + 2];
-                    bgra[i + 2] = data[i + 1];
-                    bgra[i + 3] = data[i];    
+                    int src = dataOffset + i * 4;
+                    int dst = i * 4;
+                    bgra[dst]     = data[src + 3];
+                    bgra[dst + 1] = data[src + 2];
+                    bgra[dst + 2] = data[src + 1];
+                    bgra[dst + 3] = data[src];    
                 }
                 return bgra;
             }
             else if (format == 0x89)
             {
-                for (int i = 0; i < data.Length && i < totalPixels * 4; i += 4)
-                {
-                    bgra[i]     = data[i];    
-                    bgra[i + 1] = data[i + 1];
-                    bgra[i + 2] = data[i + 2];
-                    bgra[i + 3] = data[i + 3];
-                }
+                Array.Copy(data, dataOffset, bgra, 0, (int)totalPixels * 4);
                 return bgra;
             }
             else if (format == 0x81)
             {
-                for (int i = 0; i < data.Length && i * 4 < totalPixels * 4; i++)
+                for (int i = 0; i < dataLength && i < totalPixels; i++)
                 {
-                    byte val = data[i];
-                    bgra[i * 4]     = val;
-                    bgra[i * 4 + 1] = val;
-                    bgra[i * 4 + 2] = val;
-                    bgra[i * 4 + 3] = 255;
+                    byte val = data[dataOffset + i];
+                    int dst = i * 4;
+                    bgra[dst]     = val;
+                    bgra[dst + 1] = val;
+                    bgra[dst + 2] = val;
+                    bgra[dst + 3] = 255;
                 }
                 return bgra;
             }
 
             int blocksX = (width + 3) / 4;
             int blocksY = (height + 3) / 4;
-            int srcOffset = 0;
-
-            Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
 
             if (format == 0x86) // DXT1
             {
-                for (int by = 0; by < blocksY; by++)
-                for (int bx = 0; bx < blocksX; bx++)
+                Parallel.For(0, blocksY, by =>
                 {
-                    if (srcOffset + 8 > data.Length) break;
-                    DecodeDXT1Block(data, srcOffset, dest, bx, by, width, height, true);
-                    srcOffset += 8;
-                }
+                    int srcOffset = dataOffset + by * blocksX * 8;
+                    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
+                    ReadOnlySpan<byte> dataSpan = data;
+
+                    for (int bx = 0; bx < blocksX; bx++)
+                    {
+                        if (srcOffset + 8 > dataOffset + dataLength) break;
+                        DecodeDXT1Block(dataSpan, srcOffset, dest, bx, by, width, height, true);
+                        srcOffset += 8;
+                    }
+                });
             }
             else if (format == 0x87) // DXT3
             {
-                for (int by = 0; by < blocksY; by++)
-                for (int bx = 0; bx < blocksX; bx++)
+                Parallel.For(0, blocksY, by =>
                 {
-                    if (srcOffset + 16 > data.Length) break;
-                    DecodeDXT3Block(data, srcOffset, dest, bx, by, width, height);
-                    srcOffset += 16;
-                }
+                    int srcOffset = dataOffset + by * blocksX * 16;
+                    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
+                    ReadOnlySpan<byte> dataSpan = data;
+
+                    for (int bx = 0; bx < blocksX; bx++)
+                    {
+                        if (srcOffset + 16 > dataOffset + dataLength) break;
+                        DecodeDXT3Block(dataSpan, srcOffset, dest, bx, by, width, height);
+                        srcOffset += 16;
+                    }
+                });
             }
             else if (format == 0x88) // DXT5
             {
-                for (int by = 0; by < blocksY; by++)
-                for (int bx = 0; bx < blocksX; bx++)
+                Parallel.For(0, blocksY, by =>
                 {
-                    if (srcOffset + 16 > data.Length) break;
-                    DecodeDXT5Block(data, srcOffset, dest, bx, by, width, height);
-                    srcOffset += 16;
-                }
+                    int srcOffset = dataOffset + by * blocksX * 16;
+                    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
+                    ReadOnlySpan<byte> dataSpan = data;
+
+                    for (int bx = 0; bx < blocksX; bx++)
+                    {
+                        if (srcOffset + 16 > dataOffset + dataLength) break;
+                        DecodeDXT5Block(dataSpan, srcOffset, dest, bx, by, width, height);
+                        srcOffset += 16;
+                    }
+                });
             }
             else
             {
-                for (int by = 0; by < blocksY; by++)
-                for (int bx = 0; bx < blocksX; bx++)
+                Parallel.For(0, blocksY, by =>
                 {
-                    for (int y = 0; y < 4; y++)
-                    for (int x = 0; x < 4; x++)
+                    Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
+                    for (int bx = 0; bx < blocksX; bx++)
                     {
-                        if (by * 4 + y < height && bx * 4 + x < width)
-                            dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF; 
+                        for (int y = 0; y < 4; y++)
+                        for (int x = 0; x < 4; x++)
+                        {
+                            if (by * 4 + y < height && bx * 4 + x < width)
+                                dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF; 
+                        }
                     }
-                }
+                });
             }
 
             return bgra;
@@ -546,7 +561,7 @@ namespace LbpArchiveToolkit.Utils
                     colOffsetMap[x] = colOffset;
                 }
 
-                for (int y = 0; y < blocksY; y++)
+                Parallel.For(0, blocksY, y =>
                 {
                     int iy = (y & ((1 << minLog) - 1));
                     iy = (iy | (iy << 8)) & 0x00FF00FF;
@@ -560,19 +575,24 @@ namespace LbpArchiveToolkit.Utils
                         rowOffset |= (y >> minLog) << (2 * minLog);
                     }
 
+                    int localDestOffset = (y * blocksX) * bytesPerBlock;
+                    ReadOnlySpan<byte> localSrcSpan = data;
+                    Span<byte> localDestSpan = unswizzled;
+
                     for (int x = 0; x < blocksX; x++)
                     {
                         int mortonIndex = colOffsetMap[x] | rowOffset;
                         int srcIndex = srcOffset + mortonIndex * bytesPerBlock;
 
-                        if (srcIndex + bytesPerBlock <= srcSpan.Length && destOffset + bytesPerBlock <= destSpan.Length)
+                        if (srcIndex + bytesPerBlock <= localSrcSpan.Length && localDestOffset + bytesPerBlock <= localDestSpan.Length)
                         {
-                            srcSpan[srcIndex..(srcIndex + bytesPerBlock)].CopyTo(destSpan[destOffset..(destOffset + bytesPerBlock)]);
+                            localSrcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(localDestSpan.Slice(localDestOffset, bytesPerBlock));
                         }
-                        destOffset += bytesPerBlock;
+                        localDestOffset += bytesPerBlock;
                     }
-                }
+                });
 
+                destOffset += blocksX * blocksY * bytesPerBlock;
                 srcOffset += paddedMipDataSize;
             }
 
@@ -671,10 +691,7 @@ namespace LbpArchiveToolkit.Utils
                     srcXMap[x] = srcX;
                 }
 
-                ReadOnlySpan<uint> sourcePixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(sourceBgra.AsSpan());
-                Span<uint> targetPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(targetBgra.AsSpan());
-
-                for (int y = 0; y < scaledHeight; y++)
+                Parallel.For(0, scaledHeight, y =>
                 {
                     int srcY = (int)(y * invScale);
                     if (srcY >= srcHeight) srcY = srcHeight - 1;
@@ -682,11 +699,14 @@ namespace LbpArchiveToolkit.Utils
                     int srcRowOffset = srcY * srcWidth;
                     int destRowOffset = (y + offsetY) * targetWidth + offsetX;
 
+                    ReadOnlySpan<uint> sourcePixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(sourceBgra.AsSpan());
+                    Span<uint> targetPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(targetBgra.AsSpan());
+
                     for (int x = 0; x < scaledWidth; x++)
                     {
                         targetPixels[destRowOffset + x] = sourcePixels[srcRowOffset + srcXMap[x]];
                     }
-                }
+                });
 
                 return EncodeToPng(targetBgra, targetWidth, targetHeight);
             }
