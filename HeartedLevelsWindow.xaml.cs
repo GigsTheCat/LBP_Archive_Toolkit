@@ -285,6 +285,12 @@ namespace LbpArchiveToolkit
                 progressWin.Close();
                 this.IsEnabled = true;
                 AssetDownloader.CleanupLocalArchives();
+
+                // Force a full garbage collection and compact the Large Object Heap
+                // to immediately release memory claimed during massive batch processes.
+                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(2, GCCollectionMode.Forced, true, true);
+                GC.WaitForPendingFinalizers();
             }
 
             txtStatus.Text = $"Batch complete. {successCount} packed. {failureCount} failed.";
