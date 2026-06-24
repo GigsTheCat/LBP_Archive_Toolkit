@@ -383,7 +383,8 @@ namespace LbpArchiveToolkit.Services
                             long? contentLength = response.Content.Headers.ContentLength;
                             using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
 {
-    using var ms = new MemoryStream();
+    int capacity = contentLength.HasValue && contentLength.Value <= int.MaxValue ? (int)contentLength.Value : 81920;
+    using var ms = new MemoryStream(capacity);
     byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
     try
     {

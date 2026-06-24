@@ -159,11 +159,10 @@ namespace LbpArchiveToolkit.Utils
                     // Restore 16-bit blocks back to Little-Endian for the GPU
                     if (format == 0x86 || format == 0x87 || format == 0x88)
                     {
-                        for (int i = 0; i < (int)totalDecompSize - 1; i += 2)
+                        var span16 = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ushort>(finalData.AsSpan(0, (int)totalDecompSize));
+                        for (int i = 0; i < span16.Length; i++)
                         {
-                            byte temp = finalData[i];
-                            finalData[i] = finalData[i + 1];
-                            finalData[i + 1] = temp;
+                            span16[i] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(span16[i]);
                         }
                     }
                 }

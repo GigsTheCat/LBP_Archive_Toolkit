@@ -406,17 +406,8 @@
                                 </ComboBox>
 
                                 <TextBlock Text="Genre:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="10,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbGenre" SelectedIndex="0" Width="120">
+                                <ComboBox x:Name="cmbGenre" SelectedIndex="0" Width="150">
                                     <ComboBoxItem Content="All Genres"/>
-                                    <ComboBoxItem Content="Platformer"/>
-                                    <ComboBoxItem Content="Versus"/>
-                                    <ComboBoxItem Content="Arcade"/>
-                                    <ComboBoxItem Content="Cinematic"/>
-                                    <ComboBoxItem Content="Fighter"/>
-                                    <ComboBoxItem Content="RPG"/>
-                                    <ComboBoxItem Content="Shooter"/>
-                                    <ComboBoxItem Content="Survival"/>
-                                    <ComboBoxItem Content="Tutorial"/>
                                 </ComboBox>
                             </StackPanel>
 

@@ -60,70 +60,36 @@ namespace LbpArchiveToolkit.Services
 
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+            var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
             using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
             await conn.OpenAsync(token);
+            
+            // Execute seamless, one-time integer conversion
+            await MigrateBitfieldsAsync(conn, token).ConfigureAwait(false);
 
+            long reqL0 = 0, reqL1 = 0;
             var friendlyNames = LabelParser.GetFriendlyNames();
-            var reqLabelIndices = new List<int>();
-            if (advanced.RequiredLabels.Count > 0)
+            foreach (var reqLabel in advanced.RequiredLabels)
             {
-                foreach (var reqLabel in advanced.RequiredLabels)
+                for (int i = 0; i < friendlyNames.Count; i++)
                 {
-                    for (int i = 0; i < friendlyNames.Count; i++)
+                    if (friendlyNames[i] == reqLabel)
                     {
-                        if (friendlyNames[i] == reqLabel)
-                        {
-                            reqLabelIndices.Add(i);
-                            break;
-                        }
+                        if (i < 64) reqL0 |= (1L << i); else reqL1 |= (1L << (i - 64));
+                        break;
                     }
                 }
             }
-            int[] requiredLabelIndices = reqLabelIndices.ToArray();
 
-            var reqTagIndices = new List<int>();
-            if (advanced.RequiredTags.Count > 0)
+            long reqT0 = 0, reqT1 = 0;
+            foreach (var reqTag in advanced.RequiredTags)
             {
-                for (int i = 0; i < advanced.RequiredTags.Count; i++)
+                int i = GetTagIndex(reqTag);
+                if (i >= 0)
                 {
-                    int index = GetTagIndex(advanced.RequiredTags[i]);
-                    if (index >= 0) reqTagIndices.Add(index);
+                    if (i < 64) reqT0 |= (1L << i); else reqT1 |= (1L << (i - 64));
                 }
             }
-            int[] requiredTagIndices = reqTagIndices.ToArray();
-
-            conn.CreateFunction("HAS_ALL_LABELS", (byte[] blob) =>
-            {
-                if (blob == null) return false;
-                foreach (int i in requiredLabelIndices)
-                {
-                    int byteIndex = (blob.Length - 1) - (i >> 3);
-                    int bitIndex = i & 7;
-
-                    if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-            conn.CreateFunction("HAS_ALL_TAGS", (byte[] blob) =>
-            {
-                if (blob == null) return false;
-                foreach (int i in requiredTagIndices)
-                {
-                    int byteIndex = (blob.Length - 1) - (i >> 3);
-                    int bitIndex = i & 7;
-
-                    if (byteIndex < 0 || byteIndex >= blob.Length || (blob[byteIndex] & (1 << bitIndex)) == 0)
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            });
 
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
@@ -157,9 +123,7 @@ namespace LbpArchiveToolkit.Services
                 BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
             }
             
-            bool hasRequiredLabels = requiredLabelIndices.Length > 0;
-            bool hasRequiredTags = requiredTagIndices.Length > 0;
-            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, hasRequiredLabels, hasRequiredTags);
+            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1);
 
             if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
             
@@ -329,29 +293,19 @@ namespace LbpArchiveToolkit.Services
             return items;
         }
 
-        public async Task<HashSet<string>> GetGenresAsync()
-{
-    var genres = new HashSet<string>();
-    if (!File.Exists(_dbPath)) return genres;
+        private static readonly HashSet<string> _actualGenres = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Arcade", "Cinematic", "Driving", "Fighter", "FirstOrThirdPerson",
+            "Gallery", "MiniGames", "Multiplayer", "Platform", "PlatformerRaces",
+            "PlatformShooter", "Puzzle", "RPG", "Shooter", "Social", "Sports",
+            "Story", "Strategy", "SurvivalChallenge", "TOP_DOWN", "Tutorial",
+            "UniquePlatformer", "VehicleShooter"
+        };
 
-    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
-    if (_colGenre == "NULL") return genres;
-
-    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
-    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    conn.Open();
-
-            string query = $"SELECT DISTINCT {_colGenre} FROM slot WHERE {_colGenre} IS NOT NULL AND {_colGenre} != ''";
-            using var cmd = new SqliteCommand(query, conn);
-            using var reader = cmd.ExecuteReader();
-            
-            while (reader.Read())
-            {
-                string g = MapGenreToString(reader.GetValue(0));
-                if (g != "Unknown" && !string.IsNullOrWhiteSpace(g)) genres.Add(g);
-            }
-
-            return genres;
+        public Task<HashSet<string>> GetGenresAsync()
+        {
+            // Instantly return the statically known genres to avoid the 1-2 second startup delay
+            return Task.FromResult(new HashSet<string>(_actualGenres));
         }
 
         #endregion
@@ -411,7 +365,7 @@ namespace LbpArchiveToolkit.Services
             parameters.Add(new SqliteParameter("@match", matchTerm));
         }
 
-        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, bool hasRequiredLabels, bool hasRequiredTags)
+        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1)
         {
             if (gameFilter > 0 && _colGame != "NULL")
             {
@@ -447,20 +401,98 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
-            if (hasRequiredLabels && _colLabels != "NULL")
-            {
-                query.Append($" AND HAS_ALL_LABELS({pfx}{_colLabels})");
+            if (reqL0 != 0) {
+                query.Append($" AND ({pfx}labels_0 & @reqL0) = @reqL0");
+                parameters.Add(new SqliteParameter("@reqL0", reqL0));
+            }
+            if (reqL1 != 0) {
+                query.Append($" AND ({pfx}labels_1 & @reqL1) = @reqL1");
+                parameters.Add(new SqliteParameter("@reqL1", reqL1));
             }
 
-            if (hasRequiredTags && _colTags != "NULL")
-            {
-                query.Append($" AND HAS_ALL_TAGS({pfx}{_colTags})");
+            if (reqT0 != 0) {
+                query.Append($" AND ({pfx}tags_0 & @reqT0) = @reqT0");
+                parameters.Add(new SqliteParameter("@reqT0", reqT0));
+            }
+            if (reqT1 != 0) {
+                query.Append($" AND ({pfx}tags_1 & @reqT1) = @reqT1");
+                parameters.Add(new SqliteParameter("@reqT1", reqT1));
             }
         }
 
         #endregion
 
         #region Schema Resolution & Utilities
+
+        private async Task MigrateBitfieldsAsync(SqliteConnection conn, CancellationToken token)
+        {
+            using var checkCmd = new SqliteCommand("PRAGMA table_info(slot);", conn);
+            using var reader = await checkCmd.ExecuteReaderAsync(token);
+            while (await reader.ReadAsync(token)) 
+            {
+                if (reader.GetString(1) == "labels_0") return; // Already migrated
+            }
+
+            using var trans = conn.BeginTransaction();
+            try 
+            {
+                new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
+
+                var updates = new List<(long id, long l0, long l1, long t0, long t1)>();
+                using (var sel = new SqliteCommand("SELECT id, authorLabels, tags FROM slot", conn, trans))
+                using (var res = await sel.ExecuteReaderAsync(token))
+                {
+                    while (await res.ReadAsync(token))
+                    {
+                        long id = res.GetInt64(0);
+                        byte[]? labels = res.IsDBNull(1) ? null : res.GetFieldValue<byte[]>(1);
+                        byte[]? tags = res.IsDBNull(2) ? null : res.GetFieldValue<byte[]>(2);
+
+                        long l0 = 0, l1 = 0, t0 = 0, t1 = 0;
+                        if (labels != null) {
+                            for (int i = 0; i < 85; i++) {
+                                int byteIndex = (labels.Length - 1) - (i >> 3);
+                                if (byteIndex >= 0 && byteIndex < labels.Length && (labels[byteIndex] & (1 << (i & 7))) != 0) {
+                                    if (i < 64) l0 |= (1L << i); else l1 |= (1L << (i - 64));
+                                }
+                            }
+                        }
+                        if (tags != null) {
+                            for (int i = 0; i < 76; i++) {
+                                int byteIndex = (tags.Length - 1) - (i >> 3);
+                                if (byteIndex >= 0 && byteIndex < tags.Length && (tags[byteIndex] & (1 << (i & 7))) != 0) {
+                                    if (i < 64) t0 |= (1L << i); else t1 |= (1L << (i - 64));
+                                }
+                            }
+                        }
+                        updates.Add((id, l0, l1, t0, t1));
+                    }
+                }
+
+                using var upd = new SqliteCommand("UPDATE slot SET labels_0=@l0, labels_1=@l1, tags_0=@t0, tags_1=@t1 WHERE id=@id", conn, trans);
+                upd.Parameters.Add("@l0", SqliteType.Integer); upd.Parameters.Add("@l1", SqliteType.Integer);
+                upd.Parameters.Add("@t0", SqliteType.Integer); upd.Parameters.Add("@t1", SqliteType.Integer);
+                upd.Parameters.Add("@id", SqliteType.Integer);
+
+                foreach (var u in updates) {
+                    upd.Parameters["@l0"].Value = u.l0; upd.Parameters["@l1"].Value = u.l1;
+                    upd.Parameters["@t0"].Value = u.t0; upd.Parameters["@t1"].Value = u.t1;
+                    upd.Parameters["@id"].Value = u.id;
+                    await upd.ExecuteNonQueryAsync(token);
+                }
+                
+                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans).ExecuteNonQuery();
+                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans).ExecuteNonQuery();
+
+                trans.Commit();
+            } 
+            catch { trans.Rollback(); throw; }
+        }
 
         private void EnsureSchemaResolved()
 {
