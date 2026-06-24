@@ -35,11 +35,11 @@ namespace LbpArchiveToolkit.Services
         private static string _lastConfiguredServer = string.Empty;
         private static readonly System.Threading.Lock _limiterLock = new();
 
-        private static readonly ConcurrentDictionary<string, Func<string, string, string, string, string>> _pathBuilderCache = new();
+        private static readonly ConcurrentDictionary<string, Func<string, string, string, string, string>> _layoutBuilderCache = new();
 
         public static void CleanupLocalArchives()
         {
-            _pathBuilderCache.Clear();
+            _layoutBuilderCache.Clear();
             _globalRateLimitTask = Task.CompletedTask;
             
             lock (_limiterLock)
@@ -59,6 +59,35 @@ namespace LbpArchiveToolkit.Services
             return !hash.AsSpan().ContainsAnyExcept(HexChars);
         }
 
+        private static Func<string, string, string, string, string> DetermineLayoutRobust(string baseDir)
+        {
+            try
+            {
+                foreach (string dir in Directory.EnumerateDirectories(baseDir))
+                {
+                    string name = Path.GetFileName(dir).ToLowerInvariant();
+                    
+                    if (name.StartsWith("dry23r"))
+                        return static (b, p_1, p_2, h) => Path.Combine(b, $"dry23r{p_1[0]}", $"dry{p_1}", p_1, p_2, h);
+                    
+                    if (name.StartsWith("dry") && name.Length == 5)
+                    {
+                        string p1 = name.Substring(3, 2);
+                        if (Directory.Exists(Path.Combine(dir, p1)))
+                            return static (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_1, p_2, h);
+                        else
+                            return static (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_2, h);
+                    }
+                    
+                    if (name.Length == 2 && char.IsAsciiHexDigit(name[0]) && char.IsAsciiHexDigit(name[1]))
+                        return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
+                }
+            }
+            catch { }
+            
+            return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
+        }
+
         public static async Task<byte[]?> ExtractLocalArchiveToMemoryAsync(string hash, string baseDir, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(baseDir) || !IsValidHash(hash) || hash.Length < 4) return null;
@@ -66,19 +95,7 @@ namespace LbpArchiveToolkit.Services
             string part1 = hash.Substring(0, 2);
             string part2 = hash.Substring(2, 2);
 
-            var pathBuilder = _pathBuilderCache.GetOrAdd(part1, static (p1, bDir) =>
-            {
-                if (Directory.Exists(Path.Combine(bDir, $"dry{p1}", p1)))
-                    return (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_1, p_2, h);
-
-                if (Directory.Exists(Path.Combine(bDir, $"dry23r{p1[0]}", $"dry{p1}", p1)))
-                    return (b, p_1, p_2, h) => Path.Combine(b, $"dry23r{p1[0]}", $"dry{p1}", p1, p_2, h);
-
-                if (Directory.Exists(Path.Combine(bDir, $"dry{p1}")))
-                    return (b, p_1, p_2, h) => Path.Combine(b, $"dry{p1}", p_2, h);
-
-                return (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
-            }, baseDir);
+            var pathBuilder = _layoutBuilderCache.GetOrAdd(baseDir, DetermineLayoutRobust);
 
             try
             {

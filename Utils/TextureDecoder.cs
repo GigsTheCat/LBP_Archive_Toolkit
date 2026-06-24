@@ -184,12 +184,17 @@ namespace LbpArchiveToolkit.Utils
 
         private static BitmapSource? DecodeDdsToBitmapCentered(byte[] finalData, int dataLength)
         {
-            if (dataLength < 128) return null;
+            if (dataLength < 12) return null;
+
+            uint headerSize = BitConverter.ToUInt32(finalData, 4);
+            int dataOffset = (int)(4 + headerSize);
+            
+            if (dataLength < dataOffset || dataLength < 128) return null;
 
             int width = BitConverter.ToInt32(finalData, 16);
             int height = BitConverter.ToInt32(finalData, 12);
             
-            // Re-aligned offsets for standard DDS_PIXELFORMAT structures inside DDS files
+            // DDS_PIXELFORMAT is located at offset 76 in the DDS_HEADER (80 absolute)
             uint pfFlags = BitConverter.ToUInt32(finalData, 80);
             uint fourCC = BitConverter.ToUInt32(finalData, 84);
             uint bitCount = BitConverter.ToUInt32(finalData, 88);
@@ -214,7 +219,7 @@ namespace LbpArchiveToolkit.Utils
             byte[]? bgraData = null;
             try
             {
-                bgraData = DecodeFormatToBgra32(finalData, 128, dataLength - 128, format, width, height);
+                bgraData = DecodeFormatToBgra32(finalData, dataOffset, dataLength - dataOffset, format, width, height);
                 return CenterBgraToBitmap(bgraData, width, height);
             }
             finally
