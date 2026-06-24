@@ -112,19 +112,9 @@ namespace LbpArchiveToolkit
 
                         if (rawResource != null)
                         {
-                            byte[] pngBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawResource), token);
+                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource), token);
 
-                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
-
-                            var bmp = new BitmapImage();
-                            using (var ms = new MemoryStream(pngBytes))
-                            {
-                                bmp.BeginInit();
-                                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                                bmp.StreamSource = ms;
-                                bmp.EndInit();
-                            }
-                            bmp.Freeze();
+                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested || bmp == null) return;
 
                             var localBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
                             localBrush.Freeze();
@@ -150,17 +140,8 @@ namespace LbpArchiveToolkit
 
                 if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
-                byte[] imageBytes = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token);
-
-                var webBmp = new BitmapImage();
-                using (var ms = new MemoryStream(imageBytes))
-                {
-                    webBmp.BeginInit();
-                    webBmp.CacheOption = BitmapCacheOption.OnLoad;
-                    webBmp.StreamSource = ms;
-                    webBmp.EndInit();
-                }
-                webBmp.Freeze(); 
+                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawBytes), token);
+                if (webBmp == null) throw new InvalidDataException("Failed to decode image.");
 
                 var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
                 brush.Freeze();

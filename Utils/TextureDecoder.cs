@@ -15,17 +15,24 @@ namespace LbpArchiveToolkit.Utils
     {
         public static byte[] DecodeToPngCentered(byte[] resourceData)
         {
-            if (resourceData == null || resourceData.Length < 4) return Array.Empty<byte>();
+            var source = DecodeToBitmapSourceCentered(resourceData);
+            if (source == null) return Array.Empty<byte>();
+            return EncodeToPng(source);
+        }
+
+        public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData)
+        {
+            if (resourceData == null || resourceData.Length < 4) return null;
 
             uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData[..4]);
             if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
             {
-                return CenterWpfImage(resourceData);
+                return CenterWpfImageToBitmap(resourceData);
             }
-            if (resourceData.Length < 44) return Array.Empty<byte>(); // Protection against short header buffers for GTF/DDS/TEX
+            if (resourceData.Length < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
             if (magic == 0x44445320)
             {
-                return DecodeDdsToPngCentered(resourceData, resourceData.Length);
+                return DecodeDdsToBitmapCentered(resourceData, resourceData.Length);
             }
 
             using var ms = new MemoryStream(resourceData);
@@ -130,12 +137,12 @@ namespace LbpArchiveToolkit.Utils
                 {
                     if (finalData.Length >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
                     {
-                        return DecodeDdsToPngCentered(finalData, (int)totalDecompSize);
+                        return DecodeDdsToBitmapCentered(finalData, (int)totalDecompSize);
                     }
                     else
                     {
                         // Some valid TEX files are literally just JPGs/PNGs embedded without format blocks
-                        return CenterWpfImage(finalData, (int)totalDecompSize);
+                        return CenterWpfImageToBitmap(finalData, (int)totalDecompSize);
                     }
                 }
                 else // GTF files are raw console textures that need unswizzling
@@ -161,10 +168,10 @@ namespace LbpArchiveToolkit.Utils
                     }
                 }
 
-                if (width == 0 || height == 0) return Array.Empty<byte>();
+                if (width == 0 || height == 0) return null;
 
                 bgraData = DecodeFormatToBgra32(finalData, 0, (int)totalDecompSize, format, width, height);
-                return CenterBgraToPng(bgraData, width, height);
+                return CenterBgraToBitmap(bgraData, width, height);
             }
             finally
             {
@@ -175,9 +182,9 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] DecodeDdsToPngCentered(byte[] finalData, int dataLength)
+        private static BitmapSource? DecodeDdsToBitmapCentered(byte[] finalData, int dataLength)
         {
-            if (dataLength < 128) return Array.Empty<byte>();
+            if (dataLength < 128) return null;
 
             int width = BitConverter.ToInt32(finalData, 16);
             int height = BitConverter.ToInt32(finalData, 12);
@@ -202,13 +209,13 @@ namespace LbpArchiveToolkit.Utils
                 else format = 0x89; 
             }
 
-            if (width == 0 || height == 0) return Array.Empty<byte>();
+            if (width == 0 || height == 0) return null;
 
             byte[]? bgraData = null;
             try
             {
                 bgraData = DecodeFormatToBgra32(finalData, 128, dataLength - 128, format, width, height);
-                return CenterBgraToPng(bgraData, width, height);
+                return CenterBgraToBitmap(bgraData, width, height);
             }
             finally
             {
@@ -610,7 +617,9 @@ namespace LbpArchiveToolkit.Utils
             try
             {
                 byte[] fileBytes = File.ReadAllBytes(filePath);
-                return CenterWpfImage(fileBytes, fileBytes.Length);
+                var bitmap = CenterWpfImageToBitmap(fileBytes, fileBytes.Length);
+                if (bitmap == null) return Array.Empty<byte>();
+                return EncodeToPng(bitmap);
             }
             catch
             {
@@ -618,13 +627,13 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] CenterBgraToPng(byte[] bgraData, int srcWidth, int srcHeight)
+        private static BitmapSource? CenterBgraToBitmap(byte[] bgraData, int srcWidth, int srcHeight)
         {
-            if (srcWidth == 0 || srcHeight == 0) return Array.Empty<byte>();
-            return ScaleAndCenterBgra(bgraData, srcWidth, srcHeight);
+            if (srcWidth == 0 || srcHeight == 0) return null;
+            return ScaleAndCenterBgraToBitmap(bgraData, srcWidth, srcHeight);
         }
 
-        private static byte[] CenterWpfImage(byte[] imageData, int length = -1)
+        private static BitmapSource? CenterWpfImageToBitmap(byte[] imageData, int length = -1)
         {
             byte[]? bgra = null;
             try
@@ -637,7 +646,7 @@ namespace LbpArchiveToolkit.Utils
                 bitmap.EndInit();
                 bitmap.Freeze();
 
-                if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return Array.Empty<byte>();
+                if (bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0) return null;
 
                 int stride = bitmap.PixelWidth * 4;
                 bgra = System.Buffers.ArrayPool<byte>.Shared.Rent(bitmap.PixelHeight * stride);
@@ -645,11 +654,11 @@ namespace LbpArchiveToolkit.Utils
                 var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
                 converted.CopyPixels(bgra, stride, 0);
 
-                return ScaleAndCenterBgra(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
+                return ScaleAndCenterBgraToBitmap(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
             }
             catch
             {
-                return Array.Empty<byte>();
+                return null;
             }
             finally
             {
@@ -657,14 +666,14 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] ScaleAndCenterBgra(byte[] sourceBgra, int srcWidth, int srcHeight)
+        private static BitmapSource ScaleAndCenterBgraToBitmap(byte[] sourceBgra, int srcWidth, int srcHeight)
         {
             int targetWidth = 320;
             int targetHeight = 176;
 
             if (srcWidth == targetWidth && srcHeight == targetHeight)
             {
-                return EncodeToPng(sourceBgra, srcWidth, srcHeight);
+                return CreateBitmapSource(sourceBgra, srcWidth, srcHeight);
             }
 
             double scaleX = (double)targetWidth / srcWidth;
@@ -708,7 +717,7 @@ namespace LbpArchiveToolkit.Utils
                     }
                 });
 
-                return EncodeToPng(targetBgra, targetWidth, targetHeight);
+                return CreateBitmapSource(targetBgra, targetWidth, targetHeight);
             }
             finally
             {
@@ -716,11 +725,15 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static byte[] EncodeToPng(byte[] bgraData, int width, int height)
+        public static BitmapSource CreateBitmapSource(byte[] bgraData, int width, int height)
         {
             var bitmapSource = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, bgraData, width * 4);
-            bitmapSource.Freeze();
+            bitmapSource.Freeze(); // Freezing allows WPF to natively cross threads perfectly safely
+            return bitmapSource;
+        }
 
+        private static byte[] EncodeToPng(BitmapSource bitmapSource)
+        {
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
             using var ms = new MemoryStream();
