@@ -13,6 +13,20 @@ namespace LbpArchiveToolkit.Utils
     /// </summary>
     public static class TextureDecoder
     {
+        public static BitmapImage LoadBitmapImage(string filePath)
+        {
+            var bmp = new BitmapImage();
+            using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = stream;
+                bmp.EndInit();
+            }
+            bmp.Freeze();
+            return bmp;
+        }
+
         public static byte[] DecodeToPngCentered(byte[] resourceData)
         {
             var source = DecodeToBitmapSourceCentered(resourceData);

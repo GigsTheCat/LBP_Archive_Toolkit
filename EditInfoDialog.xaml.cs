@@ -23,16 +23,7 @@ namespace LbpArchiveToolkit
             {
                 try
                 {
-                    var bmp = new BitmapImage();
-                    using (var ms = new FileStream(currentIconPath, FileMode.Open, FileAccess.Read))
-                    {
-                        bmp.BeginInit();
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.StreamSource = ms;
-                        bmp.EndInit();
-                    }
-                    bmp.Freeze();
-                    imgIcon.Source = bmp;
+                    imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(currentIconPath);
                 }
                 catch { }
             }
@@ -64,16 +55,7 @@ namespace LbpArchiveToolkit
             NewIconPath = cropDialog.CroppedImagePath;
             try
             {
-                var bmp = new BitmapImage();
-                using (var ms = new FileStream(NewIconPath!, FileMode.Open, FileAccess.Read))
-                {
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = ms;
-                    bmp.EndInit();
-                }
-                bmp.Freeze();
-                imgIcon.Source = bmp;
+                imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(NewIconPath!);
             }
             catch
             {

@@ -144,15 +144,7 @@ namespace LbpArchiveToolkit
             {
                 try
                 {
-                    var bitmap = new BitmapImage();
-                    using (var stream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        bitmap.BeginInit();
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.StreamSource = stream;
-                        bitmap.EndInit();
-                        bitmap.Freeze(); 
-                    }
+                    var bitmap = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(iconPath);
                     var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
                     brush.Freeze(); // Stop WPF Event Leak
                     iconEllipse.Fill = brush;

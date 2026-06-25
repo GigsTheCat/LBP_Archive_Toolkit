@@ -28,15 +28,7 @@ namespace LbpArchiveToolkit
             _isInitializing = true;
             try
             {
-                var bmp = new BitmapImage();
-                using (var ms = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-                {
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = ms;
-                    bmp.EndInit();
-                }
-                bmp.Freeze();
+                var bmp = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(imagePath);
                 imgSource.Source = bmp;
 
                 double imgW = bmp.PixelWidth;
