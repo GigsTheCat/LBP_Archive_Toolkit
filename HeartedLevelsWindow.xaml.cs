@@ -153,111 +153,12 @@ namespace LbpArchiveToolkit
             var selectedItems = lvHearted.SelectedItems.Cast<LevelItem>().ToList();
             if (!selectedItems.Any()) return;
 
-            var progressWin = new ProgressWindow { Owner = this };
-            progressWin.Show();
-            this.IsEnabled = false;
-
-            int successCount = 0;
-            int failureCount = 0;
-            bool wasCancelled = false;
-            var errorMessages = new List<string>();
-
-            try
+            await LevelExtractionService.ExtractLevelsAsync(this, selectedItems, lvl => 
             {
-                var token = progressWin.CancellationTokenSource.Token;
-
-                for (int i = 0; i < selectedItems.Count; i++)
-                {
-                    if (token.IsCancellationRequested) 
-                    {
-                        wasCancelled = true;
-                        break;
-                    }
-
-                    var lvl = selectedItems[i];
-                    string baseStatus = $"[{i + 1}/{selectedItems.Count}] Extracting: {lvl.LevelName}";
-                    
-                    progressWin.UpdateProgress(0, 1, baseStatus, "Initializing download...");
-
-                    var progressIndicator = new Progress<(int processed, int total, string message)>(report =>
-                    {
-                        progressWin.UpdateProgress(report.processed, report.total, baseStatus, $"{report.message}\nProgress: {report.processed} / {report.total}");
-                    });
-
-                    try
-                    {
-                        var config = new ExtractionConfig
-                        {
-                            DownloadServer = ConfigManager.DownloadServer,
-                            LocalArchivePath = ConfigManager.LocalArchivePath,
-                            MaxParallelDownloads = ConfigManager.MaxParallelDownloads
-                        };
-
-                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
-                        
-                        if (result.Success)
-                        {
-                            successCount++;
-                            lvl.Saved = "✓";
-                            
-                            if (!SavedLevelsManager.Contains(lvl.Id.ToString()))
-                            {
-                                SavedLevelsManager.SavedLevels.Add(lvl.Id.ToString());
-                            }
-                        }
-                        else
-                        {
-                            if (result.ErrorMessage.Contains("cancelled")) wasCancelled = true;
-                            else
-                            {
-                                failureCount++;
-                                errorMessages.Add($"'{lvl.LevelName}': {result.ErrorMessage}");
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        AssetDownloader.CleanupLocalArchives();
-                    }
-                }
-                
-                if (successCount > 0)
-                {
-                    SavedLevelsManager.Save();
-                }
-            }
-            finally
-            {
-                progressWin.Close();
-                this.IsEnabled = true;
-                AssetDownloader.CleanupLocalArchives();
-
-                // Force a full garbage collection and compact the Large Object Heap
-                // to immediately release memory claimed during massive batch processes.
-                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect(2, GCCollectionMode.Forced, true, true);
-                GC.WaitForPendingFinalizers();
-            }
-
-            txtStatus.Text = $"Batch complete. {successCount} packed. {failureCount} failed.";
-
-            if (failureCount > 0)
-            {
-                string errors = string.Join("\n\n", errorMessages);
-                CustomDialog.Show(this, $"Failed to download/pack {failureCount} level(s).\n\nReasons:\n{errors}", "Extraction Failed", false);
-            }
-
-            if (successCount > 0)
-            {
-                string msg = wasCancelled ? $"Cancelled! However, {successCount} level(s) were successfully packed before cancellation.\n\nOpen backup folder?" 
-                                          : $"Successfully packed {successCount} level(s)!\n\nOpen backup folder?";
-
-                if (CustomDialog.Show(this, msg, "Finished", true))
-                {
-                    string fullPath = Path.GetFullPath(ConfigManager.BackupDirectory);
-                    if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
-                }
-            }
+                lvl.Saved = "✓";
+            });
+            
+            txtStatus.Text = "Extraction finished.";
         }
 
             }
