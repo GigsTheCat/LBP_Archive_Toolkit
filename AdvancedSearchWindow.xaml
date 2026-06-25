@@ -188,6 +188,8 @@
                                 <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
                                 <TextBox x:Name="txtMinPlays" Grid.Column="3" Text="0" Width="80" HorizontalAlignment="Left"/>
                             </Grid>
+                            
+                            <CheckBox x:Name="chkTeamPick" Content="Team Picked Levels Only" Margin="0,15,0,0"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 

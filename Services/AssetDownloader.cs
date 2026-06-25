@@ -210,46 +210,56 @@ namespace LbpArchiveToolkit.Services
                     if (ctx.Token.IsCancellationRequested) break;
                     if (!IsValidHash(currentHash)) continue;
 
-                    bool isLocal = ctx.Config.DownloadServer.ToLowerInvariant() == "local";
-                    bool success = false;
-                    byte[]? fileData = null; 
-
-                    if (isLocal)
+                    try
                     {
-                        try
+                        bool isLocal = ctx.Config.DownloadServer.ToLowerInvariant() == "local";
+                        bool success = false;
+                        byte[]? fileData = null; 
+
+                        if (isLocal)
                         {
-                            fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ctx.Config.LocalArchivePath, ctx.Token).ConfigureAwait(false);
-                            success = fileData != null; 
-                        }
-                        catch (OperationCanceledException) { break; }
-                    }
-                    else
-                    {
-                        (success, fileData) = await FetchFileWithRetriesAsync(currentHash, ctx).ConfigureAwait(false);
-                    }
-
-                    if (ctx.Token.IsCancellationRequested) break;
-
-                    if (success && fileData != null)
-                    {
-                        ctx.AddResource(currentHash, fileData);
-
-                        var deps = SaveDataBuilder.GetDependenciesFast(fileData);
-                        foreach (var dep in deps)
-                        {
-                            if (IsValidHash(dep) && ctx.AddDiscoveredHash(dep))
+                            try
                             {
-                                ctx.IncrementPending();
-                                ctx.QueueWriter.TryWrite(dep);
+                                fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ctx.Config.LocalArchivePath, ctx.Token).ConfigureAwait(false);
+                                success = fileData != null; 
+                            }
+                            catch (OperationCanceledException) { break; }
+                        }
+                        else
+                        {
+                            (success, fileData) = await FetchFileWithRetriesAsync(currentHash, ctx).ConfigureAwait(false);
+                        }
+
+                        if (ctx.Token.IsCancellationRequested) break;
+
+                        if (success && fileData != null)
+                        {
+                            ctx.AddResource(currentHash, fileData);
+
+                            var deps = SaveDataBuilder.GetDependenciesFast(fileData);
+                            foreach (var dep in deps)
+                            {
+                                if (IsValidHash(dep) && ctx.AddDiscoveredHash(dep))
+                                {
+                                    ctx.IncrementPending();
+                                    ctx.QueueWriter.TryWrite(dep);
+                                }
                             }
                         }
                     }
-
-                    ctx.IncrementProcessed();
-                    ctx.DecrementPending();
+                    finally
+                    {
+                        ctx.IncrementProcessed();
+                        ctx.DecrementPending();
+                    }
                 }
             }
             catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("AssetDownloader.ProcessQueueAsync", ex);
+                ctx.QueueWriter.TryComplete(ex);
+            }
         }
 
         private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo)

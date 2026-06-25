@@ -119,6 +119,13 @@ namespace LbpArchiveToolkit
 
         protected override void OnClosed(EventArgs e)
         {
+            _iconCts?.Cancel();
+            _iconCts?.Dispose();
+            _selectionCts?.Cancel();
+            _selectionCts?.Dispose();
+            _userSelectionCts?.Cancel();
+            _userSelectionCts?.Dispose();
+
             _hwndSource?.RemoveHook(WindowProc);
             _hwndSource = null;
             base.OnClosed(e);
@@ -536,7 +543,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
         private async void BtnSearch_Click(object sender, RoutedEventArgs e)
         {
             string keyword = txtSearch.Text.Trim();
-            if (string.IsNullOrEmpty(keyword)) return;
 
             SetUIState(isSearching: true);
             txtStatus.Text = "Searching database...";
@@ -593,7 +599,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         if (sw.ElapsedMilliseconds > 100)
                         {
                             dgResults.Items.Refresh();
-                            txtStatus.Text = $"Found {count} levels for '{keyword}'...";
+                            txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels..." : $"Found {count} levels for '{keyword}'...";
                             sw.Restart();
                         }
                     }
@@ -603,7 +609,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     progressBar.Value = count; 
 
                     dgResults.Items.Refresh();
-                    txtStatus.Text = $"Found {count} levels for '{keyword}'.";
+                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels." : $"Found {count} levels for '{keyword}'.";
 
                     if (_resultsList.Any())
                     {
@@ -624,6 +630,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         { 
                             MinHearts = _advancedCriteria.MinHearts,
                             MinPlays = _advancedCriteria.MinPlays,
+                            IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
                         }
@@ -637,9 +644,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     progressBar.Maximum = results.Count;
                     progressBar.Value = results.Count;
 
-                    _userResultsList = results;
+                     _userResultsList = results;
                     dgUsers.ItemsSource = _userResultsList;
-                    txtStatus.Text = $"Found {results.Count} creators matching '{keyword}'.";
+                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {results.Count} creators." : $"Found {results.Count} creators matching '{keyword}'.";
 
                     if (results.Any())
                     {
@@ -657,6 +664,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         { 
                             MinHearts = _advancedCriteria.MinHearts,
                             MinPlays = _advancedCriteria.MinPlays,
+                            IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
                         }
@@ -820,7 +828,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         if (sw.ElapsedMilliseconds > 100)
                         {
                             dgResults.Items.Refresh();
-                            txtStatus.Text = $"Restored {count} levels for '{state.SearchText}'...";
+                            txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels..." : $"Restored {count} levels for '{state.SearchText}'...";
                             sw.Restart();
                         }
                     }
@@ -830,7 +838,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     progressBar.Value = count; 
 
                     dgResults.Items.Refresh();
-                    txtStatus.Text = $"Restored {count} levels for '{state.SearchText}'.";
+                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels." : $"Restored {count} levels for '{state.SearchText}'.";
 
                     dgResults.SelectedItem = null;
                     if (state.SelectedItem != null)
@@ -859,7 +867,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
                     _userResultsList = results;
                     dgUsers.ItemsSource = _userResultsList;
-                    txtStatus.Text = $"Restored {results.Count} creators matching '{state.SearchText}'.";
+                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {results.Count} creators." : $"Restored {results.Count} creators matching '{state.SearchText}'.";
 
                     dgUsers.SelectedItem = null;
                     if (state.SelectedUser != null)

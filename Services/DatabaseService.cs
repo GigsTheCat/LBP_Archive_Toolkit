@@ -32,6 +32,7 @@ namespace LbpArchiveToolkit.Services
         private string _colIcon = "NULL";
         private string _colLabels = "NULL";
         private string _colTags = "NULL";
+        private string _colMmPick = "NULL";
 
         private static readonly FrozenDictionary<string, int> _genreToIntMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) {
             {"Platformer", 1}, {"Versus", 2}, {"Arcade", 3}, {"Cinematic", 4}, {"Fighter", 5},
@@ -64,8 +65,11 @@ namespace LbpArchiveToolkit.Services
             using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
             await conn.OpenAsync(token);
             
-            // Execute seamless, one-time integer conversion
-            await MigrateBitfieldsAsync(conn, token).ConfigureAwait(false);
+            // Execute seamless, one-time integer conversion only for FTS5-enabled databases
+            if (_hasFtsTable)
+            {
+                await MigrateBitfieldsAsync(conn, token).ConfigureAwait(false);
+            }
 
             long reqL0 = 0, reqL1 = 0;
             var friendlyNames = LabelParser.GetFriendlyNames();
@@ -94,7 +98,8 @@ namespace LbpArchiveToolkit.Services
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
 
-            string pfx = _hasFtsTable ? "s." : "";
+            bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
+            string pfx = (_hasFtsTable && hasKeyword) ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
             queryBuilder.Append("SELECT ")
@@ -109,21 +114,31 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colGenre)).Append(", ")
                         .Append(SafeCol(_colHash)).Append(", ")
                         .Append(SafeCol(_colIcon)).Append(", ")
-                        .Append(SafeCol(_colLabels))
-                        .Append(" FROM slot ");
+                        .Append(SafeCol(_colLabels));
 
-            if (_hasFtsTable)
+            if (!_hasFtsTable)
+            {
+                queryBuilder.Append(", ").Append(SafeCol(_colTags));
+            }
+
+            queryBuilder.Append(" FROM slot ");
+
+            if (_hasFtsTable && hasKeyword)
             {
                 queryBuilder.Append("s INNER JOIN slot_fts f ON s.id = f.id WHERE ");
                 BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
             }
             else
             {
-                queryBuilder.Append("WHERE ");
-                BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+                queryBuilder.Append("WHERE 1=1 ");
+                if (hasKeyword)
+                {
+                    queryBuilder.Append("AND ");
+                    BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+                }
             }
             
-            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1);
+            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, _hasFtsTable);
 
             if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
             
@@ -147,6 +162,51 @@ namespace LbpArchiveToolkit.Services
             while (await reader.ReadAsync(token))
             {
                 long id = reader.GetInt64(0);
+
+                if (!_hasFtsTable)
+                {
+                    long l0 = 0, l1 = 0;
+                    if (reqL0 != 0 || reqL1 != 0)
+                    {
+                        byte[]? labelsBlob = reader.IsDBNull(11) ? null : reader.GetFieldValue<byte[]>(11);
+                        if (labelsBlob != null)
+                        {
+                            for (int i = 0; i < 85; i++)
+                            {
+                                int byteIndex = (labelsBlob.Length - 1) - (i >> 3);
+                                if (byteIndex >= 0 && byteIndex < labelsBlob.Length && (labelsBlob[byteIndex] & (1 << (i & 7))) != 0)
+                                {
+                                    if (i < 64) l0 |= (1L << i); else l1 |= (1L << (i - 64));
+                                }
+                            }
+                        }
+                        if ((l0 & reqL0) != reqL0 || (l1 & reqL1) != reqL1)
+                        {
+                            continue;
+                        }
+                    }
+
+                    long t0 = 0, t1 = 0;
+                    if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
+                    {
+                        byte[]? tagsBlob = reader.IsDBNull(12) ? null : reader.GetFieldValue<byte[]>(12);
+                        if (tagsBlob != null)
+                        {
+                            for (int i = 0; i < 76; i++)
+                            {
+                                int byteIndex = (tagsBlob.Length - 1) - (i >> 3);
+                                if (byteIndex >= 0 && byteIndex < tagsBlob.Length && (tagsBlob[byteIndex] & (1 << (i & 7))) != 0)
+                                {
+                                    if (i < 64) t0 |= (1L << i); else t1 |= (1L << (i - 64));
+                                }
+                            }
+                        }
+                        if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
+                        {
+                            continue;
+                        }
+                    }
+                }
 
                 bool isSaved = savedLevels.Contains(id);
                 bool isHearted = heartedLevels.Contains(id);
@@ -248,23 +308,28 @@ namespace LbpArchiveToolkit.Services
             var queryBuilder = new StringBuilder();
             var parameters = new List<SqliteParameter>();
 
-            queryBuilder.Append("SELECT npHandle, icon, heartCount, lbp1UsedSlots, lbp2UsedSlots, lbp3UsedSlots FROM user WHERE ");
+            queryBuilder.Append("SELECT npHandle, icon, heartCount, lbp1UsedSlots, lbp2UsedSlots, lbp3UsedSlots FROM user WHERE 1=1 ");
 
-            if (exact)
+            bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
+            if (hasKeyword)
             {
-                queryBuilder.Append("npHandle LIKE @k");
-                parameters.Add(new SqliteParameter("@k", $"%{keyword}%"));
-            }
-            else
-            {
-                var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var conds = new List<string>();
-                for (int i = 0; i < words.Length; i++)
+                queryBuilder.Append("AND ");
+                if (exact)
                 {
-                    conds.Add("npHandle LIKE @w" + i);
-                    parameters.Add(new SqliteParameter("@w" + i, $"%{words[i]}%"));
+                    queryBuilder.Append("npHandle LIKE @k");
+                    parameters.Add(new SqliteParameter("@k", $"%{keyword}%"));
                 }
-                queryBuilder.Append(string.Join(" AND ", conds));
+                else
+                {
+                    var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var conds = new List<string>();
+                    for (int i = 0; i < words.Length; i++)
+                    {
+                        conds.Add("npHandle LIKE @w" + i);
+                        parameters.Add(new SqliteParameter("@w" + i, $"%{words[i]}%"));
+                    }
+                    queryBuilder.Append("(" + string.Join(" AND ", conds) + ")");
+                }
             }
 
             queryBuilder.Append(" ORDER BY heartCount DESC");
@@ -340,7 +405,11 @@ namespace LbpArchiveToolkit.Services
         private void BuildFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             string matchTerm = "";
-            string Sanitize(string s) => s.Replace("\"", "\"\"");
+            string Sanitize(string s) 
+            {
+                string clean = System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]:;\+\-]", "");
+                return clean.Replace("\"", "\"\"");
+            }
 
             if (exact)
             {
@@ -365,7 +434,7 @@ namespace LbpArchiveToolkit.Services
             parameters.Add(new SqliteParameter("@match", matchTerm));
         }
 
-        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1)
+        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1, bool hasFts)
         {
             if (gameFilter > 0 && _colGame != "NULL")
             {
@@ -401,22 +470,30 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
-            if (reqL0 != 0) {
-                query.Append($" AND ({pfx}labels_0 & @reqL0) = @reqL0");
-                parameters.Add(new SqliteParameter("@reqL0", reqL0));
-            }
-            if (reqL1 != 0) {
-                query.Append($" AND ({pfx}labels_1 & @reqL1) = @reqL1");
-                parameters.Add(new SqliteParameter("@reqL1", reqL1));
+            if (advanced.IsTeamPick && _colMmPick != "NULL")
+            {
+                query.Append($" AND {pfx}{_colMmPick} = 1");
             }
 
-            if (reqT0 != 0) {
-                query.Append($" AND ({pfx}tags_0 & @reqT0) = @reqT0");
-                parameters.Add(new SqliteParameter("@reqT0", reqT0));
-            }
-            if (reqT1 != 0) {
-                query.Append($" AND ({pfx}tags_1 & @reqT1) = @reqT1");
-                parameters.Add(new SqliteParameter("@reqT1", reqT1));
+            if (hasFts)
+            {
+                if (reqL0 != 0) {
+                    query.Append($" AND ({pfx}labels_0 & @reqL0) = @reqL0");
+                    parameters.Add(new SqliteParameter("@reqL0", reqL0));
+                }
+                if (reqL1 != 0) {
+                    query.Append($" AND ({pfx}labels_1 & @reqL1) = @reqL1");
+                    parameters.Add(new SqliteParameter("@reqL1", reqL1));
+                }
+
+                if (reqT0 != 0) {
+                    query.Append($" AND ({pfx}tags_0 & @reqT0) = @reqT0");
+                    parameters.Add(new SqliteParameter("@reqT0", reqT0));
+                }
+                if (reqT1 != 0) {
+                    query.Append($" AND ({pfx}tags_1 & @reqT1) = @reqT1");
+                    parameters.Add(new SqliteParameter("@reqT1", reqT1));
+                }
             }
         }
 
@@ -436,10 +513,10 @@ namespace LbpArchiveToolkit.Services
             using var trans = conn.BeginTransaction();
             try 
             {
-                new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans).ExecuteNonQuery();
+                using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) cmdL0.ExecuteNonQuery();
+                using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) cmdL1.ExecuteNonQuery();
+                using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) cmdT0.ExecuteNonQuery();
+                using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) cmdT1.ExecuteNonQuery();
 
                 var updates = new List<(long id, long l0, long l1, long t0, long t1)>();
                 using (var sel = new SqliteCommand("SELECT id, authorLabels, tags FROM slot", conn, trans))
@@ -484,13 +561,12 @@ namespace LbpArchiveToolkit.Services
                     await upd.ExecuteNonQueryAsync(token);
                 }
                 
-                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans).ExecuteNonQuery();
-                new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans).ExecuteNonQuery();
+                using (var cmdIdxLabels = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans)) cmdIdxLabels.ExecuteNonQuery();
+                using (var cmdIdxTags = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans)) cmdIdxTags.ExecuteNonQuery();
+                using (var cmdIdxHeart = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans)) cmdIdxHeart.ExecuteNonQuery();
+                using (var cmdIdxPlay = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans)) cmdIdxPlay.ExecuteNonQuery();
 
-                trans.Commit();
-            } 
+                trans.Commit();            } 
             catch { trans.Rollback(); throw; }
         }
 
@@ -502,7 +578,7 @@ namespace LbpArchiveToolkit.Services
     {
         if (_isSchemaResolved) return;
 
-        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
         using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
         conn.Open();
 
@@ -538,6 +614,7 @@ namespace LbpArchiveToolkit.Services
                 _colIcon = GetDbColumn(columns, "icon", "iconHash");
                 _colLabels = GetDbColumn(columns, "authorLabels");
                 _colTags = GetDbColumn(columns, "tags");
+                _colMmPick = GetDbColumn(columns, "mmpick", "mmPick");
 
                 _isSchemaResolved = true;
             }

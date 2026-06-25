@@ -17,6 +17,7 @@ namespace LbpArchiveToolkit
             
             txtMinHearts.Text = Criteria.MinHearts.ToString();
             txtMinPlays.Text = Criteria.MinPlays.ToString();
+            chkTeamPick.IsChecked = Criteria.IsTeamPick;
 
             // LBP2 and LBP3 Labels
             foreach (var labelName in LabelParser.GetFriendlyNames())
@@ -53,6 +54,7 @@ namespace LbpArchiveToolkit
         {
             txtMinHearts.Text = "0";
             txtMinPlays.Text = "0";
+            chkTeamPick.IsChecked = false;
             
             foreach (var child in wpLbp2Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp3Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
@@ -81,6 +83,7 @@ namespace LbpArchiveToolkit
 
             Criteria.MinHearts = hearts;
             Criteria.MinPlays = plays;
+            Criteria.IsTeamPick = chkTeamPick.IsChecked == true;
             Criteria.RequiredLabels.Clear();
             Criteria.RequiredTags.Clear();
 

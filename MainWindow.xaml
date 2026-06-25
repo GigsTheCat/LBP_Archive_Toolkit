@@ -668,7 +668,7 @@
                     <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding Visibility, ElementName=progressBar}">
                         <ProgressBar x:Name="progressBar" Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0" Visibility="Hidden"/>
                     </Border>
-                    <TextBlock x:Name="txtStatus" Text="Ready. Enter a keyword to begin." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="txtStatus" Text="Ready. Enter a keyword or set filters to begin." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </DockPanel>
             </Grid>
         </DockPanel>

@@ -26,7 +26,7 @@ namespace LbpArchiveToolkit
 
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://archive.org/details/fastdry") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
             DialogResult = false; // Closes dialog after opening URL
         }
 

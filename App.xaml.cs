@@ -28,8 +28,13 @@ public partial class App : Application
             
             File.AppendAllText(crashLogPath, errorMsg);
 
-            MessageBox.Show($"A fatal error occurred and the application must close.\n\nError: {e.Exception.Message}\n\nA crash log has been saved to:\n{crashLogPath}", 
-                            "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var result = MessageBox.Show($"A fatal error occurred and the application must close.\n\nError: {e.Exception.Message}\n\nA crash log has been saved to:\n{crashLogPath}\n\nWould you like to open the folder containing the crash log now?", 
+                            "Fatal Error", MessageBoxButton.YesNo, MessageBoxImage.Error);
+                            
+            if (result == MessageBoxResult.Yes)
+            {
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{crashLogPath}\"");
+            }
         }
         catch
         {

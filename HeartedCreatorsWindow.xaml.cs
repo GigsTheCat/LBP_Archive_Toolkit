@@ -249,6 +249,9 @@ namespace LbpArchiveToolkit
 
         protected override void OnClosed(EventArgs e)
         {
+            _iconCts?.Cancel();
+            _iconCts?.Dispose();
+
             _hwndSource?.RemoveHook(WindowProc);
             _hwndSource = null;
             base.OnClosed(e);
