@@ -97,23 +97,6 @@
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
                                       SelectionChanged="LvHearted_SelectionChanged">
-                                
-                                <DataGrid.Resources>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#F72585"/>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
-                                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#701A44"/>
-                                </DataGrid.Resources>
-
-                                <DataGrid.ColumnHeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource LbpOrange}"/>
-                                        <Setter Property="FontWeight" Value="Black"/>
-                                        <Setter Property="Padding" Value="8,10"/>
-                                        <Setter Property="BorderThickness" Value="0,0,0,2"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-                                    </Style>
-                                </DataGrid.ColumnHeaderStyle>
 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="CREATOR ↕" Width="*" Binding="{Binding NpHandle}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>

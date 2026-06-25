@@ -84,23 +84,6 @@
                                   HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
                                   SelectionChanged="LvBackups_SelectionChanged">
                             
-                            <DataGrid.Resources>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#F72585"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#701A44"/>
-                            </DataGrid.Resources>
-
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource LbpOrange}"/>
-                                    <Setter Property="FontWeight" Value="Black"/>
-                                    <Setter Property="Padding" Value="8,10"/>
-                                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
-                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="LEVEL &amp; CREATOR ↕" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                                 <DataGridTextColumn Header="FOLDER ID ↕" Width="200" Binding="{Binding FolderName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>

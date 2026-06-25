@@ -138,7 +138,22 @@
                     </Setter>
                 </Style>
 
-                <!-- GLOBAL DATAGRID CELL & TEXT -->
+            <!-- GLOBAL DATAGRID HIGHLIGHT COLORS -->
+            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#F72585"/>
+            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#701A44"/>
+
+            <!-- GLOBAL DATAGRID HEADER STYLE -->
+            <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource LbpOrange}"/>
+                <Setter Property="FontWeight" Value="Black"/>
+                <Setter Property="Padding" Value="8,10"/>
+                <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+            </Style>
+
+            <!-- GLOBAL DATAGRID CELL & TEXT -->
                 <Style TargetType="DataGridCell">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
