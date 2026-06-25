@@ -50,8 +50,34 @@ namespace LbpArchiveToolkit.Services
 
                 using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength > 5242880) return null;
-                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+                
+                long? contentLength = response.Content.Headers.ContentLength;
+                if (contentLength.HasValue && contentLength.Value > 5242880) return null;
+
+                using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+                int capacity = contentLength.HasValue ? (int)contentLength.Value : 81920;
+                byte[] rawBytes = new byte[capacity];
+                int totalBytes = 0;
+                int bytesRead;
+
+                while (true)
+                {
+                    if (totalBytes == rawBytes.Length)
+                    {
+                        Array.Resize(ref rawBytes, rawBytes.Length * 2);
+                    }
+
+                    bytesRead = await stream.ReadAsync(rawBytes.AsMemory(totalBytes), token).ConfigureAwait(false);
+                    if (bytesRead == 0) break;
+
+                    totalBytes += bytesRead;
+                    if (totalBytes > 5242880) return null; // Hard cap at 5MB
+                }
+
+                if (totalBytes != rawBytes.Length)
+                {
+                    Array.Resize(ref rawBytes, totalBytes);
+                }
 
                 if (token.IsCancellationRequested) return null;
 

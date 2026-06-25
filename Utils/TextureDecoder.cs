@@ -231,12 +231,20 @@ namespace LbpArchiveToolkit.Utils
         private static byte[] DecodeFormatToBgra32(byte[] data, int dataOffset, int dataLength, byte format, int width, int height)
         {
             long totalPixels = (long)width * height;
-            if (totalPixels <= 0 || totalPixels > 16777216) // Max 16M pixels to prevent overflow
+            if (totalPixels <= 0 || totalPixels > 4194304) // Max 4M pixels (2048x2048) for standard PS3 textures
             {
                 return Array.Empty<byte>();
             }
 
-            byte[] bgra = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalPixels * 4);
+            byte[] bgra;
+            try
+            {
+                bgra = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalPixels * 4);
+            }
+            catch (Exception)
+            {
+                return Array.Empty<byte>();
+            }
 
             if (format == 0x85)
             {

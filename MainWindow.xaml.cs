@@ -721,6 +721,13 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 if (missingDbDialog.ShowDialog() == true)
                 {
                     MenuSettings_Click(sender, e); 
+                    
+                    // If the user successfully linked a valid database in Settings, automatically retry the search
+                    if (File.Exists(ConfigManager.DatabasePath))
+                    {
+                        _ = Application.Current.Dispatcher.InvokeAsync(() => BtnSearch_Click(sender, e));
+                        return; 
+                    }
                 }
                 txtStatus.Text = "Search failed. Database missing.";
             }

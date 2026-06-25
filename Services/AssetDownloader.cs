@@ -403,15 +403,18 @@ namespace LbpArchiveToolkit.Services
                                 int totalBytes = 0;
                                 int bytesRead;
 
-                                while ((bytesRead = await stream.ReadAsync(finalBuffer.AsMemory(totalBytes), ctx.Token).ConfigureAwait(false)) > 0)
+                                while (true)
                                 {
-                                    totalBytes += bytesRead;
-                                    if (totalBytes > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
-                                    
                                     if (totalBytes == finalBuffer.Length)
                                     {
                                         Array.Resize(ref finalBuffer, finalBuffer.Length * 2);
                                     }
+
+                                    bytesRead = await stream.ReadAsync(finalBuffer.AsMemory(totalBytes), ctx.Token).ConfigureAwait(false);
+                                    if (bytesRead == 0) break;
+
+                                    totalBytes += bytesRead;
+                                    if (totalBytes > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
                                 }
 
                                 // Trims the array bounds perfectly to size without allocating if it already perfectly matches

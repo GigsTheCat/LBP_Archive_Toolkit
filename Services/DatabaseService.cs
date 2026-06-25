@@ -414,7 +414,7 @@ namespace LbpArchiveToolkit.Services
             string matchTerm = "";
             string Sanitize(string s) 
             {
-                return System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\-\'\""]", "");
+                return System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
             }
 
             if (exact)
