@@ -159,9 +159,11 @@ namespace LbpArchiveToolkit.Services
             var dateCache = new Dictionary<string, string>();
             var nameCache = new Dictionary<string, string>();
 
-            using var reader = await cmd.ExecuteReaderAsync(token);
-            while (await reader.ReadAsync(token))
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
+                if (token.IsCancellationRequested) yield break;
+
                 long id = reader.GetInt64(0);
 
                 if (!_hasFtsTable)
@@ -297,67 +299,70 @@ namespace LbpArchiveToolkit.Services
         }
 
         public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter)
-{
-    var items = new List<UserItem>();
-    if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
-
-    await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
-
-    var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
-    using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-    conn.Open();
-
-            var queryBuilder = new StringBuilder();
-            var parameters = new List<SqliteParameter>();
-
-            queryBuilder.Append("SELECT npHandle, icon, heartCount, lbp1UsedSlots, lbp2UsedSlots, lbp3UsedSlots FROM user WHERE 1=1 ");
-
-            bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
-            if (hasKeyword)
+        {
+            return await Task.Run(() =>
             {
-                queryBuilder.Append("AND ");
-                if (exact)
+                var items = new List<UserItem>();
+                if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
+
+                EnsureSchemaResolved();
+
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+                using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+                conn.Open();
+
+                var queryBuilder = new StringBuilder();
+                var parameters = new List<SqliteParameter>();
+
+                queryBuilder.Append("SELECT npHandle, icon, heartCount, lbp1UsedSlots, lbp2UsedSlots, lbp3UsedSlots FROM user WHERE 1=1 ");
+
+                bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
+                if (hasKeyword)
                 {
-                    queryBuilder.Append("npHandle LIKE @k");
-                    parameters.Add(new SqliteParameter("@k", $"%{keyword}%"));
-                }
-                else
-                {
-                    var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    var conds = new List<string>();
-                    for (int i = 0; i < words.Length; i++)
+                    queryBuilder.Append("AND ");
+                    if (exact)
                     {
-                        conds.Add("npHandle LIKE @w" + i);
-                        parameters.Add(new SqliteParameter("@w" + i, $"%{words[i]}%"));
+                        queryBuilder.Append("npHandle LIKE @k");
+                        parameters.Add(new SqliteParameter("@k", $"%{keyword}%"));
                     }
-                    queryBuilder.Append("(" + string.Join(" AND ", conds) + ")");
+                    else
+                    {
+                        var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        var conds = new List<string>();
+                        for (int i = 0; i < words.Length; i++)
+                        {
+                            conds.Add("npHandle LIKE @w" + i);
+                            parameters.Add(new SqliteParameter("@w" + i, $"%{words[i]}%"));
+                        }
+                        queryBuilder.Append("(" + string.Join(" AND ", conds) + ")");
+                    }
                 }
-            }
 
-            queryBuilder.Append(" ORDER BY heartCount DESC");
+                queryBuilder.Append(" ORDER BY heartCount DESC");
 
-            if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
-            {
-                queryBuilder.Append($" LIMIT {limit}");
-            }
-
-            using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
-            foreach (var param in parameters) cmd.Parameters.Add(param);
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                items.Add(new UserItem
+                if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
                 {
-                    NpHandle = reader.IsDBNull(0) ? "Unknown" : reader.GetString(0),
-                    IconHash = reader.IsDBNull(1) ? "" : GetHashString(reader.GetValue(1)),
-                    HeartCount = reader.IsDBNull(2) ? 0 : reader.GetInt64(2),
-                    Lbp1UsedSlots = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
-                    Lbp2UsedSlots = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
-                    Lbp3UsedSlots = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
-                });
-            }
-            return items;
+                    queryBuilder.Append($" LIMIT {limit}");
+                }
+
+                using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
+                foreach (var param in parameters) cmd.Parameters.Add(param);
+
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    items.Add(new UserItem
+                    {
+                        NpHandle = reader.IsDBNull(0) ? "Unknown" : reader.GetString(0),
+                        IconHash = reader.IsDBNull(1) ? "" : GetHashString(reader.GetValue(1)),
+                        HeartCount = reader.IsDBNull(2) ? 0 : reader.GetInt64(2),
+                        Lbp1UsedSlots = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
+                        Lbp2UsedSlots = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
+                        Lbp3UsedSlots = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
+                    });
+                }
+                return items;
+            });
         }
 
         private static readonly HashSet<string> _actualGenres = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -504,21 +509,33 @@ namespace LbpArchiveToolkit.Services
 
         private async Task MigrateBitfieldsAsync(SqliteConnection conn, IProgress<string>? progress, CancellationToken token)
         {
+            using var versionCmd = new SqliteCommand("PRAGMA user_version;", conn);
+            long userVersion = (long)(await versionCmd.ExecuteScalarAsync(token) ?? 0L);
+            if (userVersion >= 1) return; // Already fully migrated
+
+            bool hasLabels0 = false;
             using var checkCmd = new SqliteCommand("PRAGMA table_info(slot);", conn);
             using var reader = await checkCmd.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token)) 
             {
-                if (reader.GetString(1) == "labels_0") return; // Already migrated
+                if (reader.GetString(1) == "labels_0")
+                {
+                    hasLabels0 = true;
+                    break;
+                }
             }
 
-            progress?.Report("One-time database optimization in progress... (Adding columns)");
-            using (var trans = conn.BeginTransaction())
+            if (!hasLabels0)
             {
-                using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) await cmdL0.ExecuteNonQueryAsync(token);
-                using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) await cmdL1.ExecuteNonQueryAsync(token);
-                using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) await cmdT0.ExecuteNonQueryAsync(token);
-                using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) await cmdT1.ExecuteNonQueryAsync(token);
-                trans.Commit();
+                progress?.Report("One-time database optimization in progress... (Adding columns)");
+                using (var trans = conn.BeginTransaction())
+                {
+                    using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) await cmdL0.ExecuteNonQueryAsync(token);
+                    using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) await cmdL1.ExecuteNonQueryAsync(token);
+                    using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) await cmdT0.ExecuteNonQueryAsync(token);
+                    using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) await cmdT1.ExecuteNonQueryAsync(token);
+                    trans.Commit();
+                }
             }
 
             progress?.Report("One-time database optimization in progress... (Counting rows)");
@@ -599,6 +616,9 @@ namespace LbpArchiveToolkit.Services
                 using (var cmdIdxPlay = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans)) await cmdIdxPlay.ExecuteNonQueryAsync(token);
                 trans.Commit();
             }
+
+            using var setVersionCmd = new SqliteCommand("PRAGMA user_version = 1;", conn);
+            await setVersionCmd.ExecuteNonQueryAsync(token);
         }
 
         private void EnsureSchemaResolved()
@@ -615,7 +635,18 @@ namespace LbpArchiveToolkit.Services
 
                 try
                 {
-                    using var cmdPragma = new SqliteCommand("PRAGMA journal_mode = WAL;", conn);
+                    // WAL: Write-Ahead Logging
+                    // temp_store = MEMORY: Forces complex ORDER BY sorts into RAM instead of temp files
+                    // cache_size = -64000: Gives SQLite ~64MB of dedicated RAM for caching query results
+                    string pragmaCmd = "PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
+                    
+                    if (LbpArchiveToolkit.Configuration.ConfigManager.UseMemoryMappedIO)
+                    {
+                        // Maps the entire DB directly into memory to bypass OS read-buffers
+                        pragmaCmd += " PRAGMA mmap_size = 2147483648;";
+                    }
+
+                    using var cmdPragma = new SqliteCommand(pragmaCmd, conn);
                     cmdPragma.ExecuteNonQuery();
                 }
                 catch (Exception ex)

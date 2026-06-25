@@ -30,7 +30,6 @@ namespace LbpArchiveToolkit
         private CancellationTokenSource? _iconCts;
         private CancellationTokenSource? _selectionCts;
         private CancellationTokenSource? _userSelectionCts;
-        private HwndSource? _hwndSource;
 
         private DatabaseService _dbService;
         private List<LevelItem> _resultsList = new();
@@ -90,7 +89,14 @@ namespace LbpArchiveToolkit
             _dbService = new DatabaseService(ConfigManager.DatabasePath);
 
             RestoreWindowPosition();
-            this.SourceInitialized += Window_SourceInitialized;
+            LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
+            this.SourceInitialized += (s, e) =>
+            {
+                if (ConfigManager.IsMaximized)
+                {
+                    this.WindowState = WindowState.Maximized;
+                }
+            };
 
             dgResults.ItemsSource = _resultsList;
             dgUsers.ItemsSource = _userResultsList;
@@ -102,6 +108,18 @@ namespace LbpArchiveToolkit
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             SaveWindowPosition();
+
+            _iconCts?.Cancel();
+            _iconCts?.Dispose();
+            _iconCts = null;
+
+            _selectionCts?.Cancel();
+            _selectionCts?.Dispose();
+            _selectionCts = null;
+
+            _userSelectionCts?.Cancel();
+            _userSelectionCts?.Dispose();
+            _userSelectionCts = null;
 
             if (_currentSearch != null)
             {
@@ -115,20 +133,6 @@ namespace LbpArchiveToolkit
 
             ConfigManager.SaveConfig();
             base.OnClosing(e);
-        }
-
-        protected override void OnClosed(EventArgs e)
-        {
-            _iconCts?.Cancel();
-            _iconCts?.Dispose();
-            _selectionCts?.Cancel();
-            _selectionCts?.Dispose();
-            _userSelectionCts?.Cancel();
-            _userSelectionCts?.Dispose();
-
-            _hwndSource?.RemoveHook(WindowProc);
-            _hwndSource = null;
-            base.OnClosed(e);
         }
 
         private void RestoreWindowPosition()
@@ -389,20 +393,23 @@ namespace LbpArchiveToolkit
                     txtStatus.Text = status;
                 });
 
-                await foreach (var lvl in _dbService.SearchLevelsAsync(
-                    selectedUser.NpHandle, 
-                    exact: true, 
-                    searchDesc: false, 
-                    gameFilter: 0, 
-                    genreFilter: "All Genres", 
-                    limitFilter: "All", 
-                    savedLevelsSnapshot, 
-                    heartedLevelsSnapshot, 
-                    new AdvancedSearchCriteria(),
-                    progressReporter))
+                await Task.Run(async () =>
                 {
-                    creatorLevels.Add(lvl);
-                }
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(
+                        selectedUser.NpHandle, 
+                        exact: true, 
+                        searchDesc: false, 
+                        gameFilter: 0, 
+                        genreFilter: "All Genres", 
+                        limitFilter: "All", 
+                        savedLevelsSnapshot, 
+                        heartedLevelsSnapshot, 
+                        new AdvancedSearchCriteria(),
+                        progressReporter).ConfigureAwait(false))
+                    {
+                        creatorLevels.Add(lvl);
+                    }
+                });
                 
                 var strictlyCreatorLevels = creatorLevels
                     .Where(l => l.Creator != null && l.Creator.Equals(selectedUser.NpHandle, StringComparison.OrdinalIgnoreCase))
@@ -602,18 +609,42 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         txtStatus.Text = status;
                     });
 
-                    await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter))
+                    await Task.Run(async () =>
                     {
-                        _resultsList.Add(lvl);
-                        count++;
-                        
-                        if (sw.ElapsedMilliseconds > 100)
+                        var buffer = new List<LevelItem>();
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter).ConfigureAwait(false))
                         {
-                            dgResults.Items.Refresh();
-                            txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels..." : $"Found {count} levels for '{keyword}'...";
-                            sw.Restart();
+                            buffer.Add(lvl);
+                            count++;
+
+                            
+                            if (sw.ElapsedMilliseconds > 500)
+                            {
+                                var chunk = buffer.ToList();
+                                buffer.Clear();
+
+                                // Use Background priority so the UI rendering doesn't steal CPU time from the DB reader
+                                await Application.Current.Dispatcher.InvokeAsync(() =>
+                                {
+                                    _resultsList.AddRange(chunk);
+                                    dgResults.Items.Refresh();
+                                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels..." : $"Found {count} levels for '{keyword}'...";
+                                }, System.Windows.Threading.DispatcherPriority.Background);
+                                
+                                sw.Restart();
+                            }
                         }
-                    }
+
+                        // Flush any remaining items to the UI once complete
+                        if (buffer.Count > 0)
+                        {
+                            var chunk = buffer.ToList();
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                _resultsList.AddRange(chunk);
+                            });
+                        }
+                    });
                      
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = count;
@@ -836,18 +867,39 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                         txtStatus.Text = status;
                     });
 
-                    await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter))
+                    await Task.Run(async () =>
                     {
-                        _resultsList.Add(lvl);
-                        count++;
-                        
-                        if (sw.ElapsedMilliseconds > 100)
+                        var buffer = new List<LevelItem>();
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter).ConfigureAwait(false))
                         {
-                            dgResults.Items.Refresh();
-                            txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels..." : $"Restored {count} levels for '{state.SearchText}'...";
-                            sw.Restart();
+                            buffer.Add(lvl);
+                            count++;
+
+                            if (sw.ElapsedMilliseconds > 500)
+                            {
+                                var chunk = buffer.ToList();
+                                buffer.Clear();
+
+                                await Application.Current.Dispatcher.InvokeAsync(() =>
+                                {
+                                    _resultsList.AddRange(chunk);
+                                    dgResults.Items.Refresh();
+                                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels..." : $"Restored {count} levels for '{state.SearchText}'...";
+                                }, System.Windows.Threading.DispatcherPriority.Background);
+                                
+                                sw.Restart();
+                            }
                         }
-                    }
+
+                        if (buffer.Count > 0)
+                        {
+                            var chunk = buffer.ToList();
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                _resultsList.AddRange(chunk);
+                            });
+                        }
+                    });
                     
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = count;
@@ -1107,66 +1159,18 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             txtIconStatus.Text = "Loading Icon...";
             long expectedRequestId = _currentIconRequestId;
 
-            try
+            var brush = await LbpArchiveToolkit.Services.IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, token);
+
+            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
+
+            if (brush != null)
             {
-                bool useLocalArchive = ConfigManager.DownloadServer.ToLower() == "local" && !string.IsNullOrWhiteSpace(ConfigManager.LocalArchivePath);
-
-                if (useLocalArchive)
-                {
-                    try
-                    {
-                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, token);
-
-                        if (rawResource != null)
-                        {
-                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource), token);
-
-                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested || bmp == null) return;
-
-                            var localBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
-                            localBrush.Freeze(); // Freezing prevents WPF memory leak
-                            iconEllipse.Fill = localBrush;
-                            txtIconStatus.Text = "";
-                            return; 
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.Log("MainWindow.LoadIconAsync (Local Archive)", ex);
-                    }
-                }
-
-                
-                string server = ConfigManager.DownloadServer;
-                string url = AssetDownloader.GetDownloadUrl(hash, server);
-                if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("Invalid icon hash");
-
-                // Pass the token to the HTTP Client to cancel requests when you scroll fast
-                using var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
-                response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
-                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token);
-
-                if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
-
-                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawBytes), token);
-                if (webBmp == null) throw new InvalidDataException("Failed to decode image.");
-
-                var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                brush.Freeze(); // Freezing prevents WPF memory leak
                 iconEllipse.Fill = brush;
                 txtIconStatus.Text = "";
             }
-            catch (OperationCanceledException)
+            else
             {
-                // Silently drop if canceled by fast scrolling
-            }
-            catch
-            {
-                if (_currentIconRequestId == expectedRequestId)
-                {
-                    txtIconStatus.Text = "Icon offline\nor missing.";
-                }
+                txtIconStatus.Text = "Icon offline\nor missing.";
             }
         }
 
@@ -1183,64 +1187,18 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             txtUserIconStatus.Text = "Loading Icon...";
             long expectedRequestId = npHandle.GetHashCode();
 
-            try
+            var brush = await LbpArchiveToolkit.Services.IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, token);
+
+            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
+
+            if (brush != null)
             {
-                bool useLocalArchive = ConfigManager.DownloadServer.ToLower() == "local" && !string.IsNullOrWhiteSpace(ConfigManager.LocalArchivePath);
-
-                if (useLocalArchive)
-                {
-                    try
-                    {
-                        byte[]? rawResource = await AssetDownloader.ExtractLocalArchiveToMemoryAsync(hash, ConfigManager.LocalArchivePath, token);
-
-                        if (rawResource != null)
-                        {
-                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource), token);
-
-                            if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested || bmp == null) return;
-
-                            var localBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
-                            localBrush.Freeze(); // Freezing prevents WPF memory leak
-                            userIconEllipse.Fill = localBrush;
-                            txtUserIconStatus.Text = "";
-                            return; 
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.Log("MainWindow.LoadUserIconAsync (Local Archive)", ex);
-                    }
-                }
-
-                string server = ConfigManager.DownloadServer;
-                string url = AssetDownloader.GetDownloadUrl(hash, server);
-                if (string.IsNullOrEmpty(url)) throw new InvalidOperationException("Invalid icon hash");
-
-                using var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
-                response.EnsureSuccessStatusCode();
-                if (response.Content.Headers.ContentLength > 5242880) throw new InvalidOperationException("Icon too large");
-                byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token);
-
-                if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
-
-                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawBytes), token);
-                if (webBmp == null) throw new InvalidDataException("Failed to decode image.");
-
-                var brush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                brush.Freeze(); // Freezing prevents WPF memory leak
                 userIconEllipse.Fill = brush;
                 txtUserIconStatus.Text = "";
             }
-            catch (OperationCanceledException)
+            else
             {
-                // Silently drop if canceled by fast scrolling
-            }
-            catch
-            {
-                if (_currentIconRequestId == expectedRequestId)
-                {
-                    txtUserIconStatus.Text = "Icon offline\nor missing.";
-                }
+                txtUserIconStatus.Text = "Icon offline\nor missing.";
             }
         }
 
@@ -1438,85 +1396,5 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
         #endregion
 
-        #region Win32 Interop (Borderless Window Support)
-
-        private void Window_SourceInitialized(object? sender, EventArgs e)
-        {
-            var handle = new WindowInteropHelper(this).Handle;
-            _hwndSource = HwndSource.FromHwnd(handle);
-            _hwndSource?.AddHook(WindowProc);
-
-            if (ConfigManager.IsMaximized)
-            {
-                 this.WindowState = WindowState.Maximized;
-            }
-        }
-
-        private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (msg == 0x0024) 
-            {
-                WmGetMinMaxInfo(hwnd, lParam);
-                handled = true;
-            }
-            return IntPtr.Zero;
-        }
-
-        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
-        {
-            var mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO))!;
-            int MONITOR_DEFAULTTONEAREST = 0x00000002;
-            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-
-            if (monitor != IntPtr.Zero)
-            {
-                MONITORINFO monitorInfo = new MONITORINFO();
-                monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
-                GetMonitorInfo(monitor, ref monitorInfo);
-
-                RECT rcWorkArea = monitorInfo.rcWork;
-                RECT rcMonitorArea = monitorInfo.rcMonitor;
-
-                mmi.ptMaxPosition.X = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
-                mmi.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
-                mmi.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
-                mmi.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
-
-                Marshal.StructureToPtr(mmi, lParam, true);
-            }
-        }
-
-        [LibraryImport("user32.dll")]
-        private static partial IntPtr MonitorFromWindow(IntPtr handle, int flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT { public int X; public int Y; }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MINMAXINFO 
-        { 
-            public POINT ptReserved; 
-            public POINT ptMaxSize; 
-            public POINT ptMaxPosition; 
-            public POINT ptMinTrackSize; 
-            public POINT ptMaxTrackSize; 
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MONITORINFO
-        {
-            public int cbSize;
-            public RECT rcMonitor;
-            public RECT rcWork;
-            public int dwFlags;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-
-        #endregion
-    }
+           }
 }

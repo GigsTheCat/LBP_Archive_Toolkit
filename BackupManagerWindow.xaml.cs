@@ -18,8 +18,6 @@ namespace LbpArchiveToolkit
     public partial class BackupManagerWindow : Window
     {
         #region State & Data Models
-        
-        private System.Windows.Interop.HwndSource? _hwndSource;
 
         private readonly string _backupDir;
         public ObservableCollection<BackupItem> BackupList { get; set; } = new();
@@ -45,7 +43,7 @@ namespace LbpArchiveToolkit
             lvBackups.ItemsSource = BackupList;
 
             LoadBackups();
-            this.SourceInitialized += Window_SourceInitialized;
+            LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }
 
         #endregion
@@ -323,87 +321,5 @@ namespace LbpArchiveToolkit
 
         #endregion
 
-        #region Win32 Interop (Borderless Window Support)
-
-        private void Window_SourceInitialized(object? sender, EventArgs e)
-        {
-            var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-            _hwndSource = System.Windows.Interop.HwndSource.FromHwnd(handle);
-            _hwndSource?.AddHook(WindowProc);
-        }
-
-        private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (msg == 0x0024) 
-            {
-                WmGetMinMaxInfo(hwnd, lParam);
-                handled = true;
             }
-            return IntPtr.Zero;
-        }
-
-        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
-        {
-            var mmi = (MINMAXINFO)System.Runtime.InteropServices.Marshal.PtrToStructure(lParam, typeof(MINMAXINFO))!;
-            int MONITOR_DEFAULTTONEAREST = 0x00000002;
-            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-
-            if (monitor != IntPtr.Zero)
-            {
-                MONITORINFO monitorInfo = new MONITORINFO();
-                monitorInfo.cbSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(MONITORINFO));
-                GetMonitorInfo(monitor, ref monitorInfo);
-
-                RECT rcWorkArea = monitorInfo.rcWork;
-                RECT rcMonitorArea = monitorInfo.rcMonitor;
-
-                mmi.ptMaxPosition.X = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
-                mmi.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
-                mmi.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
-                mmi.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
-
-                System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
-            }
-        }
-
-        protected override void OnClosed(EventArgs e)
-	{
-    	    _hwndSource?.RemoveHook(WindowProc);
-            _hwndSource = null;
-            base.OnClosed(e);
-        }
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        public struct POINT { public int X; public int Y; }
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        public struct MINMAXINFO 
-        { 
-            public POINT ptReserved; 
-            public POINT ptMaxSize; 
-            public POINT ptMaxPosition; 
-            public POINT ptMinTrackSize; 
-            public POINT ptMaxTrackSize; 
-        }
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        public struct MONITORINFO
-        {
-            public int cbSize;
-            public RECT rcMonitor;
-            public RECT rcWork;
-            public int dwFlags;
-        }
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-
-        #endregion
-    }
 }

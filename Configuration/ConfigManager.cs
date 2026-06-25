@@ -23,6 +23,7 @@ namespace LbpArchiveToolkit.Configuration
         public static int MaxParallelDownloads { get; set; } = 10;
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
+        public static bool UseMemoryMappedIO { get; set; } = false;
         
         public static List<string> LegacySavedLevels { get; set; } = [];
         public static MainWindow.SearchState? LastSearch { get; set; }
@@ -67,6 +68,7 @@ namespace LbpArchiveToolkit.Configuration
             public int MaxParallelDownloads { get; set; }
             public bool ForceLbp3Backups { get; set; }
             public bool Lbp2BetaToRetail { get; set; }
+            public bool UseMemoryMappedIO { get; set; }
             public double WindowWidth { get; set; }
             public double WindowHeight { get; set; }
             public double WindowLeft { get; set; }
@@ -119,6 +121,7 @@ namespace LbpArchiveToolkit.Configuration
                     MaxParallelDownloads = data.MaxParallelDownloads;
                     ForceLbp3Backups = data.ForceLbp3Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail;
+                    UseMemoryMappedIO = data.UseMemoryMappedIO;
                     WindowWidth = data.WindowWidth;
                     WindowHeight = data.WindowHeight;
                     WindowLeft = data.WindowLeft;
@@ -155,6 +158,7 @@ namespace LbpArchiveToolkit.Configuration
                         MaxParallelDownloads = MaxParallelDownloads,
                         ForceLbp3Backups = ForceLbp3Backups,
                         Lbp2BetaToRetail = Lbp2BetaToRetail,
+                        UseMemoryMappedIO = UseMemoryMappedIO,
                         WindowWidth = WindowWidth,
                         WindowHeight = WindowHeight,
                         WindowLeft = WindowLeft,
@@ -198,6 +202,7 @@ namespace LbpArchiveToolkit.Configuration
                     MaxParallelDownloads = MaxParallelDownloads,
                     ForceLbp3Backups = ForceLbp3Backups,
                     Lbp2BetaToRetail = Lbp2BetaToRetail,
+                    UseMemoryMappedIO = UseMemoryMappedIO,
                     WindowWidth = WindowWidth,
                     WindowHeight = WindowHeight,
                     WindowLeft = WindowLeft,

@@ -185,18 +185,19 @@ namespace LbpArchiveToolkit.Utils
         {
             if (dataLength < 12) return null;
 
-            uint headerSize = BitConverter.ToUInt32(finalData, 4);
+            var span = finalData.AsSpan();
+            uint headerSize = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(4));
             int dataOffset = (int)(4 + headerSize);
             
             if (dataLength < dataOffset || dataLength < 128) return null;
 
-            int width = BitConverter.ToInt32(finalData, 16);
-            int height = BitConverter.ToInt32(finalData, 12);
+            int width = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(span.Slice(16));
+            int height = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(span.Slice(12));
             
             // DDS_PIXELFORMAT is located at offset 76 in the DDS_HEADER (80 absolute)
-            uint pfFlags = BitConverter.ToUInt32(finalData, 80);
-            uint fourCC = BitConverter.ToUInt32(finalData, 84);
-            uint bitCount = BitConverter.ToUInt32(finalData, 88);
+            uint pfFlags = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(80));
+            uint fourCC = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(84));
+            uint bitCount = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(88));
 
             byte format = 0;
             if ((pfFlags & 0x4) != 0) // DDPF_FOURCC
@@ -528,86 +529,94 @@ namespace LbpArchiveToolkit.Utils
             }
 
             byte[] unswizzled = System.Buffers.ArrayPool<byte>.Shared.Rent(totalUnswizzledSize);
-            int srcOffset = 0;
-            int destOffset = 0;
-
-            ReadOnlySpan<byte> srcSpan = data;
-            Span<byte> destSpan = unswizzled;
-
-            for (int mip = 0; mip < mipCount; mip++)
+            try
             {
-                int mipWidth = Math.Max(1, width >> mip);
-                int mipHeight = Math.Max(1, height >> mip);
+                int srcOffset = 0;
+                int destOffset = 0;
 
-                int blocksX = (mipWidth + blockWidth - 1) / blockWidth;
-                int blocksY = (mipHeight + blockHeight - 1) / blockHeight;
-                
-                int paddedWidth = NextPowerOfTwo(mipWidth);
-                int paddedHeight = NextPowerOfTwo(mipHeight);
-                
-                int paddedBlocksX = Math.Max(1, paddedWidth / blockWidth);
-                int paddedBlocksY = Math.Max(1, paddedHeight / blockHeight);
+                ReadOnlySpan<byte> srcSpan = data;
+                Span<byte> destSpan = unswizzled;
 
-                int log2Width = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksX);
-                int log2Height = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksY);
-
-                int paddedMipDataSize = paddedBlocksX * paddedBlocksY * bytesPerBlock;
-                if (srcOffset >= data.Length) break;
-
-                int minLog = Math.Min(log2Width, log2Height);
-                int[] colOffsetMap = new int[blocksX];
-                for (int x = 0; x < blocksX; x++)
+                for (int mip = 0; mip < mipCount; mip++)
                 {
-                    int ix = (x & ((1 << minLog) - 1));
-                    ix = (ix | (ix << 8)) & 0x00FF00FF;
-                    ix = (ix | (ix << 4)) & 0x0F0F0F0F;
-                    ix = (ix | (ix << 2)) & 0x33333333;
-                    ix = (ix | (ix << 1)) & 0x55555555;
+                    int mipWidth = Math.Max(1, width >> mip);
+                    int mipHeight = Math.Max(1, height >> mip);
 
-                    int colOffset = ix;
-                    if (log2Width > log2Height)
-                    {
-                        colOffset |= (x >> minLog) << (2 * minLog);
-                    }
-                    colOffsetMap[x] = colOffset;
-                }
+                    int blocksX = (mipWidth + blockWidth - 1) / blockWidth;
+                    int blocksY = (mipHeight + blockHeight - 1) / blockHeight;
+                    
+                    int paddedWidth = NextPowerOfTwo(mipWidth);
+                    int paddedHeight = NextPowerOfTwo(mipHeight);
+                    
+                    int paddedBlocksX = Math.Max(1, paddedWidth / blockWidth);
+                    int paddedBlocksY = Math.Max(1, paddedHeight / blockHeight);
 
-                Parallel.For(0, blocksY, y =>
-                {
-                    int iy = (y & ((1 << minLog) - 1));
-                    iy = (iy | (iy << 8)) & 0x00FF00FF;
-                    iy = (iy | (iy << 4)) & 0x0F0F0F0F;
-                    iy = (iy | (iy << 2)) & 0x33333333;
-                    iy = (iy | (iy << 1)) & 0x55555555;
+                    int log2Width = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksX);
+                    int log2Height = System.Numerics.BitOperations.TrailingZeroCount((uint)paddedBlocksY);
 
-                    int rowOffset = iy << 1;
-                    if (log2Height > log2Width)
-                    {
-                        rowOffset |= (y >> minLog) << (2 * minLog);
-                    }
+                    int paddedMipDataSize = paddedBlocksX * paddedBlocksY * bytesPerBlock;
+                    if (srcOffset >= data.Length) break;
 
-                    int localDestOffset = (y * blocksX) * bytesPerBlock;
-                    ReadOnlySpan<byte> localSrcSpan = data;
-                    Span<byte> localDestSpan = unswizzled;
-
+                    int minLog = Math.Min(log2Width, log2Height);
+                    int[] colOffsetMap = new int[blocksX];
                     for (int x = 0; x < blocksX; x++)
                     {
-                        int mortonIndex = colOffsetMap[x] | rowOffset;
-                        int srcIndex = srcOffset + mortonIndex * bytesPerBlock;
+                        int ix = (x & ((1 << minLog) - 1));
+                        ix = (ix | (ix << 8)) & 0x00FF00FF;
+                        ix = (ix | (ix << 4)) & 0x0F0F0F0F;
+                        ix = (ix | (ix << 2)) & 0x33333333;
+                        ix = (ix | (ix << 1)) & 0x55555555;
 
-                        if (srcIndex + bytesPerBlock <= localSrcSpan.Length && localDestOffset + bytesPerBlock <= localDestSpan.Length)
+                        int colOffset = ix;
+                        if (log2Width > log2Height)
                         {
-                            localSrcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(localDestSpan.Slice(localDestOffset, bytesPerBlock));
+                            colOffset |= (x >> minLog) << (2 * minLog);
                         }
-                        localDestOffset += bytesPerBlock;
+                        colOffsetMap[x] = colOffset;
                     }
-                });
 
-                destOffset += blocksX * blocksY * bytesPerBlock;
-                srcOffset += paddedMipDataSize;
+                    Parallel.For(0, blocksY, y =>
+                    {
+                        int iy = (y & ((1 << minLog) - 1));
+                        iy = (iy | (iy << 8)) & 0x00FF00FF;
+                        iy = (iy | (iy << 4)) & 0x0F0F0F0F;
+                        iy = (iy | (iy << 2)) & 0x33333333;
+                        iy = (iy | (iy << 1)) & 0x55555555;
+
+                        int rowOffset = iy << 1;
+                        if (log2Height > log2Width)
+                        {
+                            rowOffset |= (y >> minLog) << (2 * minLog);
+                        }
+
+                        int localDestOffset = (y * blocksX) * bytesPerBlock;
+                        ReadOnlySpan<byte> localSrcSpan = data;
+                        Span<byte> localDestSpan = unswizzled;
+
+                        for (int x = 0; x < blocksX; x++)
+                        {
+                            int mortonIndex = colOffsetMap[x] | rowOffset;
+                            int srcIndex = srcOffset + mortonIndex * bytesPerBlock;
+
+                            if (srcIndex + bytesPerBlock <= localSrcSpan.Length && localDestOffset + bytesPerBlock <= localDestSpan.Length)
+                            {
+                                localSrcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(localDestSpan.Slice(localDestOffset, bytesPerBlock));
+                            }
+                            localDestOffset += bytesPerBlock;
+                        }
+                    });
+
+                    destOffset += blocksX * blocksY * bytesPerBlock;
+                    srcOffset += paddedMipDataSize;
+                }
+
+                return unswizzled;
             }
-
-            return unswizzled;
+            catch
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(unswizzled);
+                throw;
+            }
         }
         
         private static ushort BigEndianUInt16(BinaryReader br)
