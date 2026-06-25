@@ -956,6 +956,11 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 btnHeartToggle.IsEnabled = true;
                 RefreshCurrentSelectionHeartState();
 
+                mmPickTails.Visibility = selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                mmPickRosette.Visibility = selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                mmPickRosetteInner.Visibility = selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                iconEllipse.Stroke = selectedLevel.IsMmPick ? (Brush)FindResource("LbpPink") : (Brush)FindResource("LbpOrange");
+
                 _currentIconRequestId = selectedLevel.Id;
                 
                 _iconCts?.Cancel();
@@ -971,6 +976,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 btnHeartToggle.IsEnabled = false;
                 btnHeartToggle.Content = "♥ HEART LEVEL";
                 iconHeartOverlay.Visibility = Visibility.Hidden;
+                mmPickTails.Visibility = Visibility.Hidden;
+                mmPickRosette.Visibility = Visibility.Hidden;
+                mmPickRosetteInner.Visibility = Visibility.Hidden;
+                iconEllipse.Stroke = (Brush)FindResource("LbpOrange");
                 iconEllipse.Fill = (Brush)FindResource("BgPrimary"); 
                 txtIconStatus.Text = "Select a level\nto view details";
                 

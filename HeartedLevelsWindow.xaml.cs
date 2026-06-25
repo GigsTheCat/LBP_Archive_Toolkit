@@ -66,6 +66,11 @@ namespace LbpArchiveToolkit
                 txtCreator.Text = $"By: {selected.Creator}  |  Game: {selected.Game}";
                 iconHeartOverlay.Visibility = Visibility.Visible;
                 
+                mmPickTails.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                mmPickRosette.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                mmPickRosetteInner.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+                iconEllipse.Stroke = selected.IsMmPick ? (Brush)FindResource("LbpPink") : (Brush)FindResource("LbpOrange");
+
                 _currentIconRequestId = selected.Id;
                 _iconCts?.Cancel();
                 _iconCts?.Dispose();
@@ -79,6 +84,10 @@ namespace LbpArchiveToolkit
                 txtDescription.Text = "";
                 txtCreator.Text = "";
                 iconHeartOverlay.Visibility = Visibility.Hidden;
+                mmPickTails.Visibility = Visibility.Hidden;
+                mmPickRosette.Visibility = Visibility.Hidden;
+                mmPickRosetteInner.Visibility = Visibility.Hidden;
+                iconEllipse.Stroke = (Brush)FindResource("LbpOrange");
                 iconEllipse.Fill = (Brush)FindResource("BgPrimary");
                 txtIconStatus.Text = "Select a level\nto view details";
             }

@@ -573,6 +573,14 @@
                                         <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                     </Ellipse>
+                                    
+                                    <!-- Ribbon Background Elements for MM Pick -->
+                                    <Path x:Name="mmPickTails" Visibility="Hidden" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
+                                        <Path.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.5" Direction="270"/></Path.Effect>
+                                    </Path>
+                                    <Ellipse x:Name="mmPickRosette" Visibility="Hidden" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
+                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="Hidden" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
+
                                     <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
                                     <TextBlock x:Name="txtIconStatus" Text="Select a level&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
 

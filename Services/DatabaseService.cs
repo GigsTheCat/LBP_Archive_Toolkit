@@ -114,6 +114,7 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colGenre)).Append(", ")
                         .Append(SafeCol(_colHash)).Append(", ")
                         .Append(SafeCol(_colIcon)).Append(", ")
+                        .Append(SafeCol(_colMmPick)).Append(", ")
                         .Append(SafeCol(_colLabels));
 
             if (!_hasFtsTable)
@@ -168,7 +169,7 @@ namespace LbpArchiveToolkit.Services
                     long l0 = 0, l1 = 0;
                     if (reqL0 != 0 || reqL1 != 0)
                     {
-                        byte[]? labelsBlob = reader.IsDBNull(11) ? null : reader.GetFieldValue<byte[]>(11);
+                        byte[]? labelsBlob = reader.IsDBNull(12) ? null : reader.GetFieldValue<byte[]>(12);
                         if (labelsBlob != null)
                         {
                             for (int i = 0; i < 85; i++)
@@ -189,7 +190,7 @@ namespace LbpArchiveToolkit.Services
                     long t0 = 0, t1 = 0;
                     if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
                     {
-                        byte[]? tagsBlob = reader.IsDBNull(12) ? null : reader.GetFieldValue<byte[]>(12);
+                        byte[]? tagsBlob = reader.IsDBNull(13) ? null : reader.GetFieldValue<byte[]>(13);
                         if (tagsBlob != null)
                         {
                             for (int i = 0; i < 76; i++)
@@ -287,7 +288,8 @@ namespace LbpArchiveToolkit.Services
                     Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
                     Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
                     Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
-                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10))
+                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
+                    IsMmPick = reader.IsDBNull(11) ? false : Convert.ToBoolean(reader.GetValue(11))
                 };
 
                 yield return levelItem;
@@ -407,8 +409,7 @@ namespace LbpArchiveToolkit.Services
             string matchTerm = "";
             string Sanitize(string s) 
             {
-                string clean = System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]:;\+\-]", "");
-                return clean.Replace("\"", "\"\"");
+                return System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\-\'\""]", "");
             }
 
             if (exact)
