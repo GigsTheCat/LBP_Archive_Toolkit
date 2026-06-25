@@ -6,7 +6,7 @@ This app allows you to search the LBP archive for levels to download and backup.
 - **.NET 10 Desktop Runtime** (if you don't have it, you'll be prompted to download it from Microsoft when you start the app)
   
 ## How to Use
-1. Download the latest `.zip` release, extract it, and place the app folder anywhere.
+1. [Download](https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases) the latest `.zip` release, extract it, and place the app folder anywhere.
 2. Start `LBP Archive Toolkit.exe`. *(If Windows Defender SmartScreen warns you about an unrecognized app, click "More info" -> "Run anyway").*
 3. Go to **Settings** and choose the location of your `dry.db` or `fastdry.db` file. (If you don't have this, attempt to search for a level, and you'll be given the option to download the database automatically).
 4. Choose your backup location. *(If you are using RPCS3, it is recommended to set this to your RPCS3 savedata folder: `rpcs3 > dev_hdd0 > home > 00000001 > savedata`)*.
