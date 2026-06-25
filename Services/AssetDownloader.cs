@@ -391,9 +391,14 @@ namespace LbpArchiveToolkit.Services
                         if (response.IsSuccessStatusCode)
                         {
                             long? contentLength = response.Content.Headers.ContentLength;
+                            if (contentLength.HasValue && contentLength.Value > 104857600)
+                            {
+                                throw new InvalidOperationException("File exceeds maximum allowed size.");
+                            }
+
                             using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
                             {
-                                int capacity = contentLength.HasValue && contentLength.Value <= int.MaxValue ? (int)contentLength.Value : 81920;
+                                int capacity = contentLength.HasValue ? (int)contentLength.Value : 81920;
                                 byte[] finalBuffer = new byte[capacity];
                                 int totalBytes = 0;
                                 int bytesRead;
