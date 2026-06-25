@@ -40,25 +40,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
-        <!-- Use the same TextBox ControlTemplate from the rest of the app for rounded corners -->
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
-            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
-            <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     <ContentControl Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
