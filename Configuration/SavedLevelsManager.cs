@@ -1,29 +1,21 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 
 namespace LbpArchiveToolkit.Configuration
 {
     public static class SavedLevelsManager
     {
-        private static readonly string FilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-            "LbpArchiveToolkit", "savedlevels.json");
+        private const string FileName = "savedlevels.json";
 
         public static List<string> SavedLevels { get; set; } = [];
 
         public static void Load(List<string> legacyLevels)
         {
-            if (File.Exists(FilePath))
+            string path = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", FileName);
+            
+            if (File.Exists(path))
             {
-                try
-                {
-                    string json = File.ReadAllText(FilePath);
-                    var levels = JsonSerializer.Deserialize<List<string>>(json);
-                    if (levels != null) SavedLevels = levels;
-                }
-                catch { }
+                SavedLevels = JsonFileHelper.LoadList<string>(FileName);
             }
             else if (legacyLevels != null && legacyLevels.Count > 0)
             {
@@ -33,18 +25,7 @@ namespace LbpArchiveToolkit.Configuration
             }
         }
 
-        public static void Save()
-        {
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-                string json = JsonSerializer.Serialize(SavedLevels, new JsonSerializerOptions { WriteIndented = true });
-                string tempPath = FilePath + ".tmp";
-                File.WriteAllText(tempPath, json);
-                File.Move(tempPath, FilePath, overwrite: true);
-            }
-            catch { }
-        }
+        public static void Save() => JsonFileHelper.SaveList(FileName, SavedLevels);
 
         public static bool Contains(string id)
         {
