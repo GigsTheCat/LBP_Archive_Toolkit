@@ -55,7 +55,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, [EnumeratorCancellation] CancellationToken token = default)
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -68,7 +68,7 @@ namespace LbpArchiveToolkit.Services
             // Execute seamless, one-time integer conversion only for FTS5-enabled databases
             if (_hasFtsTable)
             {
-                await MigrateBitfieldsAsync(conn, token).ConfigureAwait(false);
+                await MigrateBitfieldsAsync(conn, progress, token).ConfigureAwait(false);
             }
 
             long reqL0 = 0, reqL1 = 0;
@@ -501,7 +501,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Schema Resolution & Utilities
 
-        private async Task MigrateBitfieldsAsync(SqliteConnection conn, CancellationToken token)
+        private async Task MigrateBitfieldsAsync(SqliteConnection conn, IProgress<string>? progress, CancellationToken token)
         {
             using var checkCmd = new SqliteCommand("PRAGMA table_info(slot);", conn);
             using var reader = await checkCmd.ExecuteReaderAsync(token);
@@ -510,21 +510,38 @@ namespace LbpArchiveToolkit.Services
                 if (reader.GetString(1) == "labels_0") return; // Already migrated
             }
 
-            using var trans = conn.BeginTransaction();
-            try 
+            progress?.Report("One-time database optimization in progress... (Adding columns)");
+            using (var trans = conn.BeginTransaction())
             {
-                using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) cmdL0.ExecuteNonQuery();
-                using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) cmdL1.ExecuteNonQuery();
-                using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) cmdT0.ExecuteNonQuery();
-                using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) cmdT1.ExecuteNonQuery();
+                using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) await cmdL0.ExecuteNonQueryAsync(token);
+                using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) await cmdL1.ExecuteNonQueryAsync(token);
+                using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) await cmdT0.ExecuteNonQueryAsync(token);
+                using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) await cmdT1.ExecuteNonQueryAsync(token);
+                trans.Commit();
+            }
 
+            progress?.Report("One-time database optimization in progress... (Counting rows)");
+            long totalRows = 0;
+            using (var countCmd = new SqliteCommand("SELECT COUNT(*) FROM slot", conn))
+            {
+                totalRows = (long)(await countCmd.ExecuteScalarAsync(token) ?? 0L);
+            }
+
+            long processed = 0;
+            long lastId = -1;
+            int batchSize = 50000;
+
+            while (true)
+            {
                 var updates = new List<(long id, long l0, long l1, long t0, long t1)>();
-                using (var sel = new SqliteCommand("SELECT id, authorLabels, tags FROM slot", conn, trans))
+                
+                using (var sel = new SqliteCommand($"SELECT id, authorLabels, tags FROM slot WHERE id > {lastId} ORDER BY id ASC LIMIT {batchSize}", conn))
                 using (var res = await sel.ExecuteReaderAsync(token))
                 {
                     while (await res.ReadAsync(token))
                     {
                         long id = res.GetInt64(0);
+                        lastId = id;
                         byte[]? labels = res.IsDBNull(1) ? null : res.GetFieldValue<byte[]>(1);
                         byte[]? tags = res.IsDBNull(2) ? null : res.GetFieldValue<byte[]>(2);
 
@@ -549,25 +566,38 @@ namespace LbpArchiveToolkit.Services
                     }
                 }
 
-                using var upd = new SqliteCommand("UPDATE slot SET labels_0=@l0, labels_1=@l1, tags_0=@t0, tags_1=@t1 WHERE id=@id", conn, trans);
-                upd.Parameters.Add("@l0", SqliteType.Integer); upd.Parameters.Add("@l1", SqliteType.Integer);
-                upd.Parameters.Add("@t0", SqliteType.Integer); upd.Parameters.Add("@t1", SqliteType.Integer);
-                upd.Parameters.Add("@id", SqliteType.Integer);
+                if (updates.Count == 0) break;
 
-                foreach (var u in updates) {
-                    upd.Parameters["@l0"].Value = u.l0; upd.Parameters["@l1"].Value = u.l1;
-                    upd.Parameters["@t0"].Value = u.t0; upd.Parameters["@t1"].Value = u.t1;
-                    upd.Parameters["@id"].Value = u.id;
-                    await upd.ExecuteNonQueryAsync(token);
+                using (var trans = conn.BeginTransaction())
+                {
+                    using var upd = new SqliteCommand("UPDATE slot SET labels_0=@l0, labels_1=@l1, tags_0=@t0, tags_1=@t1 WHERE id=@id", conn, trans);
+                    upd.Parameters.Add("@l0", SqliteType.Integer); upd.Parameters.Add("@l1", SqliteType.Integer);
+                    upd.Parameters.Add("@t0", SqliteType.Integer); upd.Parameters.Add("@t1", SqliteType.Integer);
+                    upd.Parameters.Add("@id", SqliteType.Integer);
+
+                    foreach (var u in updates) {
+                        upd.Parameters["@l0"].Value = u.l0; upd.Parameters["@l1"].Value = u.l1;
+                        upd.Parameters["@t0"].Value = u.t0; upd.Parameters["@t1"].Value = u.t1;
+                        upd.Parameters["@id"].Value = u.id;
+                        await upd.ExecuteNonQueryAsync(token);
+                    }
+                    trans.Commit();
                 }
-                
-                using (var cmdIdxLabels = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans)) cmdIdxLabels.ExecuteNonQuery();
-                using (var cmdIdxTags = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans)) cmdIdxTags.ExecuteNonQuery();
-                using (var cmdIdxHeart = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans)) cmdIdxHeart.ExecuteNonQuery();
-                using (var cmdIdxPlay = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans)) cmdIdxPlay.ExecuteNonQuery();
 
-                trans.Commit();            } 
-            catch { trans.Rollback(); throw; }
+                processed += updates.Count;
+                double percent = totalRows > 0 ? (double)processed / totalRows * 100 : 100;
+                progress?.Report($"One-time database optimization... {percent:F1}% ({processed:N0} / {totalRows:N0} levels migrated)");
+            }
+
+            progress?.Report("Building search indices... (This may take a moment)");
+            using (var trans = conn.BeginTransaction())
+            {
+                using (var cmdIdxLabels = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans)) await cmdIdxLabels.ExecuteNonQueryAsync(token);
+                using (var cmdIdxTags = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans)) await cmdIdxTags.ExecuteNonQueryAsync(token);
+                using (var cmdIdxHeart = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans)) await cmdIdxHeart.ExecuteNonQueryAsync(token);
+                using (var cmdIdxPlay = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans)) await cmdIdxPlay.ExecuteNonQueryAsync(token);
+                trans.Commit();
+            }
         }
 
         private void EnsureSchemaResolved()

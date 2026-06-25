@@ -392,25 +392,30 @@ namespace LbpArchiveToolkit.Services
                         {
                             long? contentLength = response.Content.Headers.ContentLength;
                             using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
-{
-    int capacity = contentLength.HasValue && contentLength.Value <= int.MaxValue ? (int)contentLength.Value : 81920;
-    using var ms = new MemoryStream(capacity);
-    byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
-    try
-    {
-        int bytesRead;
-        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ctx.Token).ConfigureAwait(false)) > 0)
-        {
-            ms.Write(buffer, 0, bytesRead);
-            if (ms.Length > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
-        }
-    }
-    finally
-    {
-        System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-    }
-    fileData = ms.ToArray();
-}
+                            {
+                                int capacity = contentLength.HasValue && contentLength.Value <= int.MaxValue ? (int)contentLength.Value : 81920;
+                                byte[] finalBuffer = new byte[capacity];
+                                int totalBytes = 0;
+                                int bytesRead;
+
+                                while ((bytesRead = await stream.ReadAsync(finalBuffer.AsMemory(totalBytes), ctx.Token).ConfigureAwait(false)) > 0)
+                                {
+                                    totalBytes += bytesRead;
+                                    if (totalBytes > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
+                                    
+                                    if (totalBytes == finalBuffer.Length)
+                                    {
+                                        Array.Resize(ref finalBuffer, finalBuffer.Length * 2);
+                                    }
+                                }
+
+                                // Trims the array bounds perfectly to size without allocating if it already perfectly matches
+                                if (totalBytes != finalBuffer.Length)
+                                {
+                                    Array.Resize(ref finalBuffer, totalBytes);
+                                }
+                                fileData = finalBuffer;
+                            }
 
                             if (fileData != null)
                             {

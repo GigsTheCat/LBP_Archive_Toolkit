@@ -384,6 +384,11 @@ namespace LbpArchiveToolkit
                 var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
 
                 var creatorLevels = new List<LevelItem>();
+                var progressReporter = new Progress<string>(status =>
+                {
+                    txtStatus.Text = status;
+                });
+
                 await foreach (var lvl in _dbService.SearchLevelsAsync(
                     selectedUser.NpHandle, 
                     exact: true, 
@@ -393,7 +398,8 @@ namespace LbpArchiveToolkit
                     limitFilter: "All", 
                     savedLevelsSnapshot, 
                     heartedLevelsSnapshot, 
-                    new AdvancedSearchCriteria()))
+                    new AdvancedSearchCriteria(),
+                    progressReporter))
                 {
                     creatorLevels.Add(lvl);
                 }
@@ -591,7 +597,12 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     int count = 0;
                     var sw = Stopwatch.StartNew();
 
-                    await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria))
+                    var progressReporter = new Progress<string>(status =>
+                    {
+                        txtStatus.Text = status;
+                    });
+
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter))
                     {
                         _resultsList.Add(lvl);
                         count++;
@@ -820,7 +831,12 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     int count = 0;
                     var sw = Stopwatch.StartNew();
                     
-                    await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria))
+                    var progressReporter = new Progress<string>(status =>
+                    {
+                        txtStatus.Text = status;
+                    });
+
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter))
                     {
                         _resultsList.Add(lvl);
                         count++;
