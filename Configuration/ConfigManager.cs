@@ -138,39 +138,40 @@ namespace LbpArchiveToolkit.Configuration
             }
         }
 
-        /// <summary>
-        /// Commits the current static state out to the configuration JSON file in AppData.
-        /// </summary>
+        private static string GetConfigJson()
+        {
+            var data = new ConfigData
+            {
+                DatabasePath = DatabasePath,
+                BackupDirectory = BackupDirectory,
+                DownloadServer = DownloadServer,
+                LocalArchivePath = LocalArchivePath,
+                Theme = Theme,
+                GameRegion = GameRegion,
+                MaxParallelDownloads = MaxParallelDownloads,
+                ForceLbp3Backups = ForceLbp3Backups,
+                Lbp2BetaToRetail = Lbp2BetaToRetail,
+                UseMemoryMappedIO = UseMemoryMappedIO,
+                WindowWidth = WindowWidth,
+                WindowHeight = WindowHeight,
+                WindowLeft = WindowLeft,
+                WindowTop = WindowTop,
+                IsMaximized = IsMaximized,
+                LastUpdateCheck = LastUpdateCheck,
+                LastSearch = LastSearch
+            };
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            return JsonSerializer.Serialize(data, options);
+        }
+
         public static void SaveConfig()
         {
             lock (_saveLock)
             {
                 try
                 {
-                    var data = new ConfigData
-                    {
-                        DatabasePath = DatabasePath,
-                        BackupDirectory = BackupDirectory,
-                        DownloadServer = DownloadServer,
-                        LocalArchivePath = LocalArchivePath,
-                        Theme = Theme,
-                        GameRegion = GameRegion,
-                        MaxParallelDownloads = MaxParallelDownloads,
-                        ForceLbp3Backups = ForceLbp3Backups,
-                        Lbp2BetaToRetail = Lbp2BetaToRetail,
-                        UseMemoryMappedIO = UseMemoryMappedIO,
-                        WindowWidth = WindowWidth,
-                        WindowHeight = WindowHeight,
-                        WindowLeft = WindowLeft,
-                        WindowTop = WindowTop,
-                        IsMaximized = IsMaximized,
-                        LastUpdateCheck = LastUpdateCheck,
-                        LastSearch = LastSearch
-                    };
-
-                    var options = new JsonSerializerOptions { WriteIndented = true };
-                    string json = JsonSerializer.Serialize(data, options);
-
+                    string json = GetConfigJson();
                     Directory.CreateDirectory(AppDataFolder);
                     string tempPath = ConfigPath + ".tmp";
                     File.WriteAllText(tempPath, json);
@@ -191,30 +192,7 @@ namespace LbpArchiveToolkit.Configuration
             await _saveLockAsync.WaitAsync().ConfigureAwait(false);
             try
             {
-                var data = new ConfigData
-                {
-                    DatabasePath = DatabasePath,
-                    BackupDirectory = BackupDirectory,
-                    DownloadServer = DownloadServer,
-                    LocalArchivePath = LocalArchivePath,
-                    Theme = Theme,
-                    GameRegion = GameRegion,
-                    MaxParallelDownloads = MaxParallelDownloads,
-                    ForceLbp3Backups = ForceLbp3Backups,
-                    Lbp2BetaToRetail = Lbp2BetaToRetail,
-                    UseMemoryMappedIO = UseMemoryMappedIO,
-                    WindowWidth = WindowWidth,
-                    WindowHeight = WindowHeight,
-                    WindowLeft = WindowLeft,
-                    WindowTop = WindowTop,
-                    IsMaximized = IsMaximized,
-                    LastUpdateCheck = LastUpdateCheck,
-                    LastSearch = LastSearch
-                };
-
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(data, options);
-
+                string json = GetConfigJson();
                 Directory.CreateDirectory(AppDataFolder);
                 string tempPath = ConfigPath + ".tmp";
                 await File.WriteAllTextAsync(tempPath, json).ConfigureAwait(false);
