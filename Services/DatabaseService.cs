@@ -194,9 +194,29 @@ namespace LbpArchiveToolkit.Services
             
             BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, _hasFtsTable);
 
-            if (_colHeart != "NULL") queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
+            bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
+
+            if (_hasFtsTable && hasKeyword) 
+            {
+                if (isAllLimit)
+                {
+                    queryBuilder.Append(" ORDER BY f.rank");
+                }
+                else if (_colHeart != "NULL")
+                {
+                    queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
+                }
+                else
+                {
+                    queryBuilder.Append(" ORDER BY f.rank");
+                }
+            }
+            else if (_colHeart != "NULL") 
+            {
+                queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
+            }
             
-            if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
+            if (!isAllLimit && int.TryParse(limitFilter, out int limit))
             {
                 queryBuilder.Append($" LIMIT {limit}");
             }
@@ -341,10 +361,10 @@ namespace LbpArchiveToolkit.Services
                     Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
                     Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
                     Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
-                    Genre = reader.IsDBNull(8) ? "Unknown" : MapGenreToString(reader.GetValue(8)),
-                    Hash = reader.IsDBNull(9) ? "" : GetHashString(reader.GetValue(9)),
-                    IconHash = reader.IsDBNull(10) ? "" : GetHashString(reader.GetValue(10)),
-                    IsMmPick = reader.IsDBNull(11) ? false : Convert.ToBoolean(reader.GetValue(11))
+                    Genre = reader.IsDBNull(8) ? "Unknown" : (reader.GetFieldType(8) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(8), "Unknown") : MapGenreToString(reader.GetValue(8))),
+                    Hash = reader.IsDBNull(9) ? "" : (reader.GetFieldType(9) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(9)) : reader.GetString(9)),
+                    IconHash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
+                    IsMmPick = reader.IsDBNull(11) ? false : reader.GetBoolean(11)
                 };
 
                 yield return levelItem;

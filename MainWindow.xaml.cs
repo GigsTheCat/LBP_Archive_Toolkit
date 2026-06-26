@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -32,7 +33,7 @@ namespace LbpArchiveToolkit
         private CancellationTokenSource? _userSelectionCts;
 
         private DatabaseService _dbService;
-        private List<LevelItem> _resultsList = new();
+        private ObservableCollection<LevelItem> _resultsList = new();
         private List<UserItem> _userResultsList = new();
         private readonly HashSet<long> _savedLevels = new();
         
@@ -574,7 +575,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             }
 
             // Clear previous results to avoid old icons flashing
-            _resultsList = new List<LevelItem>();
+            _resultsList = new ObservableCollection<LevelItem>();
             dgResults.ItemsSource = _resultsList;
             
             _userResultsList = new List<UserItem>();
@@ -598,8 +599,14 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             {
                 if (searchType == 0)
                 {
-                    _resultsList = new List<LevelItem>();
+                    _resultsList = new ObservableCollection<LevelItem>();
                     dgResults.ItemsSource = _resultsList;
+                    
+                    dgResults.Items.SortDescriptions.Clear();
+                    if (limitFilter == "All")
+                    {
+                        dgResults.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
+                    }
                     
                     int count = 0;
                     var sw = Stopwatch.StartNew();
@@ -626,8 +633,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                                 // Use Background priority so the UI rendering doesn't steal CPU time from the DB reader
                                 await Application.Current.Dispatcher.InvokeAsync(() =>
                                 {
-                                    _resultsList.AddRange(chunk);
-                                    dgResults.Items.Refresh();
+                                    foreach (var item in chunk) _resultsList.Add(item);
                                     txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels..." : $"Found {count} levels for '{keyword}'...";
                                 }, System.Windows.Threading.DispatcherPriority.Background);
                                 
@@ -641,7 +647,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             var chunk = buffer.ToList();
                             await Application.Current.Dispatcher.InvokeAsync(() =>
                             {
-                                _resultsList.AddRange(chunk);
+                                foreach (var item in chunk) _resultsList.Add(item);
                             });
                         }
                     });
@@ -649,14 +655,12 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = count;
                     progressBar.Value = count; 
-
-                    dgResults.Items.Refresh();
                     txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels." : $"Found {count} levels for '{keyword}'.";
 
-                    if (_resultsList.Any())
+                    if (dgResults.Items.Count > 0)
                     {
                         dgResults.SelectedIndex = 0;
-                        dgResults.ScrollIntoView(_resultsList[0]);
+                        dgResults.ScrollIntoView(dgResults.Items[0]);
                     }
 
                     _currentSearch = new SearchState
@@ -848,7 +852,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             progressBar.Visibility = Visibility.Visible;
             progressBar.IsIndeterminate = true;
 
-            _resultsList = new List<LevelItem>();
+            _resultsList = new ObservableCollection<LevelItem>();
             dgResults.ItemsSource = _resultsList;
             
             _userResultsList = new List<UserItem>();
@@ -863,8 +867,14 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             {
                 if (state.SearchTypeIndex == 0)
                 {
-                    _resultsList = new List<LevelItem>();
+                    _resultsList = new ObservableCollection<LevelItem>();
                     dgResults.ItemsSource = _resultsList;
+                    
+                    dgResults.Items.SortDescriptions.Clear();
+                    if (limitFilter == "All")
+                    {
+                        dgResults.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
+                    }
                     
                     int count = 0;
                     var sw = Stopwatch.StartNew();
@@ -889,8 +899,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
 
                                 await Application.Current.Dispatcher.InvokeAsync(() =>
                                 {
-                                    _resultsList.AddRange(chunk);
-                                    dgResults.Items.Refresh();
+                                    foreach (var item in chunk) _resultsList.Add(item);
                                     txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels..." : $"Restored {count} levels for '{state.SearchText}'...";
                                 }, System.Windows.Threading.DispatcherPriority.Background);
                                 
@@ -903,7 +912,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             var chunk = buffer.ToList();
                             await Application.Current.Dispatcher.InvokeAsync(() =>
                             {
-                                _resultsList.AddRange(chunk);
+                                foreach (var item in chunk) _resultsList.Add(item);
                             });
                         }
                     });
@@ -911,8 +920,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = count;
                     progressBar.Value = count; 
-
-                    dgResults.Items.Refresh();
                     txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels." : $"Restored {count} levels for '{state.SearchText}'.";
 
                     dgResults.SelectedItem = null;
@@ -926,11 +933,11 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                             dgResults.ScrollIntoView(itemToSelect);
                         }
                     }
-                    if (dgResults.SelectedItem == null && _resultsList.Any())
+                    if (dgResults.SelectedItem == null && dgResults.Items.Count > 0)
                     {
                         dgResults.SelectedIndex = 0;
                         dgResults.UpdateLayout();
-                        dgResults.ScrollIntoView(_resultsList[0]);
+                        dgResults.ScrollIntoView(dgResults.Items[0]);
                     }
                 }
                 else
