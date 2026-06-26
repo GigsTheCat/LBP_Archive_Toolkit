@@ -44,6 +44,7 @@ namespace LbpArchiveToolkit
             chkForceLbp3.IsChecked = ConfigManager.ForceLbp3Backups;
             chkLbp2Beta.IsChecked = ConfigManager.Lbp2BetaToRetail;
             chkUseMmap.IsChecked = ConfigManager.UseMemoryMappedIO;
+            chkLoadDbIntoRam.IsChecked = ConfigManager.LoadDbIntoRam;
 
             // Dynamically populate available themes from the ThemeManager
             cmbTheme.Items.Clear();
@@ -236,6 +237,7 @@ namespace LbpArchiveToolkit
                 chkForceLbp3.IsChecked = false;
                 chkLbp2Beta.IsChecked = true;
                 chkUseMmap.IsChecked = false;
+                chkLoadDbIntoRam.IsChecked = false;
 
                 foreach (System.Windows.Controls.ComboBoxItem item in cmbRegion.Items)
                 {
@@ -269,6 +271,7 @@ namespace LbpArchiveToolkit
             ConfigManager.ForceLbp3Backups = chkForceLbp3.IsChecked == true;
             ConfigManager.Lbp2BetaToRetail = chkLbp2Beta.IsChecked == true;
             ConfigManager.UseMemoryMappedIO = chkUseMmap.IsChecked == true;
+            ConfigManager.LoadDbIntoRam = chkLoadDbIntoRam.IsChecked == true;
 
             // Save selected theme configuration
             if (cmbTheme.SelectedItem is System.Windows.Controls.ComboBoxItem selectedThemeItem)

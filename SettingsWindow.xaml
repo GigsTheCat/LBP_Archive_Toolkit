@@ -245,6 +245,7 @@
                                 <CheckBox x:Name="chkForceLbp3" Content="Force LBP3 Backups (Useful if playing on retail LBP3)"/>
                                 <CheckBox x:Name="chkLbp2Beta" Content="LBP2 Beta to Retail (Enable if importing corrupt errors)"/>
                                 <CheckBox x:Name="chkUseMmap" Content="Use mmap for database (faster search, uses more RAM)"/>
+                                <CheckBox x:Name="chkLoadDbIntoRam" Content="Load entire DB into RAM (Extreme speed, requires ~6GB+ free RAM)"/>
                             </StackPanel>
 
                             <Rectangle Style="{StaticResource Separator}"/>

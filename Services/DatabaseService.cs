@@ -19,6 +19,9 @@ namespace LbpArchiveToolkit.Services
         private readonly string _dbPath;
         private readonly System.Threading.Lock _schemaLock = new();
         
+        private SqliteConnection? _keepAliveMemConn;
+        private readonly SemaphoreSlim _ramLoadLock = new(1, 1);
+
         private volatile bool _isSchemaResolved = false;
         private bool _hasFtsTable = false; 
         
@@ -51,6 +54,45 @@ namespace LbpArchiveToolkit.Services
             _dbPath = dbPath;
         }
 
+        private string GetConnectionString()
+        {
+            if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam && _keepAliveMemConn != null)
+                return "Data Source=lbpramdb;Mode=Memory;Cache=Shared";
+                
+            return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite }.ConnectionString;
+        }
+
+        private async Task EnsureRamDbLoadedAsync(IProgress<string>? progress)
+        {
+            if (!LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam || _keepAliveMemConn != null) return;
+
+            await _ramLoadLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_keepAliveMemConn == null)
+                {
+                    progress?.Report("Loading 4.9GB database into RAM... (This may take a moment)");
+                    await Task.Run(() => {
+                        var memConn = new SqliteConnection("Data Source=lbpramdb;Mode=Memory;Cache=Shared");
+                        memConn.Open();
+                        
+                        var builder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+                        using var diskConn = new SqliteConnection(builder.ConnectionString);
+                        diskConn.Open();
+                        
+                        // Performs an ultra-fast raw page copy from the SSD directly into RAM
+                        diskConn.BackupDatabase(memConn);
+                        
+                        _keepAliveMemConn = memConn;
+                    }).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _ramLoadLock.Release();
+            }
+        }
+
         #endregion
 
         #region Public API
@@ -61,15 +103,26 @@ namespace LbpArchiveToolkit.Services
 
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
-            using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-            await conn.OpenAsync(token);
+            // Always open a disk connection first to apply structural migrations permanently
+            var diskConnBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
+            using var diskConn = new SqliteConnection(diskConnBuilder.ConnectionString);
+            await diskConn.OpenAsync(token);
             
             // Execute seamless, one-time integer conversion only for FTS5-enabled databases
             if (_hasFtsTable)
             {
-                await MigrateBitfieldsAsync(conn, progress, token).ConfigureAwait(false);
+                await MigrateBitfieldsAsync(diskConn, progress, token).ConfigureAwait(false);
             }
+
+            // Copy disk database into DDR5 RAM if requested
+            if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam)
+            {
+                await EnsureRamDbLoadedAsync(progress).ConfigureAwait(false);
+            }
+
+            // Route standard SQL queries to whichever database source was resolved
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token);
 
             long reqL0 = 0, reqL1 = 0;
             var friendlyNames = LabelParser.GetFriendlyNames();
@@ -307,8 +360,13 @@ namespace LbpArchiveToolkit.Services
 
                 EnsureSchemaResolved();
 
-                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
-                using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+                // Wait synchronously if a RAM load was requested (since this method is inside Task.Run)
+                if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam)
+                {
+                    EnsureRamDbLoadedAsync(null).GetAwaiter().GetResult();
+                }
+
+                using var conn = new SqliteConnection(GetConnectionString());
                 conn.Open();
 
                 var queryBuilder = new StringBuilder();

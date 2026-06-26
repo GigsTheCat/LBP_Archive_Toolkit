@@ -24,6 +24,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool ForceLbp3Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
         public static bool UseMemoryMappedIO { get; set; } = false;
+        public static bool LoadDbIntoRam { get; set; } = false;
         
         public static List<string> LegacySavedLevels { get; set; } = [];
         public static MainWindow.SearchState? LastSearch { get; set; }
@@ -69,6 +70,7 @@ namespace LbpArchiveToolkit.Configuration
             public bool ForceLbp3Backups { get; set; }
             public bool Lbp2BetaToRetail { get; set; }
             public bool UseMemoryMappedIO { get; set; }
+            public bool LoadDbIntoRam { get; set; }
             public double WindowWidth { get; set; }
             public double WindowHeight { get; set; }
             public double WindowLeft { get; set; }
@@ -122,6 +124,7 @@ namespace LbpArchiveToolkit.Configuration
                     ForceLbp3Backups = data.ForceLbp3Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail;
                     UseMemoryMappedIO = data.UseMemoryMappedIO;
+                    LoadDbIntoRam = data.LoadDbIntoRam;
                     WindowWidth = data.WindowWidth;
                     WindowHeight = data.WindowHeight;
                     WindowLeft = data.WindowLeft;
@@ -152,6 +155,7 @@ namespace LbpArchiveToolkit.Configuration
                 ForceLbp3Backups = ForceLbp3Backups,
                 Lbp2BetaToRetail = Lbp2BetaToRetail,
                 UseMemoryMappedIO = UseMemoryMappedIO,
+                LoadDbIntoRam = LoadDbIntoRam,
                 WindowWidth = WindowWidth,
                 WindowHeight = WindowHeight,
                 WindowLeft = WindowLeft,
