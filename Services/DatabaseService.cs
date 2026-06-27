@@ -24,6 +24,7 @@ namespace LbpArchiveToolkit.Services
 
         private volatile bool _isSchemaResolved = false;
         private bool _hasFtsTable = false; 
+        private bool _hasTagsFtsTable = false;
         
         private string _colGame = "NULL";
         private string _colDate = "NULL";
@@ -60,6 +61,25 @@ namespace LbpArchiveToolkit.Services
                 return "Data Source=lbpramdb;Mode=Memory;Cache=Shared";
                 
             return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite }.ConnectionString;
+        }
+
+        private void ApplyConnectionOptimizations(SqliteConnection conn)
+        {
+            try
+            {
+                string pragmaCmd = "PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
+                if (LbpArchiveToolkit.Configuration.ConfigManager.UseMemoryMappedIO)
+                {
+                    pragmaCmd += " PRAGMA mmap_size = 2147483648;";
+                }
+
+                using var cmdPragma = new SqliteCommand(pragmaCmd, conn);
+                cmdPragma.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("DatabaseService.ApplyConnectionOptimizations", ex);
+            }
         }
 
         private async Task EnsureRamDbLoadedAsync(IProgress<string>? progress)
@@ -103,17 +123,6 @@ namespace LbpArchiveToolkit.Services
 
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
-            // Always open a disk connection first to apply structural migrations permanently
-            var diskConnBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
-            using var diskConn = new SqliteConnection(diskConnBuilder.ConnectionString);
-            await diskConn.OpenAsync(token);
-            
-            // Execute seamless, one-time integer conversion only for FTS5-enabled databases
-            if (_hasFtsTable)
-            {
-                await MigrateBitfieldsAsync(diskConn, progress, token).ConfigureAwait(false);
-            }
-
             // Copy disk database into DDR5 RAM if requested
             if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam)
             {
@@ -123,6 +132,7 @@ namespace LbpArchiveToolkit.Services
             // Route standard SQL queries to whichever database source was resolved
             using var conn = new SqliteConnection(GetConnectionString());
             await conn.OpenAsync(token);
+            ApplyConnectionOptimizations(conn);
 
             long reqL0 = 0, reqL1 = 0;
             var friendlyNames = LabelParser.GetFriendlyNames();
@@ -152,7 +162,9 @@ namespace LbpArchiveToolkit.Services
             var parameters = new List<SqliteParameter>();
 
             bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
-            string pfx = (_hasFtsTable && hasKeyword) ? "s." : "";
+            bool hasTagsFilter = advanced.RequiredLabels.Count > 0 || advanced.RequiredTags.Count > 0 || advanced.IsTeamPick;
+            bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable;
+            string pfx = (_hasFtsTable && (hasKeyword || useFtsForTags)) ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
             queryBuilder.Append("SELECT ")
@@ -177,10 +189,34 @@ namespace LbpArchiveToolkit.Services
 
             queryBuilder.Append(" FROM slot ");
 
-            if (_hasFtsTable && hasKeyword)
+            if (_hasFtsTable && (hasKeyword || useFtsForTags))
             {
-                queryBuilder.Append("s INNER JOIN slot_fts f ON s.id = f.id WHERE ");
-                BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+                queryBuilder.Append("s ");
+                
+                if (hasKeyword)
+                    queryBuilder.Append("INNER JOIN slot_fts f ON s.id = f.id ");
+                    
+                if (useFtsForTags)
+                    queryBuilder.Append("INNER JOIN slot_tags_fts tf ON s.id = tf.rowid ");
+                    
+                queryBuilder.Append("WHERE 1=1 ");
+                
+                if (hasKeyword)
+                {
+                    queryBuilder.Append("AND ");
+                    BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
+                }
+                
+                if (useFtsForTags)
+                {
+                    var tagTokens = new List<string>();
+                    foreach (var l in advanced.RequiredLabels) tagTokens.Add($"\"LBL_{l.Replace(" ", "")}\"");
+                    foreach (var t in advanced.RequiredTags) tagTokens.Add($"\"TAG_{t.Replace(" ", "")}\"");
+                    if (advanced.IsTeamPick) tagTokens.Add("\"MM_PICK\"");
+                    
+                    queryBuilder.Append(" AND slot_tags_fts MATCH @tagMatch");
+                    parameters.Add(new SqliteParameter("@tagMatch", string.Join(" AND ", tagTokens)));
+                }
             }
             else
             {
@@ -192,7 +228,7 @@ namespace LbpArchiveToolkit.Services
                 }
             }
             
-            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, _hasFtsTable);
+            BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, useFtsForTags);
 
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
 
@@ -216,9 +252,15 @@ namespace LbpArchiveToolkit.Services
                 queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
             }
             
-            if (!isAllLimit && int.TryParse(limitFilter, out int limit))
+            bool needsCSharpFiltering = !useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0);
+            int parsedLimit = int.MaxValue;
+
+            if (!isAllLimit && int.TryParse(limitFilter, out parsedLimit))
             {
-                queryBuilder.Append($" LIMIT {limit}");
+                if (!needsCSharpFiltering)
+                {
+                    queryBuilder.Append($" LIMIT {parsedLimit}");
+                }
             }
             
             using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
@@ -368,6 +410,12 @@ namespace LbpArchiveToolkit.Services
                 };
 
                 yield return levelItem;
+                
+                if (needsCSharpFiltering)
+                {
+                    parsedLimit--;
+                    if (parsedLimit <= 0) break;
+                }
             }
         }
 
@@ -388,6 +436,7 @@ namespace LbpArchiveToolkit.Services
 
                 using var conn = new SqliteConnection(GetConnectionString());
                 conn.Open();
+                ApplyConnectionOptimizations(conn);
 
                 var queryBuilder = new StringBuilder();
                 var parameters = new List<SqliteParameter>();
@@ -554,150 +603,17 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
-            if (advanced.IsTeamPick && _colMmPick != "NULL")
+            if (advanced.IsTeamPick && !_hasFtsTable && _colMmPick != "NULL")
             {
                 query.Append($" AND {pfx}{_colMmPick} = 1");
             }
 
-            if (hasFts)
-            {
-                if (reqL0 != 0) {
-                    query.Append($" AND ({pfx}labels_0 & @reqL0) = @reqL0");
-                    parameters.Add(new SqliteParameter("@reqL0", reqL0));
-                }
-                if (reqL1 != 0) {
-                    query.Append($" AND ({pfx}labels_1 & @reqL1) = @reqL1");
-                    parameters.Add(new SqliteParameter("@reqL1", reqL1));
-                }
-
-                if (reqT0 != 0) {
-                    query.Append($" AND ({pfx}tags_0 & @reqT0) = @reqT0");
-                    parameters.Add(new SqliteParameter("@reqT0", reqT0));
-                }
-                if (reqT1 != 0) {
-                    query.Append($" AND ({pfx}tags_1 & @reqT1) = @reqT1");
-                    parameters.Add(new SqliteParameter("@reqT1", reqT1));
-                }
-            }
+            
         }
 
         #endregion
 
         #region Schema Resolution & Utilities
-
-        private async Task MigrateBitfieldsAsync(SqliteConnection conn, IProgress<string>? progress, CancellationToken token)
-        {
-            using var versionCmd = new SqliteCommand("PRAGMA user_version;", conn);
-            long userVersion = (long)(await versionCmd.ExecuteScalarAsync(token) ?? 0L);
-            if (userVersion >= 1) return; // Already fully migrated
-
-            bool hasLabels0 = false;
-            using var checkCmd = new SqliteCommand("PRAGMA table_info(slot);", conn);
-            using var reader = await checkCmd.ExecuteReaderAsync(token);
-            while (await reader.ReadAsync(token)) 
-            {
-                if (reader.GetString(1) == "labels_0")
-                {
-                    hasLabels0 = true;
-                    break;
-                }
-            }
-
-            if (!hasLabels0)
-            {
-                progress?.Report("One-time database optimization in progress... (Adding columns)");
-                using (var trans = conn.BeginTransaction())
-                {
-                    using (var cmdL0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_0 INTEGER DEFAULT 0;", conn, trans)) await cmdL0.ExecuteNonQueryAsync(token);
-                    using (var cmdL1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN labels_1 INTEGER DEFAULT 0;", conn, trans)) await cmdL1.ExecuteNonQueryAsync(token);
-                    using (var cmdT0 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_0 INTEGER DEFAULT 0;", conn, trans)) await cmdT0.ExecuteNonQueryAsync(token);
-                    using (var cmdT1 = new SqliteCommand("ALTER TABLE slot ADD COLUMN tags_1 INTEGER DEFAULT 0;", conn, trans)) await cmdT1.ExecuteNonQueryAsync(token);
-                    trans.Commit();
-                }
-            }
-
-            progress?.Report("One-time database optimization in progress... (Counting rows)");
-            long totalRows = 0;
-            using (var countCmd = new SqliteCommand("SELECT COUNT(*) FROM slot", conn))
-            {
-                totalRows = (long)(await countCmd.ExecuteScalarAsync(token) ?? 0L);
-            }
-
-            long processed = 0;
-            long lastId = -1;
-            int batchSize = 50000;
-
-            while (true)
-            {
-                var updates = new List<(long id, long l0, long l1, long t0, long t1)>();
-                
-                using (var sel = new SqliteCommand($"SELECT id, authorLabels, tags FROM slot WHERE id > {lastId} ORDER BY id ASC LIMIT {batchSize}", conn))
-                using (var res = await sel.ExecuteReaderAsync(token))
-                {
-                    while (await res.ReadAsync(token))
-                    {
-                        long id = res.GetInt64(0);
-                        lastId = id;
-                        byte[]? labels = res.IsDBNull(1) ? null : res.GetFieldValue<byte[]>(1);
-                        byte[]? tags = res.IsDBNull(2) ? null : res.GetFieldValue<byte[]>(2);
-
-                        long l0 = 0, l1 = 0, t0 = 0, t1 = 0;
-                        if (labels != null) {
-                            for (int i = 0; i < 85; i++) {
-                                int byteIndex = (labels.Length - 1) - (i >> 3);
-                                if (byteIndex >= 0 && byteIndex < labels.Length && (labels[byteIndex] & (1 << (i & 7))) != 0) {
-                                    if (i < 64) l0 |= (1L << i); else l1 |= (1L << (i - 64));
-                                }
-                            }
-                        }
-                        if (tags != null) {
-                            for (int i = 0; i < 76; i++) {
-                                int byteIndex = (tags.Length - 1) - (i >> 3);
-                                if (byteIndex >= 0 && byteIndex < tags.Length && (tags[byteIndex] & (1 << (i & 7))) != 0) {
-                                    if (i < 64) t0 |= (1L << i); else t1 |= (1L << (i - 64));
-                                }
-                            }
-                        }
-                        updates.Add((id, l0, l1, t0, t1));
-                    }
-                }
-
-                if (updates.Count == 0) break;
-
-                using (var trans = conn.BeginTransaction())
-                {
-                    using var upd = new SqliteCommand("UPDATE slot SET labels_0=@l0, labels_1=@l1, tags_0=@t0, tags_1=@t1 WHERE id=@id", conn, trans);
-                    upd.Parameters.Add("@l0", SqliteType.Integer); upd.Parameters.Add("@l1", SqliteType.Integer);
-                    upd.Parameters.Add("@t0", SqliteType.Integer); upd.Parameters.Add("@t1", SqliteType.Integer);
-                    upd.Parameters.Add("@id", SqliteType.Integer);
-
-                    foreach (var u in updates) {
-                        upd.Parameters["@l0"].Value = u.l0; upd.Parameters["@l1"].Value = u.l1;
-                        upd.Parameters["@t0"].Value = u.t0; upd.Parameters["@t1"].Value = u.t1;
-                        upd.Parameters["@id"].Value = u.id;
-                        await upd.ExecuteNonQueryAsync(token);
-                    }
-                    trans.Commit();
-                }
-
-                processed += updates.Count;
-                double percent = totalRows > 0 ? (double)processed / totalRows * 100 : 100;
-                progress?.Report($"One-time database optimization... {percent:F1}% ({processed:N0} / {totalRows:N0} levels migrated)");
-            }
-
-            progress?.Report("Building search indices... (This may take a moment)");
-            using (var trans = conn.BeginTransaction())
-            {
-                using (var cmdIdxLabels = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_labels ON slot(labels_0, labels_1);", conn, trans)) await cmdIdxLabels.ExecuteNonQueryAsync(token);
-                using (var cmdIdxTags = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_tags ON slot(tags_0, tags_1);", conn, trans)) await cmdIdxTags.ExecuteNonQueryAsync(token);
-                using (var cmdIdxHeart = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_heartCount ON slot(heartCount DESC);", conn, trans)) await cmdIdxHeart.ExecuteNonQueryAsync(token);
-                using (var cmdIdxPlay = new SqliteCommand("CREATE INDEX IF NOT EXISTS idx_slot_playCount ON slot(playCount DESC);", conn, trans)) await cmdIdxPlay.ExecuteNonQueryAsync(token);
-                trans.Commit();
-            }
-
-            using var setVersionCmd = new SqliteCommand("PRAGMA user_version = 1;", conn);
-            await setVersionCmd.ExecuteNonQueryAsync(token);
-        }
 
         private void EnsureSchemaResolved()
 {
@@ -711,26 +627,7 @@ namespace LbpArchiveToolkit.Services
         using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
         conn.Open();
 
-                try
-                {
-                    // WAL: Write-Ahead Logging
-                    // temp_store = MEMORY: Forces complex ORDER BY sorts into RAM instead of temp files
-                    // cache_size = -64000: Gives SQLite ~64MB of dedicated RAM for caching query results
-                    string pragmaCmd = "PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
-                    
-                    if (LbpArchiveToolkit.Configuration.ConfigManager.UseMemoryMappedIO)
-                    {
-                        // Maps the entire DB directly into memory to bypass OS read-buffers
-                        pragmaCmd += " PRAGMA mmap_size = 2147483648;";
-                    }
-
-                    using var cmdPragma = new SqliteCommand(pragmaCmd, conn);
-                    cmdPragma.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    LbpArchiveToolkit.LogManager.Log("DatabaseService.EnsureSchemaResolved (WAL Mode)", ex);
-                }
+                ApplyConnectionOptimizations(conn);
 
                 var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using (var cmdInfo = new SqliteCommand("PRAGMA table_info(slot)", conn))
@@ -742,6 +639,11 @@ namespace LbpArchiveToolkit.Services
                 using (var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn))
                 {
                     _hasFtsTable = Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
+                }
+
+                using (var cmdTagsFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_tags_fts'", conn))
+                {
+                    _hasTagsFtsTable = Convert.ToInt32(cmdTagsFts.ExecuteScalar()) > 0;
                 }
 
                 _colGame = GetDbColumn(columns, "gameVersion", "game");
