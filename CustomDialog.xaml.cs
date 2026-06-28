@@ -12,7 +12,7 @@ namespace LbpArchiveToolkit
             txtMessage.Text = message;
 
             // Automatically show the copy button if this is an error dialogue
-            if (title.Contains("Error", System.StringComparison.OrdinalIgnoreCase) || 
+            if (title.Contains("Error", System.StringComparison.OrdinalIgnoreCase) ||
                 title.Contains("Failed", System.StringComparison.OrdinalIgnoreCase))
             {
                 btnCopy.Visibility = Visibility.Visible;
@@ -50,15 +50,15 @@ namespace LbpArchiveToolkit
             try
             {
                 Clipboard.SetText(txtMessage.Text);
-                
+
                 string oldText = btnCopy.Content.ToString() ?? "COPY";
                 btnCopy.Content = "COPIED!";
                 await System.Threading.Tasks.Task.Delay(2000);
                 btnCopy.Content = oldText;
             }
-            catch (Exception ex) 
-            { 
-                LogManager.Log("CustomDialog.BtnCopy_Click", ex); 
+            catch (Exception ex)
+            {
+                LogManager.Log("CustomDialog.BtnCopy_Click", ex);
             }
         }
 

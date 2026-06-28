@@ -1,7 +1,5 @@
-using System;
 using System.IO;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -51,46 +49,46 @@ namespace LbpArchiveToolkit.Utils
 
             using var ms = new MemoryStream(resourceData);
             using var br = new BinaryReader(ms);
-            
+
             byte[] resrcType = br.ReadBytes(3);
             byte method = br.ReadByte();
-            
+
             string typeStr = System.Text.Encoding.ASCII.GetString(resrcType);
             if (typeStr != "TEX" && typeStr != "GTF") throw new InvalidDataException("Unsupported texture type: " + typeStr);
-                
+
             byte format = 0;
             int width = 0, height = 0, mipCount = 1;
             bool isLinear = false;
-            
+
             if (typeStr == "GTF")
             {
                 br.BaseStream.Position = 0x14; // GTF header starts exactly 20 bytes into the stream
                 format = br.ReadByte();
-                
+
                 // PS3 libgcm uses the 0x20 bit to explicitly mark a texture as LINEAR in memory.
                 isLinear = (format & 0x20) != 0;
-                
+
                 // Mask out the linear bit (0x20) and no-restriction bit (0x40) to get the base format
                 format = (byte)(format & ~(0x20 | 0x40));
-                
+
                 mipCount = br.ReadByte();
                 br.ReadBytes(6); // Skip dimension, cubemap, remap
                 width = BigEndianUInt16(br);
                 height = BigEndianUInt16(br);
-                
+
                 br.BaseStream.Position = 44; // Jump straight into chunk tables
             }
             else
             {
                 br.BaseStream.Position = 4; // Go to the chunk count in TEX
             }
-            
-            br.ReadUInt16(); 
+
+            br.ReadUInt16();
             ushort numChunks = BigEndianUInt16(br);
-            
+
             var chunkInfos = new System.Collections.Generic.List<(ushort comp, ushort decomp)>();
             long totalDecompSize = 0;
-            
+
             for (int i = 0; i < numChunks; i++)
             {
                 ushort compSize = BigEndianUInt16(br);
@@ -104,7 +102,7 @@ namespace LbpArchiveToolkit.Utils
             {
                 throw new InvalidDataException("Decompressed texture size exceeds safety limits.");
             }
-            
+
             // Rent from pool to completely bypass Large Object Heap fragmentation
             byte[] finalData = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalDecompSize);
             byte[]? unswizzled = null;
@@ -128,9 +126,9 @@ namespace LbpArchiveToolkit.Utils
                         {
                             int compBytesRead = br.Read(deflatedData, 0, info.comp);
                             if (compBytesRead != info.comp) throw new EndOfStreamException("Unexpected end of stream while reading compressed texture chunk.");
-                            
+
                             using var msIn = new MemoryStream(deflatedData, 0, info.comp);
-                            using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);                        
+                            using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
                             int bytesRead = 0;
                             while (bytesRead < info.decomp)
                             {
@@ -167,7 +165,7 @@ namespace LbpArchiveToolkit.Utils
                         unswizzled = Unswizzle(finalData, format, width, height, mipCount);
                         var temp = finalData;
                         finalData = unswizzled;
-                        unswizzled = temp; 
+                        unswizzled = temp;
                     }
 
                     // Restore 16-bit blocks back to Little-Endian for the GPU
@@ -202,12 +200,12 @@ namespace LbpArchiveToolkit.Utils
             var span = finalData.AsSpan();
             uint headerSize = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(4));
             int dataOffset = (int)(4 + headerSize);
-            
+
             if (dataLength < dataOffset || dataLength < 128) return null;
 
             int width = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(span.Slice(16));
             int height = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(span.Slice(12));
-            
+
             // DDS_PIXELFORMAT is located at offset 76 in the DDS_HEADER (80 absolute)
             uint pfFlags = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(80));
             uint fourCC = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(84));
@@ -219,13 +217,13 @@ namespace LbpArchiveToolkit.Utils
                 if (fourCC == 0x31545844) format = 0x86; // DXT1
                 else if (fourCC == 0x33545844) format = 0x87; // DXT3
                 else if (fourCC == 0x35545844) format = 0x88; // DXT5
-                else format = 0x86; 
+                else format = 0x86;
             }
             else
             {
                 if (bitCount == 32) format = 0x89;
                 else if (bitCount == 8) format = 0x81;
-                else format = 0x89; 
+                else format = 0x89;
             }
 
             if (width == 0 || height == 0) return null;
@@ -267,10 +265,10 @@ namespace LbpArchiveToolkit.Utils
                 {
                     int src = dataOffset + i * 4;
                     int dst = i * 4;
-                    bgra[dst]     = data[src + 3];
+                    bgra[dst] = data[src + 3];
                     bgra[dst + 1] = data[src + 2];
                     bgra[dst + 2] = data[src + 1];
-                    bgra[dst + 3] = data[src];    
+                    bgra[dst + 3] = data[src];
                 }
                 return bgra;
             }
@@ -285,7 +283,7 @@ namespace LbpArchiveToolkit.Utils
                 {
                     byte val = data[dataOffset + i];
                     int dst = i * 4;
-                    bgra[dst]     = val;
+                    bgra[dst] = val;
                     bgra[dst + 1] = val;
                     bgra[dst + 2] = val;
                     bgra[dst + 3] = 255;
@@ -352,11 +350,11 @@ namespace LbpArchiveToolkit.Utils
                     for (int bx = 0; bx < blocksX; bx++)
                     {
                         for (int y = 0; y < 4; y++)
-                        for (int x = 0; x < 4; x++)
-                        {
-                            if (by * 4 + y < height && bx * 4 + x < width)
-                                dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF; 
-                        }
+                            for (int x = 0; x < 4; x++)
+                            {
+                                if (by * 4 + y < height && bx * 4 + x < width)
+                                    dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF;
+                            }
                     }
                 });
             }
@@ -384,9 +382,9 @@ namespace LbpArchiveToolkit.Utils
                 colors[3] = 0;
             }
 
-            uint indices = (uint)data[srcOffset + 4] | 
-                           ((uint)data[srcOffset + 5] << 8) | 
-                           ((uint)data[srcOffset + 6] << 16) | 
+            uint indices = (uint)data[srcOffset + 4] |
+                           ((uint)data[srcOffset + 5] << 8) |
+                           ((uint)data[srcOffset + 6] << 16) |
                            ((uint)data[srcOffset + 7] << 24);
 
             int startY = by * 4;
@@ -394,9 +392,9 @@ namespace LbpArchiveToolkit.Utils
             for (int y = 0; y < 4; y++)
             {
                 int py = startY + y;
-                if (py >= height) 
+                if (py >= height)
                 {
-                    indices >>= 8; 
+                    indices >>= 8;
                     continue;
                 }
                 int rowOffset = py * width;
@@ -428,7 +426,7 @@ namespace LbpArchiveToolkit.Utils
                     uint a = rowAlpha & 0xF;
                     rowAlpha >>= 4;
                     a = (a << 4) | a;
-                    
+
                     int px = startX + x;
                     if (px >= width) continue;
                     int destIdx = rowOffset + px;
@@ -444,7 +442,7 @@ namespace LbpArchiveToolkit.Utils
 
             int a0 = data[srcOffset];
             int a1 = data[srcOffset + 1];
-            
+
             Span<int> alphas = stackalloc int[8];
             alphas[0] = a0;
             alphas[1] = a1;
@@ -473,7 +471,7 @@ namespace LbpArchiveToolkit.Utils
                 int py = startY + y;
                 if (py >= height)
                 {
-                    alphaIndices >>= 12; 
+                    alphaIndices >>= 12;
                     continue;
                 }
                 int rowOffset = py * width;
@@ -481,10 +479,10 @@ namespace LbpArchiveToolkit.Utils
                 {
                     int idx = (int)(alphaIndices & 7);
                     alphaIndices >>= 3;
-                    
+
                     int px = startX + x;
                     if (px >= width) continue;
-                    
+
                     uint a = (uint)alphas[idx];
                     int destIdx = rowOffset + px;
                     uint c = dest[destIdx];
@@ -539,7 +537,7 @@ namespace LbpArchiveToolkit.Utils
             else if (format == 0x85 || format == 0x89) { bytesPerBlock = 4; blockWidth = 1; blockHeight = 1; }
             else if (format == 0x86) { bytesPerBlock = 8; blockWidth = 4; blockHeight = 4; }
             else if (format == 0x87 || format == 0x88) { bytesPerBlock = 16; blockWidth = 4; blockHeight = 4; }
-            else return data; 
+            else return data;
 
             int totalUnswizzledSize = 0;
             for (int mip = 0; mip < mipCount; mip++)
@@ -567,10 +565,10 @@ namespace LbpArchiveToolkit.Utils
 
                     int blocksX = (mipWidth + blockWidth - 1) / blockWidth;
                     int blocksY = (mipHeight + blockHeight - 1) / blockHeight;
-                    
+
                     int paddedWidth = NextPowerOfTwo(mipWidth);
                     int paddedHeight = NextPowerOfTwo(mipHeight);
-                    
+
                     int paddedBlocksX = Math.Max(1, paddedWidth / blockWidth);
                     int paddedBlocksY = Math.Max(1, paddedHeight / blockHeight);
 
@@ -641,7 +639,7 @@ namespace LbpArchiveToolkit.Utils
                 throw;
             }
         }
-        
+
         private static ushort BigEndianUInt16(BinaryReader br)
         {
             byte[] b = br.ReadBytes(2);
@@ -687,7 +685,7 @@ namespace LbpArchiveToolkit.Utils
 
                 int stride = bitmap.PixelWidth * 4;
                 bgra = System.Buffers.ArrayPool<byte>.Shared.Rent(bitmap.PixelHeight * stride);
-                
+
                 var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
                 converted.CopyPixels(bgra, stride, 0);
 
@@ -725,7 +723,7 @@ namespace LbpArchiveToolkit.Utils
             try
             {
                 Array.Clear(targetBgra, 0, targetWidth * targetHeight * 4);
-                
+
                 int offsetX = (targetWidth - scaledWidth) / 2;
                 int offsetY = (targetHeight - scaledHeight) / 2;
 

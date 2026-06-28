@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace LbpArchiveToolkit.Configuration
 {
@@ -25,7 +21,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool Lbp2BetaToRetail { get; set; } = true;
         public static bool UseMemoryMappedIO { get; set; } = false;
         public static bool LoadDbIntoRam { get; set; } = false;
-        
+
         public static List<string> LegacySavedLevels { get; set; } = [];
         public static MainWindow.SearchState? LastSearch { get; set; }
 
@@ -44,12 +40,12 @@ namespace LbpArchiveToolkit.Configuration
         private static readonly SemaphoreSlim _saveLockAsync = new SemaphoreSlim(1, 1);
 
         private static readonly string AppDataFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "LbpArchiveToolkit"
         );
 
         private static readonly string ConfigPath = Path.Combine(AppDataFolder, "config.json");
-        private const string LegacyConfigPath = "config.json"; 
+        private const string LegacyConfigPath = "config.json";
 
         #endregion
 

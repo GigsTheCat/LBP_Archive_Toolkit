@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
-using System.Windows;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
 
 namespace LbpArchiveToolkit.Services
 {
@@ -28,7 +25,7 @@ namespace LbpArchiveToolkit.Services
 
                 for (int i = 0; i < levelsToExtract.Count; i++)
                 {
-                    if (token.IsCancellationRequested) 
+                    if (token.IsCancellationRequested)
                     {
                         wasCancelled = true;
                         break;
@@ -36,7 +33,7 @@ namespace LbpArchiveToolkit.Services
 
                     var lvl = levelsToExtract[i];
                     string baseStatus = $"[{i + 1}/{levelsToExtract.Count}] Extracting: {lvl.LevelName}";
-                    
+
                     progressWin.UpdateProgress(0, 1, baseStatus, "Initializing download...");
 
                     var progressIndicator = new Progress<(int processed, int total, string message)>(report =>
@@ -54,16 +51,16 @@ namespace LbpArchiveToolkit.Services
                         };
 
                         var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
-                        
+
                         if (result.Success)
                         {
                             successCount++;
-                            
+
                             if (!SavedLevelsManager.Contains(lvl.Id.ToString()))
                             {
                                 SavedLevelsManager.SavedLevels.Add(lvl.Id.ToString());
                             }
-                            
+
                             onLevelSaved?.Invoke(lvl);
                         }
                         else
@@ -81,7 +78,7 @@ namespace LbpArchiveToolkit.Services
                         AssetDownloader.CleanupLocalArchives();
                     }
                 }
-                
+
                 if (successCount > 0)
                 {
                     SavedLevelsManager.Save();
@@ -107,7 +104,7 @@ namespace LbpArchiveToolkit.Services
 
             if (successCount > 0)
             {
-                string msg = wasCancelled ? $"Cancelled! However, {successCount} level(s) were successfully packed before cancellation.\n\nOpen backup folder?" 
+                string msg = wasCancelled ? $"Cancelled! However, {successCount} level(s) were successfully packed before cancellation.\n\nOpen backup folder?"
                                           : $"Successfully packed {successCount} level(s)!\n\nOpen backup folder?";
 
                 if (CustomDialog.Show(owner, msg, "Finished", true))

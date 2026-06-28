@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using LbpArchiveToolkit.Models;
 
 namespace LbpArchiveToolkit.Configuration

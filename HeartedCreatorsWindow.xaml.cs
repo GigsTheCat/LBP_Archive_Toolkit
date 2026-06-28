@@ -1,25 +1,16 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Net.Http;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.IO;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
-using LbpArchiveToolkit.Services;
-using LbpArchiveToolkit.Utils;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace LbpArchiveToolkit
 {
     public partial class HeartedCreatorsWindow : Window
     {
         public ObservableCollection<UserItem> HeartedList { get; set; } = new();
-        
+
         private CancellationTokenSource? _iconCts;
         private long _iconRequestCounter = 0;
         private long _currentIconRequestId = -1;
@@ -28,7 +19,7 @@ namespace LbpArchiveToolkit
         {
             InitializeComponent();
             lvHearted.ItemsSource = HeartedList;
-            
+
             LoadHeartedCreators();
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }
@@ -68,13 +59,13 @@ namespace LbpArchiveToolkit
                                       $"• LBP2 Slots: {selected.Lbp2UsedSlots}\n" +
                                       $"• LBP3 Slots: {selected.Lbp3UsedSlots}";
                 iconHeartOverlay.Visibility = Visibility.Visible;
-                
+
                 _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 _iconCts?.Cancel();
                 _iconCts = new CancellationTokenSource();
-                
+
                 await LoadUserIconAsync(selected.IconHash, selected.NpHandle, _iconCts.Token);
-            } 
+            }
             else
             {
                 txtUserNpHandle.Text = "";
@@ -120,9 +111,9 @@ namespace LbpArchiveToolkit
             if (!selectedItems.Any()) return;
 
             bool isConfirmed = CustomDialog.Show(
-                this, 
-                $"Are you sure you want to remove {selectedItems.Count} creator(s) from your hearted list?", 
-                "Confirm Removal", 
+                this,
+                $"Are you sure you want to remove {selectedItems.Count} creator(s) from your hearted list?",
+                "Confirm Removal",
                 isYesNo: true);
 
             if (isConfirmed)
@@ -160,5 +151,5 @@ namespace LbpArchiveToolkit
             }
         }
 
-            }
+    }
 }

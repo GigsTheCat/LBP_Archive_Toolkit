@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LbpArchiveToolkit.Utils
 {
     public static class LabelParser
@@ -80,7 +78,7 @@ namespace LbpArchiveToolkit.Utils
             for (int i = 0; i < LabelHashes.Length; i++)
             {
                 // Calculate from the END of the array because it is Big-Endian
-                int byteIndex = (len - 1) - (i >> 3); 
+                int byteIndex = (len - 1) - (i >> 3);
                 if (byteIndex >= 0 && byteIndex < len && (blob[byteIndex] & (1 << (i & 7))) != 0)
                 {
                     labels.Add(LabelHashes[i]);
@@ -94,10 +92,10 @@ namespace LbpArchiveToolkit.Utils
             var labels = new List<string>();
             int len = blob.Length;
             if (len == 0) return labels;
-            
+
             for (int i = 0; i < LabelTags.Length; i++)
             {
-                int byteIndex = (len - 1) - (i >> 3); 
+                int byteIndex = (len - 1) - (i >> 3);
                 if (byteIndex >= 0 && (blob[byteIndex] & (1 << (i & 7))) != 0)
                 {
                     labels.Add(FriendlyLabelNames[i]);

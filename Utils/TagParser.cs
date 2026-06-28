@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LbpArchiveToolkit.Utils
 {
     public static class TagParser
@@ -24,10 +22,10 @@ namespace LbpArchiveToolkit.Utils
             var tags = new List<string>();
             int len = blob.Length;
             if (len == 0) return tags;
-            
+
             for (int i = 0; i < TagNames.Length; i++)
             {
-                int byteIndex = (len - 1) - (i >> 3); 
+                int byteIndex = (len - 1) - (i >> 3);
                 if (byteIndex >= 0 && (blob[byteIndex] & (1 << (i & 7))) != 0)
                 {
                     tags.Add(TagNames[i]);

@@ -1,14 +1,10 @@
-using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Collections.Frozen;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
+using Microsoft.Data.Sqlite;
+using System.Collections.Frozen;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace LbpArchiveToolkit.Services
 {
@@ -18,14 +14,14 @@ namespace LbpArchiveToolkit.Services
 
         private readonly string _dbPath;
         private readonly System.Threading.Lock _schemaLock = new();
-        
+
         private SqliteConnection? _keepAliveMemConn;
         private readonly SemaphoreSlim _ramLoadLock = new(1, 1);
 
         private volatile bool _isSchemaResolved = false;
-        private bool _hasFtsTable = false; 
+        private bool _hasFtsTable = false;
         private bool _hasTagsFtsTable = false;
-        
+
         private string _colGame = "NULL";
         private string _colDate = "NULL";
         private string _colDesc = "NULL";
@@ -59,7 +55,7 @@ namespace LbpArchiveToolkit.Services
         {
             if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam && _keepAliveMemConn != null)
                 return "Data Source=lbpramdb;Mode=Memory;Cache=Shared";
-                
+
             return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite }.ConnectionString;
         }
 
@@ -92,17 +88,18 @@ namespace LbpArchiveToolkit.Services
                 if (_keepAliveMemConn == null)
                 {
                     progress?.Report("Loading 4.2GB database into RAM... (This may take a moment)");
-                    await Task.Run(() => {
+                    await Task.Run(() =>
+                    {
                         var memConn = new SqliteConnection("Data Source=lbpramdb;Mode=Memory;Cache=Shared");
                         memConn.Open();
-                        
+
                         var builder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
                         using var diskConn = new SqliteConnection(builder.ConnectionString);
                         diskConn.Open();
-                        
+
                         // Performs an ultra-fast raw page copy from the SSD directly into RAM
                         diskConn.BackupDatabase(memConn);
-                        
+
                         _keepAliveMemConn = memConn;
                     }).ConfigureAwait(false);
                 }
@@ -192,28 +189,28 @@ namespace LbpArchiveToolkit.Services
             if (_hasFtsTable && (hasKeyword || useFtsForTags))
             {
                 queryBuilder.Append("s ");
-                
+
                 if (hasKeyword)
                     queryBuilder.Append("INNER JOIN slot_fts f ON s.id = f.id ");
-                    
+
                 if (useFtsForTags)
                     queryBuilder.Append("INNER JOIN slot_tags_fts tf ON s.id = tf.rowid ");
-                    
+
                 queryBuilder.Append("WHERE 1=1 ");
-                
+
                 if (hasKeyword)
                 {
                     queryBuilder.Append("AND ");
                     BuildFtsSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
                 }
-                
+
                 if (useFtsForTags)
                 {
                     var tagTokens = new List<string>();
                     foreach (var l in advanced.RequiredLabels) tagTokens.Add($"\"LBL_{l.Replace(" ", "")}\"");
                     foreach (var t in advanced.RequiredTags) tagTokens.Add($"\"TAG_{t.Replace(" ", "")}\"");
                     if (advanced.IsTeamPick) tagTokens.Add("\"MM_PICK\"");
-                    
+
                     queryBuilder.Append(" AND slot_tags_fts MATCH @tagMatch");
                     parameters.Add(new SqliteParameter("@tagMatch", string.Join(" AND ", tagTokens)));
                 }
@@ -227,12 +224,12 @@ namespace LbpArchiveToolkit.Services
                     BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
                 }
             }
-            
+
             BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, useFtsForTags);
 
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
 
-            if (_hasFtsTable && hasKeyword) 
+            if (_hasFtsTable && hasKeyword)
             {
                 if (isAllLimit)
                 {
@@ -247,11 +244,11 @@ namespace LbpArchiveToolkit.Services
                     queryBuilder.Append(" ORDER BY f.rank");
                 }
             }
-            else if (_colHeart != "NULL") 
+            else if (_colHeart != "NULL")
             {
                 queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
             }
-            
+
             bool needsCSharpFiltering = !useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0);
             int parsedLimit = int.MaxValue;
 
@@ -262,7 +259,7 @@ namespace LbpArchiveToolkit.Services
                     queryBuilder.Append($" LIMIT {parsedLimit}");
                 }
             }
-            
+
             using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
 
             foreach (var param in parameters)
@@ -367,7 +364,8 @@ namespace LbpArchiveToolkit.Services
                 }
 
                 int gameInt = reader.IsDBNull(3) ? -1 : reader.GetInt32(3);
-                string gameStr = gameInt switch {
+                string gameStr = gameInt switch
+                {
                     0 => "LBP1",
                     1 => "LBP2",
                     2 => "LBP3",
@@ -410,7 +408,7 @@ namespace LbpArchiveToolkit.Services
                 };
 
                 yield return levelItem;
-                
+
                 if (needsCSharpFiltering)
                 {
                     parsedLimit--;
@@ -527,13 +525,13 @@ namespace LbpArchiveToolkit.Services
             {
                 var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var conds = new List<string>();
-                
+
                 for (int i = 0; i < words.Length; i++)
                 {
                     conds.Add(hasDesc ? $"(name LIKE @w{i} OR npHandle LIKE @w{i} OR {_colDesc} LIKE @w{i})" : $"(name LIKE @w{i} OR npHandle LIKE @w{i})");
                     parameters.Add(new SqliteParameter($"@w{i}", $"%{words[i]}%"));
                 }
-                
+
                 query.Append(string.Join(" AND ", conds));
             }
         }
@@ -541,7 +539,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             string matchTerm = "";
-            string Sanitize(string s) 
+            string Sanitize(string s)
             {
                 return System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
             }
@@ -554,9 +552,9 @@ namespace LbpArchiveToolkit.Services
             {
                 var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var safeWords = new List<string>();
-                
+
                 foreach (var w in words) safeWords.Add($"\"{Sanitize(w)}\"*");
-                
+
                 matchTerm = string.Join(" AND ", safeWords);
             }
 
@@ -610,7 +608,7 @@ namespace LbpArchiveToolkit.Services
                 query.Append($" AND {pfx}{_colMmPick} = 1");
             }
 
-            
+
         }
 
         #endregion
@@ -618,16 +616,16 @@ namespace LbpArchiveToolkit.Services
         #region Schema Resolution & Utilities
 
         private void EnsureSchemaResolved()
-{
-    if (_isSchemaResolved) return;
+        {
+            if (_isSchemaResolved) return;
 
-    lock (_schemaLock)
-    {
-        if (_isSchemaResolved) return;
+            lock (_schemaLock)
+            {
+                if (_isSchemaResolved) return;
 
-        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
-        using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-        conn.Open();
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
+                using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+                conn.Open();
 
                 ApplyConnectionOptimizations(conn);
 
@@ -718,7 +716,7 @@ namespace LbpArchiveToolkit.Services
 
         private static int GetTagIndex(string tagName)
         {
-            return Array.IndexOf((string[])TagParser.GetNames(), tagName); 
+            return Array.IndexOf((string[])TagParser.GetNames(), tagName);
         }
 
         #endregion

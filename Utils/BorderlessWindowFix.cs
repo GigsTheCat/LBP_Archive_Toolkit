@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -70,13 +69,13 @@ namespace LbpArchiveToolkit.Utils
         private struct POINT { public int X; public int Y; }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct MINMAXINFO 
-        { 
-            public POINT ptReserved; 
-            public POINT ptMaxSize; 
-            public POINT ptMaxPosition; 
-            public POINT ptMinTrackSize; 
-            public POINT ptMaxTrackSize; 
+        private struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
         }
 
         [StructLayout(LayoutKind.Sequential)]

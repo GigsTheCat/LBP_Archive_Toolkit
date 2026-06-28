@@ -1,7 +1,6 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using System.IO;
-using System.Windows.Media.Imaging;
 
 namespace LbpArchiveToolkit
 {
@@ -33,53 +32,53 @@ namespace LbpArchiveToolkit
         }
 
         private void BtnChangeIcon_Click(object sender, RoutedEventArgs e)
-{
-    var dlg = new Microsoft.Win32.OpenFileDialog
-    {
-        Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-        Title = "Select New Icon"
-    };
-
-    if (dlg.ShowDialog() == true)
-    {
-        // Intercept selection and pipe it to our custom interactive cropper
-        var cropDialog = new ImageCropDialog(dlg.FileName)
         {
-            Owner = this
-        };
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
+                Title = "Select New Icon"
+            };
 
-        if (cropDialog.ShowDialog() == true)
-        {
-            if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+            if (dlg.ShowDialog() == true)
             {
-                try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.BtnChangeIcon_Click", ex); }
-            }
+                // Intercept selection and pipe it to our custom interactive cropper
+                var cropDialog = new ImageCropDialog(dlg.FileName)
+                {
+                    Owner = this
+                };
 
-            NewIconPath = cropDialog.CroppedImagePath;
-            try
-            {
-                imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(NewIconPath!);
-            }
-            catch
-            {
-                CustomDialog.Show(this, "Failed to load the cropped image preview.", "Error");
-                NewIconPath = null;
+                if (cropDialog.ShowDialog() == true)
+                {
+                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.BtnChangeIcon_Click", ex); }
+                    }
+
+                    NewIconPath = cropDialog.CroppedImagePath;
+                    try
+                    {
+                        imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(NewIconPath!);
+                    }
+                    catch
+                    {
+                        CustomDialog.Show(this, "Failed to load the cropped image preview.", "Error");
+                        NewIconPath = null;
+                    }
+                }
             }
         }
-    }
-}
 
-protected override void OnClosed(EventArgs e)
-{
-    if (DialogResult != true && !string.IsNullOrEmpty(NewIconPath))
-    {
-        if (NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+        protected override void OnClosed(EventArgs e)
         {
-            try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.OnClosed", ex); }
+            if (DialogResult != true && !string.IsNullOrEmpty(NewIconPath))
+            {
+                if (NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.OnClosed", ex); }
+                }
+            }
+            base.OnClosed(e);
         }
-    }
-    base.OnClosed(e);
-}
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

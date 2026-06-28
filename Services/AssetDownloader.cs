@@ -1,17 +1,12 @@
-using System;
-using System.Collections.Generic;
+using LbpArchiveToolkit.Models;
+using LbpArchiveToolkit.Utils;
+using Microsoft.Data.Sqlite;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
 using System.Threading.RateLimiting;
-using Microsoft.Data.Sqlite;
-using LbpArchiveToolkit.Configuration;
-using LbpArchiveToolkit.Models;
-using LbpArchiveToolkit.Utils;
 
 namespace LbpArchiveToolkit.Services
 {
@@ -30,7 +25,7 @@ namespace LbpArchiveToolkit.Services
     {
         private static volatile Task _globalRateLimitTask = Task.CompletedTask;
         private static readonly System.Threading.Lock _rateLimitLock = new();
-        
+
         private static TokenBucketRateLimiter? _rateLimiter;
         private static string _lastConfiguredServer = string.Empty;
         private static readonly System.Threading.Lock _limiterLock = new();
@@ -41,7 +36,7 @@ namespace LbpArchiveToolkit.Services
         {
             _layoutBuilderCache.Clear();
             _globalRateLimitTask = Task.CompletedTask;
-            
+
             lock (_limiterLock)
             {
                 _rateLimiter?.Dispose();
@@ -50,7 +45,7 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        private static readonly System.Buffers.SearchValues<char> HexChars = 
+        private static readonly System.Buffers.SearchValues<char> HexChars =
             System.Buffers.SearchValues.Create("0123456789abcdefABCDEF");
 
         private static bool IsValidHash(string hash)
@@ -66,10 +61,10 @@ namespace LbpArchiveToolkit.Services
                 foreach (string dir in Directory.EnumerateDirectories(baseDir))
                 {
                     string name = Path.GetFileName(dir).ToLowerInvariant();
-                    
+
                     if (name.StartsWith("dry23r"))
                         return static (b, p_1, p_2, h) => Path.Combine(b, $"dry23r{p_1[0]}", $"dry{p_1}", p_1, p_2, h);
-                    
+
                     if (name.StartsWith("dry") && name.Length == 5)
                     {
                         string p1 = name.Substring(3, 2);
@@ -78,7 +73,7 @@ namespace LbpArchiveToolkit.Services
                         else
                             return static (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_2, h);
                     }
-                    
+
                     if (name.Length == 2 && char.IsAsciiHexDigit(name[0]) && char.IsAsciiHexDigit(name[1]))
                         return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
                 }
@@ -87,7 +82,7 @@ namespace LbpArchiveToolkit.Services
             {
                 LbpArchiveToolkit.LogManager.Log("AssetDownloader.DetermineLayoutRobust", ex);
             }
-            
+
             return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
         }
 
@@ -148,7 +143,7 @@ namespace LbpArchiveToolkit.Services
                     ctx.IncrementPending();
                     channel.Writer.TryWrite(rootHash);
                 }
-                
+
                 string iconHashStr = "";
                 if (!string.IsNullOrEmpty(lvl.IconHash))
                 {
@@ -183,7 +178,7 @@ namespace LbpArchiveToolkit.Services
 
                 if (token.IsCancellationRequested) return (false, "Extraction was cancelled.");
 
-                if (!isRootGuid && !ctx.Resources.ContainsKey(rootHash)) 
+                if (!isRootGuid && !ctx.Resources.ContainsKey(rootHash))
                 {
                     return (false, "The root level file could not be fetched (Likely missing from server).");
                 }
@@ -217,14 +212,14 @@ namespace LbpArchiveToolkit.Services
                     {
                         bool isLocal = ctx.Config.DownloadServer.ToLowerInvariant() == "local";
                         bool success = false;
-                        byte[]? fileData = null; 
+                        byte[]? fileData = null;
 
                         if (isLocal)
                         {
                             try
                             {
                                 fileData = await ExtractLocalArchiveToMemoryAsync(currentHash, ctx.Config.LocalArchivePath, ctx.Token).ConfigureAwait(false);
-                                success = fileData != null; 
+                                success = fileData != null;
                             }
                             catch (OperationCanceledException) { break; }
                         }
@@ -266,31 +261,32 @@ namespace LbpArchiveToolkit.Services
         }
 
         private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo)
-{
-    try
-    {
-        var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
-        using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
-        conn.Open();
-        string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels FROM slot WHERE id = @id";
+        {
+            try
+            {
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
+                using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+                conn.Open();
+                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels FROM slot WHERE id = @id";
                 using var cmd = new SqliteCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", levelId);
-                
+
                 using var r = cmd.ExecuteReader();
                 if (r.Read())
                 {
                     try { if (!r.IsDBNull(0)) slotInfo.MinPlayers = Convert.ToInt32(r.GetValue(0)); } catch { }
                     try { if (!r.IsDBNull(1)) slotInfo.MaxPlayers = Convert.ToInt32(r.GetValue(1)); } catch { }
-                    try 
-                    { 
-                        if (!r.IsDBNull(2)) 
+                    try
+                    {
+                        if (!r.IsDBNull(2))
                         {
                             if (int.TryParse(r.GetValue(2).ToString(), out int parsedType))
                             {
                                 slotInfo.LevelType = parsedType;
                             }
-                        } 
-                    } catch { }
+                        }
+                    }
+                    catch { }
                     try { if (!r.IsDBNull(3)) slotInfo.Shareable = Convert.ToBoolean(r.GetValue(3)); } catch { }
                     try { if (!r.IsDBNull(4)) slotInfo.InitiallyLocked = Convert.ToBoolean(r.GetValue(4)); } catch { }
                     try { if (!r.IsDBNull(5)) slotInfo.BackgroundGuid = Convert.ToUInt32(r.GetValue(5)); } catch { }
@@ -298,11 +294,11 @@ namespace LbpArchiveToolkit.Services
                     try { if (!r.IsDBNull(7)) slotInfo.IsAdventurePlanet = Convert.ToBoolean(r.GetValue(7)); } catch { }
                     try { if (!r.IsDBNull(8)) slotInfo.Labels = LabelParser.ParseLabelHashes(r.GetFieldValue<byte[]>(8)); } catch { }
                 }
-            } 
+            }
             catch (Exception ex)
             {
                 LbpArchiveToolkit.LogManager.Log("AssetDownloader.PopulateSlotInfoFromDatabase", ex);
-            } 
+            }
         }
 
         private static SlotInfo CreateSlotInfo(LevelItem lvl)
@@ -329,158 +325,158 @@ namespace LbpArchiveToolkit.Services
 
             while (!success && currentTry < maxRetries)
             {
-                    if (ctx.Token.IsCancellationRequested) break;
+                if (ctx.Token.IsCancellationRequested) break;
 
-                    Task activeDelayTask = _globalRateLimitTask;
-                    if (!activeDelayTask.IsCompleted)
-                    {
-                        ctx.IncrementRetryingThreads();
-                        ctx.ReportProgress("Server Paused: Global rate limit active...");
-                        
-                        try 
-                        { 
-                            await activeDelayTask.ConfigureAwait(false); 
-                            await Task.Delay(Random.Shared.Next(50, 250), ctx.Token).ConfigureAwait(false);
-                        } 
-                        catch (OperationCanceledException) 
-                        { 
-                            // Only cancel this thread's operation if this context itself was explicitly cancelled
-                            if (ctx.Token.IsCancellationRequested) break;
-                        }
-                        finally { ctx.DecrementRetryingThreads(); }
-                        
-                        if (ctx.Token.IsCancellationRequested) break;
-                    }
-
-                    currentTry++;
-                    int delayMs = 2000 * currentTry; 
-                    string failReason = "Network Timeout";
-                    bool hitRateLimit = false;
-
-                    int requiredPacingMs = GetServerPacingDelay(ctx.Config.DownloadServer);
-                    
-                    if (requiredPacingMs > 0)
-                    {
-                        TokenBucketRateLimiter currentLimiter;
-                        lock (_limiterLock)
-                        {
-                            if (_rateLimiter == null || _lastConfiguredServer != ctx.Config.DownloadServer)
-                            {
-                                _rateLimiter?.Dispose();
-                                _rateLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
-                                {
-                                    TokenLimit = 1, // Enforces strict pacing (1 request at a time)
-                                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                                    QueueLimit = 10000,
-                                    ReplenishmentPeriod = TimeSpan.FromMilliseconds(requiredPacingMs),
-                                    TokensPerPeriod = 1,
-                                    AutoReplenishment = true
-                                });
-                                _lastConfiguredServer = ctx.Config.DownloadServer;
-                            }
-                            currentLimiter = _rateLimiter;
-                        }
-
-                        using var lease = await currentLimiter.AcquireAsync(1, ctx.Token).ConfigureAwait(false);
-                        if (!lease.IsAcquired) break; // Exits safely if cancellation triggered during queue
-                    }
-
-                    if (ctx.Token.IsCancellationRequested) break;
+                Task activeDelayTask = _globalRateLimitTask;
+                if (!activeDelayTask.IsCompleted)
+                {
+                    ctx.IncrementRetryingThreads();
+                    ctx.ReportProgress("Server Paused: Global rate limit active...");
 
                     try
                     {
-                        using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token).ConfigureAwait(false);
-                        
-                        if (response.IsSuccessStatusCode)
+                        await activeDelayTask.ConfigureAwait(false);
+                        await Task.Delay(Random.Shared.Next(50, 250), ctx.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Only cancel this thread's operation if this context itself was explicitly cancelled
+                        if (ctx.Token.IsCancellationRequested) break;
+                    }
+                    finally { ctx.DecrementRetryingThreads(); }
+
+                    if (ctx.Token.IsCancellationRequested) break;
+                }
+
+                currentTry++;
+                int delayMs = 2000 * currentTry;
+                string failReason = "Network Timeout";
+                bool hitRateLimit = false;
+
+                int requiredPacingMs = GetServerPacingDelay(ctx.Config.DownloadServer);
+
+                if (requiredPacingMs > 0)
+                {
+                    TokenBucketRateLimiter currentLimiter;
+                    lock (_limiterLock)
+                    {
+                        if (_rateLimiter == null || _lastConfiguredServer != ctx.Config.DownloadServer)
                         {
-                            long? contentLength = response.Content.Headers.ContentLength;
-                            if (contentLength.HasValue && contentLength.Value > 104857600)
+                            _rateLimiter?.Dispose();
+                            _rateLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
                             {
-                                throw new InvalidOperationException("File exceeds maximum allowed size.");
-                            }
-
-                            using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
-                            {
-                                int capacity = contentLength.HasValue ? (int)contentLength.Value : 81920;
-                                byte[] finalBuffer = new byte[capacity];
-                                int totalBytes = 0;
-                                int bytesRead;
-
-                                while (true)
-                                {
-                                    if (totalBytes == finalBuffer.Length)
-                                    {
-                                        Array.Resize(ref finalBuffer, finalBuffer.Length * 2);
-                                    }
-
-                                    bytesRead = await stream.ReadAsync(finalBuffer.AsMemory(totalBytes), ctx.Token).ConfigureAwait(false);
-                                    if (bytesRead == 0) break;
-
-                                    totalBytes += bytesRead;
-                                    if (totalBytes > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
-                                }
-
-                                // Trims the array bounds perfectly to size without allocating if it already perfectly matches
-                                if (totalBytes != finalBuffer.Length)
-                                {
-                                    Array.Resize(ref finalBuffer, totalBytes);
-                                }
-                                fileData = finalBuffer;
-                            }
-
-                            if (fileData != null)
-                            {
-                                string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
-                                if (computedHash == currentHash) success = true;
-                                else { success = false; fileData = null; failReason = "Hash Mismatch"; }
-                            }
-                            else
-                            {
-                                success = false;
-                                failReason = "Failed to read data";
-                            }
+                                TokenLimit = 1, // Enforces strict pacing (1 request at a time)
+                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                                QueueLimit = 10000,
+                                ReplenishmentPeriod = TimeSpan.FromMilliseconds(requiredPacingMs),
+                                TokensPerPeriod = 1,
+                                AutoReplenishment = true
+                            });
+                            _lastConfiguredServer = ctx.Config.DownloadServer;
                         }
-                        else if ((int)response.StatusCode == 429 || (int)response.StatusCode >= 500)
-                        {
-                            failReason = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
-                            
-                            if (response.Headers.RetryAfter != null && response.Headers.RetryAfter.Delta.HasValue)
-                                delayMs = (int)response.Headers.RetryAfter.Delta.Value.TotalMilliseconds;
-                            else if ((int)response.StatusCode == 429)
-                                delayMs = 10000;
-                                
-                            hitRateLimit = true;
+                        currentLimiter = _rateLimiter;
+                    }
 
-                            lock (_rateLimitLock)
-                            {
-                                if (_globalRateLimitTask.IsCompleted)
-                                {
-                                    _globalRateLimitTask = Task.Delay(delayMs, ctx.Token);
-                                }
-                            }
-                        }
-                        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    using var lease = await currentLimiter.AcquireAsync(1, ctx.Token).ConfigureAwait(false);
+                    if (!lease.IsAcquired) break; // Exits safely if cancellation triggered during queue
+                }
+
+                if (ctx.Token.IsCancellationRequested) break;
+
+                try
+                {
+                    using var response = await ctx.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ctx.Token).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        long? contentLength = response.Content.Headers.ContentLength;
+                        if (contentLength.HasValue && contentLength.Value > 104857600)
                         {
-                            success = true; 
+                            throw new InvalidOperationException("File exceeds maximum allowed size.");
+                        }
+
+                        using (var stream = await response.Content.ReadAsStreamAsync(ctx.Token).ConfigureAwait(false))
+                        {
+                            int capacity = contentLength.HasValue ? (int)contentLength.Value : 81920;
+                            byte[] finalBuffer = new byte[capacity];
+                            int totalBytes = 0;
+                            int bytesRead;
+
+                            while (true)
+                            {
+                                if (totalBytes == finalBuffer.Length)
+                                {
+                                    Array.Resize(ref finalBuffer, finalBuffer.Length * 2);
+                                }
+
+                                bytesRead = await stream.ReadAsync(finalBuffer.AsMemory(totalBytes), ctx.Token).ConfigureAwait(false);
+                                if (bytesRead == 0) break;
+
+                                totalBytes += bytesRead;
+                                if (totalBytes > 104857600) throw new InvalidOperationException("File exceeds maximum allowed size.");
+                            }
+
+                            // Trims the array bounds perfectly to size without allocating if it already perfectly matches
+                            if (totalBytes != finalBuffer.Length)
+                            {
+                                Array.Resize(ref finalBuffer, totalBytes);
+                            }
+                            fileData = finalBuffer;
+                        }
+
+                        if (fileData != null)
+                        {
+                            string computedHash = Convert.ToHexStringLower(SHA1.HashData(fileData));
+                            if (computedHash == currentHash) success = true;
+                            else { success = false; fileData = null; failReason = "Hash Mismatch"; }
                         }
                         else
                         {
-                            failReason = $"HTTP {(int)response.StatusCode}";
+                            success = false;
+                            failReason = "Failed to read data";
                         }
                     }
-                    catch (OperationCanceledException) { break; }
-                    catch (Exception ex) { failReason = ex.InnerException?.Message ?? ex.Message; }
-
-                    if (!success && currentTry < maxRetries && !ctx.Token.IsCancellationRequested && !hitRateLimit)
+                    else if ((int)response.StatusCode == 429 || (int)response.StatusCode >= 500)
                     {
-                        ctx.IncrementRetryingThreads();
-                        ctx.ReportProgress($"Retrying ({currentTry}/{maxRetries}): {failReason}. Waiting {delayMs / 1000}s...");
-                        
-                        try { await Task.Delay(delayMs, ctx.Token).ConfigureAwait(false); } 
-                        catch (OperationCanceledException) { break; }
-                        finally { ctx.DecrementRetryingThreads(); }
+                        failReason = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+
+                        if (response.Headers.RetryAfter != null && response.Headers.RetryAfter.Delta.HasValue)
+                            delayMs = (int)response.Headers.RetryAfter.Delta.Value.TotalMilliseconds;
+                        else if ((int)response.StatusCode == 429)
+                            delayMs = 10000;
+
+                        hitRateLimit = true;
+
+                        lock (_rateLimitLock)
+                        {
+                            if (_globalRateLimitTask.IsCompleted)
+                            {
+                                _globalRateLimitTask = Task.Delay(delayMs, ctx.Token);
+                            }
+                        }
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        failReason = $"HTTP {(int)response.StatusCode}";
                     }
                 }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex) { failReason = ex.InnerException?.Message ?? ex.Message; }
+
+                if (!success && currentTry < maxRetries && !ctx.Token.IsCancellationRequested && !hitRateLimit)
+                {
+                    ctx.IncrementRetryingThreads();
+                    ctx.ReportProgress($"Retrying ({currentTry}/{maxRetries}): {failReason}. Waiting {delayMs / 1000}s...");
+
+                    try { await Task.Delay(delayMs, ctx.Token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
+                    finally { ctx.DecrementRetryingThreads(); }
+                }
+            }
 
             return (success, fileData);
         }
@@ -489,9 +485,9 @@ namespace LbpArchiveToolkit.Services
         {
             string srv = server.ToLowerInvariant();
             if (srv == "local") return 0;
-            if (srv == "bonsai" || srv == "refresh") return 120; 
-            if (srv == "archive") return 100;                    
-            return 70;                                          
+            if (srv == "bonsai" || srv == "refresh") return 120;
+            if (srv == "archive") return 100;
+            return 70;
         }
 
         public static string GetDownloadUrl(string hash, string server)
@@ -558,7 +554,7 @@ namespace LbpArchiveToolkit.Services
             {
                 if (Interlocked.Decrement(ref _pendingItems) == 0)
                 {
-                    QueueWriter.TryComplete(); 
+                    QueueWriter.TryComplete();
                 }
             }
 
@@ -574,27 +570,27 @@ namespace LbpArchiveToolkit.Services
             public void ReportProgress(string? overrideMessage = null)
             {
                 if (_progress == null) return;
-                
+
                 if (overrideMessage == null)
                 {
                     lock (_reportLock)
                     {
                         long now = Environment.TickCount64;
-                        if (now - _lastReportTime < 33) 
-                            return; 
-                        
+                        if (now - _lastReportTime < 33)
+                            return;
+
                         _lastReportTime = now;
                     }
                 }
-                
+
                 int paused = Volatile.Read(ref _retryingThreads);
                 int processed = Volatile.Read(ref _totalProcessed);
                 int discovered = Volatile.Read(ref _totalDiscovered);
 
                 bool isLocal = Config.DownloadServer.ToLowerInvariant() == "local";
-                
-                string status = overrideMessage ?? (paused > 0 
-                    ? $"Server Paused ({paused} thread(s) waiting)..." 
+
+                string status = overrideMessage ?? (paused > 0
+                    ? $"Server Paused ({paused} thread(s) waiting)..."
                     : (isLocal ? "Extracting local assets..." : "Downloading assets..."));
 
                 _progress.Report((processed, discovered, status));

@@ -1,26 +1,17 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Net.Http;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Services;
-using LbpArchiveToolkit.Utils;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace LbpArchiveToolkit
 {
     public partial class HeartedLevelsWindow : Window
     {
         public ObservableCollection<LevelItem> HeartedList { get; set; } = new();
-        
+
         private CancellationTokenSource? _iconCts;
         private long _iconRequestCounter = 0;
         private long _currentIconRequestId = -1;
@@ -29,7 +20,7 @@ namespace LbpArchiveToolkit
         {
             InitializeComponent();
             lvHearted.ItemsSource = HeartedList;
-            
+
             LoadHeartedLevels();
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }
@@ -65,7 +56,7 @@ namespace LbpArchiveToolkit
                 txtDescription.Text = selected.Description;
                 txtCreator.Text = $"By: {selected.Creator}  |  Game: {selected.Game}";
                 iconHeartOverlay.Visibility = Visibility.Visible;
-                
+
                 mmPickTails.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
                 mmPickRosette.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
                 mmPickRosetteInner.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
@@ -74,9 +65,9 @@ namespace LbpArchiveToolkit
                 _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 _iconCts?.Cancel();
                 _iconCts = new CancellationTokenSource();
-                
+
                 await LoadIconAsync(selected.IconHash, _iconCts.Token);
-            } 
+            }
             else
             {
                 txtLevelTitle.Text = "";
@@ -126,9 +117,9 @@ namespace LbpArchiveToolkit
             if (!selectedItems.Any()) return;
 
             bool isConfirmed = CustomDialog.Show(
-                this, 
-                $"Are you sure you want to remove {selectedItems.Count} level(s) from your hearted list?", 
-                "Confirm Removal", 
+                this,
+                $"Are you sure you want to remove {selectedItems.Count} level(s) from your hearted list?",
+                "Confirm Removal",
                 isYesNo: true);
 
             if (isConfirmed)
@@ -153,13 +144,13 @@ namespace LbpArchiveToolkit
             var selectedItems = lvHearted.SelectedItems.Cast<LevelItem>().ToList();
             if (!selectedItems.Any()) return;
 
-            await LevelExtractionService.ExtractLevelsAsync(this, selectedItems, lvl => 
+            await LevelExtractionService.ExtractLevelsAsync(this, selectedItems, lvl =>
             {
                 lvl.Saved = "✓";
             });
-            
+
             txtStatus.Text = "Extraction finished.";
         }
 
-            }
+    }
 }

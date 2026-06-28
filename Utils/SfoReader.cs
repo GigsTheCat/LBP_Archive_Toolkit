@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using LbpArchiveToolkit.Models;
+using System.IO;
+using System.Text;
 
 namespace LbpArchiveToolkit.Utils
 {
@@ -21,7 +19,7 @@ namespace LbpArchiveToolkit.Utils
                 {
                     // Check Magic Header: "\0PSF"
                     byte[] magic = br.ReadBytes(4);
-                    if (!magic.SequenceEqual(new byte[] { 0x00, 0x50, 0x53, 0x46 })) 
+                    if (!magic.SequenceEqual(new byte[] { 0x00, 0x50, 0x53, 0x46 }))
                         return result;
 
                     br.ReadUInt32(); // Version
@@ -62,13 +60,13 @@ namespace LbpArchiveToolkit.Utils
 
                         if (key == "SUB_TITLE" || key == "DETAIL")
                         {
-                            if (entry.dataLen > 1024 * 1024) continue; 
+                            if (entry.dataLen > 1024 * 1024) continue;
 
                             long dataPos = (long)dataTableStart + entry.dataOffset;
                             if (dataPos < 0 || dataPos >= fs.Length) continue;
 
                             fs.Position = dataPos;
-                            
+
                             // Bounds safety check to prevent EndOfStreamException on corrupted files
                             int safeLength = (int)Math.Min(entry.dataLen, fs.Length - fs.Position);
                             byte[] dataBytes = br.ReadBytes(safeLength);

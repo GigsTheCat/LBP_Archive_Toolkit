@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -40,13 +39,13 @@ namespace LbpArchiveToolkit
 
                 // Establish the baseline scale required to fill the viewport boundary
                 double minScale = Math.Max(320.0 / imgW, 176.0 / imgH);
-                
+
                 // Temporarily open the slider bounds wide to prevent clamping bugs
                 sliderZoom.Minimum = 0.001;
                 sliderZoom.Maximum = 10000.0;
-                
-                sliderZoom.Value = minScale; 
-                
+
+                sliderZoom.Value = minScale;
+
                 // Now apply correct limits based on the scale
                 sliderZoom.Minimum = minScale * 0.5;
                 sliderZoom.Maximum = Math.Max(minScale * 6.0, 4.0);
@@ -88,7 +87,7 @@ namespace LbpArchiveToolkit
             _originX = translateTransform.X;
             _originY = translateTransform.Y;
             _isDragging = true;
-            e.Handled = true; 
+            e.Handled = true;
         }
 
         private void GridWorkspace_MouseMove(object sender, MouseEventArgs e)
@@ -116,14 +115,14 @@ namespace LbpArchiveToolkit
             if (imgSource.Source == null) return;
 
             // Zoom dynamically based on 10% of current scale for smooth scrolling
-            double zoomStep = sliderZoom.Value * 0.1; 
+            double zoomStep = sliderZoom.Value * 0.1;
             double currentScale = sliderZoom.Value;
-            
+
             if (e.Delta > 0)
                 sliderZoom.Value = Math.Min(sliderZoom.Maximum, currentScale + zoomStep);
             else
                 sliderZoom.Value = Math.Max(sliderZoom.Minimum, currentScale - zoomStep);
-                
+
             e.Handled = true;
         }
 
@@ -164,12 +163,12 @@ namespace LbpArchiveToolkit
             try
             {
                 DpiScale dpi = VisualTreeHelper.GetDpi(canvasWorkspace);
-                
+
                 int rtbW = (int)Math.Round(480 * dpi.DpiScaleX);
                 int rtbH = (int)Math.Round(360 * dpi.DpiScaleY);
 
                 RenderTargetBitmap rtb = new RenderTargetBitmap(rtbW, rtbH, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-                
+
                 canvasWorkspace.Measure(new Size(480, 360));
                 canvasWorkspace.Arrange(new Rect(new Size(480, 360)));
                 rtb.Render(canvasWorkspace);

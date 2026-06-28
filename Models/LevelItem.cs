@@ -5,14 +5,14 @@ namespace LbpArchiveToolkit.Models
     public class LevelItem : INotifyPropertyChanged
     {
         public long Id { get; set; }
-        public string? Saved 
-        { 
-            get => field; 
-            set 
-            { 
-                field = value; 
-                OnPropertyChanged(nameof(Saved)); 
-            } 
+        public string? Saved
+        {
+            get => field;
+            set
+            {
+                field = value;
+                OnPropertyChanged(nameof(Saved));
+            }
         }
         public string? Game { get; set; }
         public string? Date { get; set; }

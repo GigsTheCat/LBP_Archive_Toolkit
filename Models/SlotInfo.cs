@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LbpArchiveToolkit.Models
 {
     public class SlotInfo

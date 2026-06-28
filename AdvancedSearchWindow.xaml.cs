@@ -1,7 +1,7 @@
-using System.Windows;
-using System.Windows.Controls;
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Utils;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace LbpArchiveToolkit
 {
@@ -14,7 +14,7 @@ namespace LbpArchiveToolkit
         {
             InitializeComponent();
             Criteria = existingCriteria;
-            
+
             txtMinHearts.Text = Criteria.MinHearts.ToString();
             txtMinPlays.Text = Criteria.MinPlays.ToString();
             chkTeamPick.IsChecked = Criteria.IsTeamPick;
@@ -29,7 +29,7 @@ namespace LbpArchiveToolkit
                     Margin = new Thickness(0, 5, 10, 5),
                     IsChecked = Criteria.RequiredLabels.Contains(labelName)
                 };
-                
+
                 if (LabelParser.IsLbp2Label(labelName)) wpLbp2Labels.Children.Add(cb);
                 else wpLbp3Labels.Children.Add(cb);
             }
@@ -55,7 +55,7 @@ namespace LbpArchiveToolkit
             txtMinHearts.Text = "0";
             txtMinPlays.Text = "0";
             chkTeamPick.IsChecked = false;
-            
+
             foreach (var child in wpLbp2Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp3Labels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp1Tags.Children) if (child is CheckBox cb) cb.IsChecked = false;
@@ -89,7 +89,7 @@ namespace LbpArchiveToolkit
 
             foreach (var child in wpLbp2Labels.Children)
                 if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
-                
+
             foreach (var child in wpLbp3Labels.Children)
                 if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
 

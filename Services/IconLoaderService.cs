@@ -1,11 +1,7 @@
-using System;
-using System.IO;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Media;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Utils;
+using System.Net.Http;
+using System.Windows.Media;
 
 namespace LbpArchiveToolkit.Services
 {
@@ -50,7 +46,7 @@ namespace LbpArchiveToolkit.Services
 
                 using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                
+
                 long? contentLength = response.Content.Headers.ContentLength;
                 if (contentLength.HasValue && contentLength.Value > 5242880) return null;
 

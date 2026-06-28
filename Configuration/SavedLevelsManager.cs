@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 
 namespace LbpArchiveToolkit.Configuration
@@ -12,7 +11,7 @@ namespace LbpArchiveToolkit.Configuration
         public static void Load(List<string> legacyLevels)
         {
             string path = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", FileName);
-            
+
             if (File.Exists(path))
             {
                 SavedLevels = JsonFileHelper.LoadList<string>(FileName);

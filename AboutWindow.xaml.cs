@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Navigation;
 
 namespace LbpArchiveToolkit
 {
@@ -33,7 +31,7 @@ namespace LbpArchiveToolkit
             }
         }
 
-        
+
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
             this.Close();

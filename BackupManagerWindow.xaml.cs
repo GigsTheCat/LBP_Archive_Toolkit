@@ -1,14 +1,11 @@
-using System;
+using LbpArchiveToolkit.Configuration;
+using LbpArchiveToolkit.Services;
+using LbpArchiveToolkit.Utils;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using LbpArchiveToolkit.Configuration;
-using LbpArchiveToolkit.Utils;
-using LbpArchiveToolkit.Services;
 
 namespace LbpArchiveToolkit
 {
@@ -51,10 +48,10 @@ namespace LbpArchiveToolkit
         #region Custom Title Bar Controls
 
         private void TitleBar_Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
-        
-        private void TitleBar_Maximize_Click(object sender, RoutedEventArgs e) 
+
+        private void TitleBar_Maximize_Click(object sender, RoutedEventArgs e)
             => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        
+
         private void TitleBar_Close_Click(object sender, RoutedEventArgs e) => Close();
 
         #endregion
@@ -81,9 +78,10 @@ namespace LbpArchiveToolkit
             {
                 return Directory.EnumerateDirectories(_backupDir)
                     .AsParallel()
-                    .Where(folderPath => {
+                    .Where(folderPath =>
+                    {
                         string folderName = Path.GetFileName(folderPath);
-                        return folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase) || 
+                        return folderName.Contains("LEVEL", StringComparison.OrdinalIgnoreCase) ||
                                folderName.Contains("ADVLBP", StringComparison.OrdinalIgnoreCase);
                     })
                     .Select(folderPath => ParseBackupFolder(folderPath, Path.GetFileName(folderPath)))
@@ -109,7 +107,7 @@ namespace LbpArchiveToolkit
         {
             string sfoPath = Path.Combine(folderPath, "PARAM.SFO");
             string iconPath = Path.Combine(folderPath, "ICON0.PNG");
-            
+
             string levelName = "Unknown Level";
             string description = "No description provided.";
 
@@ -119,11 +117,11 @@ namespace LbpArchiveToolkit
                 levelName = data.Title ?? levelName;
 
                 int byIndex = levelName.LastIndexOf(" by ");
-                if (byIndex >= 0) 
+                if (byIndex >= 0)
                 {
                     levelName = levelName.Substring(0, byIndex);
                 }
-                
+
                 description = data.Description ?? description;
             }
 
@@ -168,16 +166,16 @@ namespace LbpArchiveToolkit
         #region UI Event Handlers
 
         private void LvBackups_SelectionChanged(object sender, SelectionChangedEventArgs e)
-{
-    btnDelete.IsEnabled = lvBackups.SelectedItems.Count > 0;
-    btnEdit.IsEnabled = lvBackups.SelectedItems.Count == 1;
+        {
+            btnDelete.IsEnabled = lvBackups.SelectedItems.Count > 0;
+            btnEdit.IsEnabled = lvBackups.SelectedItems.Count == 1;
 
             if (lvBackups.SelectedItem is BackupItem selected)
             {
                 txtLevelTitle.Text = selected.LevelName;
                 txtDescription.Text = selected.Description;
                 LoadIconPreview(selected.IconPath);
-            } 
+            }
             else
             {
                 txtLevelTitle.Text = "";
@@ -188,67 +186,67 @@ namespace LbpArchiveToolkit
         }
 
         private async void BtnEdit_Click(object sender, RoutedEventArgs e)
-{
-    if (lvBackups.SelectedItem is BackupItem selected && selected.FullPath != null)
-    {
-        var dialog = new EditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath)
         {
-            Owner = this
-        };
-        
-        if (dialog.ShowDialog() == true)
-        {
-            string newName = dialog.LevelName;
-            string newDesc = dialog.Description;
-            string? newIcon = dialog.NewIconPath;
-            
-            if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null) return;
-
-            txtStatus.Text = "Updating and re-encrypting backup...";
-            this.IsEnabled = false;
-
-            try
+            if (lvBackups.SelectedItem is BackupItem selected && selected.FullPath != null)
             {
-                await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(selected.FullPath, newName, newDesc, newIcon));
-                
-                selected.LevelName = newName;
-                selected.Description = newDesc;
-                txtLevelTitle.Text = newName;
-                txtDescription.Text = newDesc;
-                lvBackups.Items.Refresh();
-
-                if (newIcon != null)
+                var dialog = new EditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath)
                 {
-                    LoadIconPreview(selected.IconPath);
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    string newName = dialog.LevelName;
+                    string newDesc = dialog.Description;
+                    string? newIcon = dialog.NewIconPath;
+
+                    if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null) return;
+
+                    txtStatus.Text = "Updating and re-encrypting backup...";
+                    this.IsEnabled = false;
+
+                    try
+                    {
+                        await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(selected.FullPath, newName, newDesc, newIcon));
+
+                        selected.LevelName = newName;
+                        selected.Description = newDesc;
+                        txtLevelTitle.Text = newName;
+                        txtDescription.Text = newDesc;
+                        lvBackups.Items.Refresh();
+
+                        if (newIcon != null)
+                        {
+                            LoadIconPreview(selected.IconPath);
+                        }
+
+                        txtStatus.Text = "Level info updated successfully!";
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomDialog.Show(this, $"Failed to update info:\n{ex.Message}", "Error");
+                        txtStatus.Text = "Update failed.";
+                    }
+                    finally
+                    {
+                        this.IsEnabled = true;
+                        if (!string.IsNullOrEmpty(newIcon) && newIcon.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            try { File.Delete(newIcon); } catch (Exception ex) { LogManager.Log("BackupManagerWindow.BtnEdit_Click.Cleanup", ex); }
+                        }
+                    }
                 }
-                
-                txtStatus.Text = "Level info updated successfully!";
             }
-            catch (Exception ex)
-            {
-                CustomDialog.Show(this, $"Failed to update info:\n{ex.Message}", "Error");
-                txtStatus.Text = "Update failed.";
-            }
-            finally
-{
-    this.IsEnabled = true;
-    if (!string.IsNullOrEmpty(newIcon) && newIcon.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
-    {
-        try { File.Delete(newIcon); } catch (Exception ex) { LogManager.Log("BackupManagerWindow.BtnEdit_Click.Cleanup", ex); }
-    }
-}
         }
-    }
-}
 
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {
             var selectedItems = lvBackups.SelectedItems.Cast<BackupItem>().ToList();
 
             bool isConfirmed = CustomDialog.Show(
-                this, 
-                $"Are you sure you want to permanently delete {selectedItems.Count} backup(s)?", 
-                "Confirm Deletion", 
+                this,
+                $"Are you sure you want to permanently delete {selectedItems.Count} backup(s)?",
+                "Confirm Deletion",
                 isYesNo: true);
 
             if (isConfirmed)
@@ -261,7 +259,7 @@ namespace LbpArchiveToolkit
                     .Min();
 
                 int deletedCount = 0;
-                
+
                 // Clear selection temporarily to avoid UI layout overhead while mutating the collection
                 lvBackups.SelectedIndex = -1;
 
@@ -274,20 +272,20 @@ namespace LbpArchiveToolkit
                             string resolvedPath = Path.GetFullPath(item.FullPath);
                             string resolvedBackupDir = Path.GetFullPath(_backupDir);
                             string separator = Path.DirectorySeparatorChar.ToString();
-                            
+
                             if (!resolvedBackupDir.EndsWith(separator))
                             {
                                 resolvedBackupDir += separator;
                             }
-                            
+
                             if (!resolvedPath.StartsWith(resolvedBackupDir, StringComparison.OrdinalIgnoreCase))
                             {
                                 throw new InvalidOperationException("Path traversal detected; delete target resides outside the backup directory.");
                             }
 
-                            Directory.Delete(resolvedPath, true); 
+                            Directory.Delete(resolvedPath, true);
                         }
-                        
+
                         BackupList.Remove(item);
                         deletedCount++;
                     }
@@ -313,5 +311,5 @@ namespace LbpArchiveToolkit
 
         #endregion
 
-            }
+    }
 }

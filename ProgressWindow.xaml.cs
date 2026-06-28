@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 
@@ -20,12 +19,12 @@ namespace LbpArchiveToolkit
         public ProgressWindow()
         {
             InitializeComponent();
-            
-            this.Closing += (s, e) => 
-            { 
-                if (!CancellationTokenSource.IsCancellationRequested) 
+
+            this.Closing += (s, e) =>
+            {
+                if (!CancellationTokenSource.IsCancellationRequested)
                 {
-                    CancellationTokenSource.Cancel(); 
+                    CancellationTokenSource.Cancel();
                 }
             };
         }
@@ -41,7 +40,7 @@ namespace LbpArchiveToolkit
         {
             pbProgress.Maximum = max == 0 ? 1 : max;
             pbProgress.Value = current;
-            
+
             txtStatus.Text = mainMessage;
             txtSubStatus.Text = subMessage;
 
@@ -65,7 +64,7 @@ namespace LbpArchiveToolkit
             btnCancel.IsEnabled = false;
             btnCancel.Content = "CANCELLING...";
             txtStatus.Text = "Waiting for current download threads to exit...";
-            
+
             CancellationTokenSource.Cancel();
         }
 
