@@ -656,8 +656,9 @@ namespace LbpArchiveToolkit.Utils
                 if (bitmap == null) return Array.Empty<byte>();
                 return EncodeToPng(bitmap);
             }
-            catch
+            catch (Exception ex)
             {
+                LogManager.Log("TextureDecoder.CreateIconFromImage", ex);
                 return Array.Empty<byte>();
             }
         }

@@ -22,6 +22,7 @@ namespace LbpArchiveToolkit
         public ObservableCollection<LevelItem> HeartedList { get; set; } = new();
         
         private CancellationTokenSource? _iconCts;
+        private long _iconRequestCounter = 0;
         private long _currentIconRequestId = -1;
 
         public HeartedLevelsWindow()
@@ -70,9 +71,8 @@ namespace LbpArchiveToolkit
                 mmPickRosetteInner.Visibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
                 iconEllipse.Stroke = selected.IsMmPick ? (Brush)FindResource("LbpPink") : (Brush)FindResource("LbpOrange");
 
-                _currentIconRequestId = selected.Id;
+                _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 _iconCts?.Cancel();
-                _iconCts?.Dispose();
                 _iconCts = new CancellationTokenSource();
                 
                 await LoadIconAsync(selected.IconHash, _iconCts.Token);

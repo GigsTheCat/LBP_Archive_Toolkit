@@ -33,6 +33,7 @@ namespace LbpArchiveToolkit
         private CancellationTokenSource? _selectionCts;
         private CancellationTokenSource? _userSelectionCts;
         private CancellationTokenSource? _toastCts;
+        private CancellationTokenSource? _searchCts;
 
         private DatabaseService _dbService;
         private ObservableCollection<LevelItem> _resultsList = new();
@@ -45,6 +46,7 @@ namespace LbpArchiveToolkit
         
         private AdvancedSearchCriteria _advancedCriteria = new();
 
+        private long _iconRequestCounter = 0;
         private long _currentIconRequestId = -1;
 
         internal static readonly HttpClient SharedHttpClient = new(new SocketsHttpHandler
@@ -109,8 +111,6 @@ namespace LbpArchiveToolkit
             DataObject.AddCopyingHandler(txtDescription, (s, e) => {
                 ShowToast("Copied!", txtDescription);
             });
-
-            _ = LoadSavedLevelsAsync();
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -118,15 +118,12 @@ namespace LbpArchiveToolkit
             SaveWindowPosition();
 
             _iconCts?.Cancel();
-            _iconCts?.Dispose();
             _iconCts = null;
 
             _selectionCts?.Cancel();
-            _selectionCts?.Dispose();
             _selectionCts = null;
 
             _userSelectionCts?.Cancel();
-            _userSelectionCts?.Dispose();
             _userSelectionCts = null;
 
             if (_currentSearch != null)
@@ -175,6 +172,7 @@ namespace LbpArchiveToolkit
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadGenresAsync();
+            await LoadSavedLevelsAsync();
             
             if (ConfigManager.LastSearch != null)
             {
@@ -216,7 +214,10 @@ namespace LbpArchiveToolkit
                      }
                  }
              }
-             catch { }
+             catch (Exception ex)
+             {
+                 LogManager.Log("MainWindow.CheckForUpdatesAsync", ex);
+             }
          }
 
         private void SaveWindowPosition()
@@ -649,6 +650,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             _forwardHistory.Clear();
             btnForward.IsEnabled = false;
 
+            _searchCts?.Cancel();
+            _searchCts = new CancellationTokenSource();
+            var searchToken = _searchCts.Token;
+
             int searchType = cmbSearchType.SelectedIndex;
             bool exact = chkExact.IsChecked == true;
             bool searchDesc = chkSearchDesc.IsChecked == true;
@@ -684,7 +689,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     await Task.Run(async () =>
                     {
                         var buffer = new List<LevelItem>();
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter, searchToken).ConfigureAwait(false))
                         {
                             buffer.Add(lvl);
                             count++;
@@ -749,7 +754,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 }
                 else
                 {
-                    var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter);
+                    var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter, searchToken);
 
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = results.Count;
@@ -928,6 +933,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             string? limitFilter = (cmbLimit.SelectedItem as ComboBoxItem)?.Content?.ToString();
             string? genreFilter = (cmbGenre.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
+            _searchCts?.Cancel();
+            _searchCts = new CancellationTokenSource();
+            var searchToken = _searchCts.Token;
+
             try
             {
                 if (state.SearchTypeIndex == 0)
@@ -952,7 +961,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     await Task.Run(async () =>
                     {
                         var buffer = new List<LevelItem>();
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter, searchToken).ConfigureAwait(false))
                         {
                             buffer.Add(lvl);
                             count++;
@@ -1007,7 +1016,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 }
                 else
                 {
-                    var results = await _dbService.SearchUsersAsync(state.SearchText, state.Exact, limitFilter);
+                    var results = await _dbService.SearchUsersAsync(state.SearchText, state.Exact, limitFilter, searchToken);
                     progressBar.IsIndeterminate = false;
                     progressBar.Maximum = results.Count;
                     progressBar.Value = results.Count;
@@ -1059,7 +1068,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
         private async void DgResults_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _selectionCts?.Cancel();
-            _selectionCts?.Dispose();
             _selectionCts = null;
 
             if (dgResults.SelectedItem is LevelItem selectedLevel)
@@ -1092,10 +1100,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 mmPickRosetteInner.Visibility = selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
                 iconEllipse.Stroke = selectedLevel.IsMmPick ? (Brush)FindResource("LbpPink") : (Brush)FindResource("LbpOrange");
 
-                _currentIconRequestId = selectedLevel.Id;
+                _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 
                 _iconCts?.Cancel();
-                _iconCts?.Dispose();
                 _iconCts = new CancellationTokenSource();
                 
                 await LoadIconAsync(selectedLevel.IconHash, _iconCts.Token);
@@ -1123,7 +1130,6 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
         private async void DgUsers_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _userSelectionCts?.Cancel();
-            _userSelectionCts?.Dispose();
             _userSelectionCts = null;
 
             if (dgUsers.SelectedItem is UserItem selectedUser)
@@ -1152,10 +1158,9 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 btnDownloadAllLevels.IsEnabled = true;
                 btnUserHeartToggle.IsEnabled = true;
                 RefreshCurrentUserSelectionHeartState();
-                _currentIconRequestId = selectedUser.NpHandle.GetHashCode();
+                _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 
                 _iconCts?.Cancel();
-                _iconCts?.Dispose();
                 _iconCts = new CancellationTokenSource();
                 
                 await LoadUserIconAsync(selectedUser.IconHash, selectedUser.NpHandle, _iconCts.Token);
@@ -1264,7 +1269,7 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             }
 
             txtUserIconStatus.Text = "Loading Icon...";
-            long expectedRequestId = npHandle.GetHashCode();
+            long expectedRequestId = _currentIconRequestId;
 
             var brush = await LbpArchiveToolkit.Services.IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, token);
 

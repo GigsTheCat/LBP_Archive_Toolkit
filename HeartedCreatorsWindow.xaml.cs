@@ -21,6 +21,7 @@ namespace LbpArchiveToolkit
         public ObservableCollection<UserItem> HeartedList { get; set; } = new();
         
         private CancellationTokenSource? _iconCts;
+        private long _iconRequestCounter = 0;
         private long _currentIconRequestId = -1;
 
         public HeartedCreatorsWindow()
@@ -68,9 +69,8 @@ namespace LbpArchiveToolkit
                                       $"• LBP3 Slots: {selected.Lbp3UsedSlots}";
                 iconHeartOverlay.Visibility = Visibility.Visible;
                 
-                _currentIconRequestId = selected.NpHandle.GetHashCode();
+                _currentIconRequestId = Interlocked.Increment(ref _iconRequestCounter);
                 _iconCts?.Cancel();
-                _iconCts?.Dispose();
                 _iconCts = new CancellationTokenSource();
                 
                 await LoadUserIconAsync(selected.IconHash, selected.NpHandle, _iconCts.Token);
@@ -97,7 +97,7 @@ namespace LbpArchiveToolkit
             }
 
             txtIconStatus.Text = "Loading Icon...";
-            long expectedRequestId = npHandle.GetHashCode();
+            long expectedRequestId = _currentIconRequestId;
 
             var brush = await LbpArchiveToolkit.Services.IconLoaderService.LoadIconBrushAsync(hash, MainWindow.SharedHttpClient, token);
 

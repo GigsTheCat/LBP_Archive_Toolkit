@@ -419,7 +419,7 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter)
+        public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter, CancellationToken token = default)
         {
             return await Task.Run(() =>
             {
@@ -478,6 +478,8 @@ namespace LbpArchiveToolkit.Services
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
+                    if (token.IsCancellationRequested) break;
+
                     items.Add(new UserItem
                     {
                         NpHandle = reader.IsDBNull(0) ? "Unknown" : reader.GetString(0),

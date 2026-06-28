@@ -49,7 +49,7 @@ namespace LbpArchiveToolkit
         {
             if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
             {
-                try { File.Delete(NewIconPath); } catch { }
+                try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.BtnChangeIcon_Click", ex); }
             }
 
             NewIconPath = cropDialog.CroppedImagePath;
@@ -72,7 +72,7 @@ protected override void OnClosed(EventArgs e)
     {
         if (NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
         {
-            try { File.Delete(NewIconPath); } catch { }
+            try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.OnClosed", ex); }
         }
     }
     base.OnClosed(e);
