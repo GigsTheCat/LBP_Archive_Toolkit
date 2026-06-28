@@ -62,11 +62,17 @@
             </ScrollViewer>
 
             <!-- 4. Footer Buttons -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="btnNo" Content="NO" Style="{DynamicResource BtnSecondary}" Click="BtnNo_Click"/>
-                <Button x:Name="btnYes" Content="YES" Style="{DynamicResource BtnPrimary}" Click="BtnYes_Click"/>
-                <Button x:Name="btnOk" Content="OK" Style="{DynamicResource BtnPrimary}" Click="BtnOk_Click"/>
-            </StackPanel>
+            <Grid Grid.Row="3">
+                <!-- Copy Button anchored to the left -->
+                <Button x:Name="btnCopy" Content="COPY" Style="{DynamicResource BtnSecondary}" HorizontalAlignment="Left" Margin="0" Visibility="Collapsed" Click="BtnCopy_Click"/>
+                
+                <!-- Dialog Responses anchored to the right -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="btnNo" Content="NO" Style="{DynamicResource BtnSecondary}" Click="BtnNo_Click"/>
+                    <Button x:Name="btnYes" Content="YES" Style="{DynamicResource BtnPrimary}" Click="BtnYes_Click"/>
+                    <Button x:Name="btnOk" Content="OK" Style="{DynamicResource BtnPrimary}" Click="BtnOk_Click"/>
+                </StackPanel>
+            </Grid>
         </Grid>
     </ContentControl>
 </Window>

@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Models;
@@ -31,6 +32,7 @@ namespace LbpArchiveToolkit
         private CancellationTokenSource? _iconCts;
         private CancellationTokenSource? _selectionCts;
         private CancellationTokenSource? _userSelectionCts;
+        private CancellationTokenSource? _toastCts;
 
         private DatabaseService _dbService;
         private ObservableCollection<LevelItem> _resultsList = new();
@@ -102,6 +104,11 @@ namespace LbpArchiveToolkit
             dgResults.ItemsSource = _resultsList;
             dgUsers.ItemsSource = _userResultsList;
             SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
+
+            // Globally listen for ANY copy events (Ctrl+C or Right Click -> Copy) in the description box
+            DataObject.AddCopyingHandler(txtDescription, (s, e) => {
+                ShowToast("Copied!", txtDescription);
+            });
 
             _ = LoadSavedLevelsAsync();
         }
@@ -370,7 +377,14 @@ namespace LbpArchiveToolkit
             cmbGenre.SelectedIndex = 0;
             _advancedCriteria = new AdvancedSearchCriteria(); 
 
-            cmbSearchType.SelectedIndex = 0; 
+            if (cmbSearchType.SelectedIndex == 0)
+            {
+                BtnSearch_Click(btnSearch, null!);
+            }
+            else
+            {
+                cmbSearchType.SelectedIndex = 0; 
+            }
         }
 
         public async Task InitiateBatchDownloadAsync(UserItem selectedUser)
@@ -502,12 +516,51 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
             aboutWin.ShowDialog();
         }
 
+        private async void ShowToast(string message, UIElement placementTarget)
+        {
+            txtNotification.Text = message;
+            
+            // Anchor the popup to the element that was interacted with
+            notificationToastPopup.PlacementTarget = placementTarget;
+            notificationToastPopup.IsOpen = true;
+
+            var fadeIn = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200));
+            notificationToastBorder.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+
+            _toastCts?.Cancel();
+            _toastCts = new CancellationTokenSource();
+            var token = _toastCts.Token;
+
+            try
+            {
+                await Task.Delay(2000, token);
+            }
+            catch (TaskCanceledException)
+            {
+                return; // Another toast interrupted this one
+            }
+
+            var fadeOut = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(300));
+            notificationToastBorder.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            
+            try 
+            { 
+                await Task.Delay(300, token); 
+                notificationToastPopup.IsOpen = false;
+            } 
+            catch { }
+        }
+
         private void BtnCopyHash_Click(object sender, RoutedEventArgs e)
         {
             if (dgResults.SelectedItem is LevelItem selected && !string.IsNullOrEmpty(selected.Hash))
             {
-                Clipboard.SetText(selected.Hash);
-                CustomDialog.Show(this, $"Level hash '{selected.Hash}' copied to clipboard!", "Copied", false);
+                try 
+                {
+                    Clipboard.SetText(selected.Hash);
+                    ShowToast("Hash Copied!", btnCopyHash); // Float directly above the copy button
+                } 
+                catch { } // Silently catch OS clipboard lock exceptions
             }
         }
 
@@ -515,8 +568,20 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
         {
             if (dgResults.SelectedItem is LevelItem selected && !string.IsNullOrEmpty(selected.LevelName))
             {
-                Clipboard.SetText(selected.LevelName);
-                CustomDialog.Show(this, $"Level name '{selected.LevelName}' copied to clipboard!", "Copied", false);
+                try
+                {
+                    Clipboard.SetText(selected.LevelName);
+                    
+                    // If invoked via context menu, find the element that the context menu belongs to (DataGrid Cell OR Title TextBlock)
+                    UIElement? target = null;
+                    if (sender is MenuItem menuItem && menuItem.Parent is ContextMenu contextMenu)
+                    {
+                        target = contextMenu.PlacementTarget;
+                    }
+                    
+                    ShowToast("Level Name Copied!", target ?? this);
+                } 
+                catch { }
             }
         }
 

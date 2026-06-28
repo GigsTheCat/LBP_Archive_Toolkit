@@ -271,7 +271,15 @@
                             <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Click="BtnSearch_Click"/>
                             
                             <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
-                                <TextBox x:Name="txtSearch" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15" KeyDown="TxtSearch_KeyDown"/>
+                                <TextBox x:Name="txtSearch" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15" KeyDown="TxtSearch_KeyDown">
+                                    <TextBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Command="Cut" Header="Cut" />
+                                            <MenuItem Command="Copy" Header="Copy" />
+                                            <MenuItem Command="Paste" Header="Paste" />
+                                        </ContextMenu>
+                                    </TextBox.ContextMenu>
+                                </TextBox>
                             </Border>
                         </DockPanel>
 
@@ -466,7 +474,13 @@
                                 <DockPanel Grid.Row="2" Margin="0,0,0,15">
                                     <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
-                                        <RichTextBox x:Name="txtDescription" IsReadOnly="True" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FontSize="14"/>
+                                        <RichTextBox x:Name="txtDescription" IsReadOnly="True" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FontSize="14">
+                                            <RichTextBox.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Command="Copy" Header="Copy" />
+                                                </ContextMenu>
+                                            </RichTextBox.ContextMenu>
+                                        </RichTextBox>
                                     </Border>
                                 </DockPanel>
 
@@ -535,6 +549,18 @@
                 </DockPanel>
             </Grid>
         </DockPanel>
+        
+        <!-- Context-Aware Toast Notification -->
+        <Popup x:Name="notificationToastPopup" AllowsTransparency="True" Placement="Top" HorizontalOffset="0" VerticalOffset="-8" IsHitTestVisible="False">
+            <Border x:Name="notificationToastBorder" Background="{DynamicResource LbpEmerald}" Padding="16,10" CornerRadius="16" Opacity="0" Margin="10">
+                <Border.Effect>
+                    <!-- A margin of 10 is needed around the border inside the popup to prevent the shadow from being clipped -->
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="3" Opacity="0.5" Direction="270" Color="Black"/>
+                </Border.Effect>
+                <TextBlock x:Name="txtNotification" Text="Copied!" Foreground="#003D2A" FontWeight="Bold" FontSize="14" TextAlignment="Center"/>
+            </Border>
+        </Popup>
+
      </Grid>
     </Border>
 </Window>

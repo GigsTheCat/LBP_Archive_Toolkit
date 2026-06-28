@@ -11,6 +11,13 @@ namespace LbpArchiveToolkit
             txtTitle.Text = title;
             txtMessage.Text = message;
 
+            // Automatically show the copy button if this is an error dialogue
+            if (title.Contains("Error", System.StringComparison.OrdinalIgnoreCase) || 
+                title.Contains("Failed", System.StringComparison.OrdinalIgnoreCase))
+            {
+                btnCopy.Visibility = Visibility.Visible;
+            }
+
             if (isYesNo)
             {
                 btnOk.Visibility = Visibility.Collapsed;
@@ -37,6 +44,20 @@ namespace LbpArchiveToolkit
         private void BtnOk_Click(object sender, RoutedEventArgs e) => DialogResult = true;
         private void BtnYes_Click(object sender, RoutedEventArgs e) => DialogResult = true;
         private void BtnNo_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        private async void BtnCopy_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Clipboard.SetText(txtMessage.Text);
+                
+                string oldText = btnCopy.Content.ToString() ?? "COPY";
+                btnCopy.Content = "COPIED!";
+                await System.Threading.Tasks.Task.Delay(2000);
+                btnCopy.Content = oldText;
+            }
+            catch { } // Silently catch random OS clipboard lock exceptions
+        }
 
         // Easy static helper to replace MessageBox.Show
         public static bool Show(Window owner, string message, string title, bool isYesNo = false)
