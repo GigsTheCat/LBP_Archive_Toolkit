@@ -56,7 +56,10 @@ namespace LbpArchiveToolkit
                 await System.Threading.Tasks.Task.Delay(2000);
                 btnCopy.Content = oldText;
             }
-            catch { } // Silently catch random OS clipboard lock exceptions
+            catch (Exception ex) 
+            { 
+                LogManager.Log("CustomDialog.BtnCopy_Click", ex); 
+            }
         }
 
         // Easy static helper to replace MessageBox.Show

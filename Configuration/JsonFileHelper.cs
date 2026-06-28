@@ -21,7 +21,10 @@ namespace LbpArchiveToolkit.Configuration
                     var items = JsonSerializer.Deserialize<List<T>>(json);
                     if (items != null) return items;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LogManager.Log("JsonFileHelper.LoadList", ex);
+                }
             }
             return new List<T>();
         }
@@ -37,7 +40,10 @@ namespace LbpArchiveToolkit.Configuration
                 File.WriteAllText(tempPath, json);
                 File.Move(tempPath, path, overwrite: true);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogManager.Log("JsonFileHelper.SaveList", ex);
+            }
         }
     }
 }

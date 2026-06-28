@@ -255,8 +255,9 @@ namespace LbpArchiveToolkit.Utils
             {
                 bgra = System.Buffers.ArrayPool<byte>.Shared.Rent((int)totalPixels * 4);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                LogManager.Log("TextureDecoder.DecodeFormatToBgra32", ex);
                 return Array.Empty<byte>();
             }
 
@@ -692,8 +693,9 @@ namespace LbpArchiveToolkit.Utils
 
                 return ScaleAndCenterBgraToBitmap(bgra, bitmap.PixelWidth, bitmap.PixelHeight);
             }
-            catch
+            catch (Exception ex)
             {
+                LogManager.Log("TextureDecoder.CenterWpfImageToBitmap", ex);
                 return null;
             }
             finally

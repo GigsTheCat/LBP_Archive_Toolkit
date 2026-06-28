@@ -65,7 +65,7 @@ namespace LbpArchiveToolkit.Services
             string tempPackDir = Path.Combine(bkpDir, "temp_repack");
             if (Directory.Exists(tempPackDir))
             {
-                try { Directory.Delete(tempPackDir, true); } catch { }
+                try { Directory.Delete(tempPackDir, true); } catch (Exception ex) { LogManager.Log("SaveDataBuilder.UpdateLevelInfo.Cleanup1", ex); }
             }
             Directory.CreateDirectory(tempPackDir);
 
@@ -110,7 +110,10 @@ namespace LbpArchiveToolkit.Services
                         Directory.Delete(tempPackDir, true);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LogManager.Log("SaveDataBuilder.UpdateLevelInfo.Cleanup2", ex);
+                }
             }
         }
 
@@ -764,7 +767,11 @@ namespace LbpArchiveToolkit.Services
                                 iconSaved = true;
                             }
                         }
-                    } catch { } 
+                    } 
+                    catch (Exception ex) 
+                    { 
+                        LogManager.Log("SaveDataBuilder.SaveLevelIconAsync", ex);
+                    } 
                 } 
             }
 

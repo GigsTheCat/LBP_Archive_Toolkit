@@ -25,7 +25,10 @@ namespace LbpArchiveToolkit
                 {
                     imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(currentIconPath);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LogManager.Log("EditInfoDialog.Constructor", ex);
+                }
             }
         }
 

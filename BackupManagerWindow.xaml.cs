@@ -234,7 +234,7 @@ namespace LbpArchiveToolkit
     this.IsEnabled = true;
     if (!string.IsNullOrEmpty(newIcon) && newIcon.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
     {
-        try { File.Delete(newIcon); } catch { }
+        try { File.Delete(newIcon); } catch (Exception ex) { LogManager.Log("BackupManagerWindow.BtnEdit_Click.Cleanup", ex); }
     }
 }
         }

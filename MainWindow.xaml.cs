@@ -259,7 +259,10 @@ namespace LbpArchiveToolkit
                     cmbGenre.SelectedIndex = 0;
                 });
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogManager.Log("MainWindow.LoadGenresAsync", ex);
+            }
         }
 
         #endregion
@@ -549,7 +552,11 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                 await Task.Delay(300, token); 
                 notificationToastPopup.IsOpen = false;
             } 
-            catch { }
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                LogManager.Log("MainWindow.ShowToast", ex);
+            }
         }
 
         private void BtnCopyHash_Click(object sender, RoutedEventArgs e)
@@ -561,7 +568,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     Clipboard.SetText(selected.Hash);
                     ShowToast("Hash Copied!", btnCopyHash); // Float directly above the copy button
                 } 
-                catch { } // Silently catch OS clipboard lock exceptions
+                catch (Exception ex)
+                {
+                    LogManager.Log("MainWindow.BtnCopyHash_Click", ex);
+                } // Silently catch OS clipboard lock exceptions
             }
         }
 
@@ -582,7 +592,10 @@ private void BtnHeartToggle_Click(object sender, RoutedEventArgs e)
                     
                     ShowToast("Level Name Copied!", target ?? this);
                 } 
-                catch { }
+                catch (Exception ex)
+                {
+                    LogManager.Log("MainWindow.CopyLevelNameContext_Click", ex);
+                }
             }
         }
 

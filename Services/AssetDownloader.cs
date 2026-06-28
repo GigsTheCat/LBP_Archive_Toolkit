@@ -83,7 +83,10 @@ namespace LbpArchiveToolkit.Services
                         return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("AssetDownloader.DetermineLayoutRobust", ex);
+            }
             
             return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
         }
