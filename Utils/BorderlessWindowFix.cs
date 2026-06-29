@@ -9,33 +9,39 @@ namespace LbpArchiveToolkit.Utils
         public static void Apply(Window window)
         {
             HwndSource? hwndSource = null;
-            HwndSourceHook hook = WindowProc;
+            HwndSourceHook? hook = null;
+
+            hook = (IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == 0x0024) // WM_GETMINMAXINFO
+                {
+                    WmGetMinMaxInfo(hwnd, lParam, window);
+                    handled = true;
+                }
+                return IntPtr.Zero;
+            };
 
             window.SourceInitialized += (s, e) =>
             {
                 var handle = new WindowInteropHelper(window).Handle;
                 hwndSource = HwndSource.FromHwnd(handle);
-                hwndSource?.AddHook(hook);
+                if (hook != null)
+                {
+                    hwndSource?.AddHook(hook);
+                }
             };
 
             window.Closed += (s, e) =>
             {
-                hwndSource?.RemoveHook(hook);
+                if (hook != null)
+                {
+                    hwndSource?.RemoveHook(hook);
+                }
                 hwndSource = null;
             };
         }
 
-        private static IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (msg == 0x0024) // WM_GETMINMAXINFO
-            {
-                WmGetMinMaxInfo(hwnd, lParam);
-                handled = true;
-            }
-            return IntPtr.Zero;
-        }
-
-        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam, Window window)
         {
             var mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO))!;
             int MONITOR_DEFAULTTONEAREST = 0x00000002;
@@ -54,6 +60,16 @@ namespace LbpArchiveToolkit.Utils
                 mmi.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
                 mmi.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
                 mmi.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
+
+                var source = HwndSource.FromHwnd(hwnd);
+                if (source?.CompositionTarget != null)
+                {
+                    var matrix = source.CompositionTarget.TransformToDevice;
+                    if (window.MinWidth > 0 && !double.IsNaN(window.MinWidth))
+                        mmi.ptMinTrackSize.X = (int)(window.MinWidth * matrix.M11);
+                    if (window.MinHeight > 0 && !double.IsNaN(window.MinHeight))
+                        mmi.ptMinTrackSize.Y = (int)(window.MinHeight * matrix.M22);
+                }
 
                 Marshal.StructureToPtr(mmi, lParam, true);
             }
