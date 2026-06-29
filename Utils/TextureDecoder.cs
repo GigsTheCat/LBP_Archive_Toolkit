@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Runtime.Intrinsics;
 
 namespace LbpArchiveToolkit.Utils
 {
@@ -168,13 +169,39 @@ namespace LbpArchiveToolkit.Utils
                         unswizzled = temp;
                     }
 
-                    // Restore 16-bit blocks back to Little-Endian for the GPU
+                    // Restore 16-bit blocks back to Little-Endian for the GPU (using Vector512 / Vector256)
                     if (format == 0x86 || format == 0x87 || format == 0x88)
                     {
                         var span16 = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ushort>(finalData.AsSpan(0, (int)totalDecompSize));
-                        for (int i = 0; i < span16.Length; i++)
+                        ref ushort spanRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span16);
+                        int i = 0;
+
+                        if (System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated && span16.Length >= 32)
                         {
-                            span16[i] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(span16[i]);
+                            for (; i <= span16.Length - 32; i += 32)
+                            {
+                                var v = System.Runtime.Intrinsics.Vector512.LoadUnsafe(ref spanRef, (nuint)i);
+                                var swapped = System.Runtime.Intrinsics.Vector512.BitwiseOr(
+                                    System.Runtime.Intrinsics.Vector512.ShiftRightLogical(v, 8),
+                                    System.Runtime.Intrinsics.Vector512.ShiftLeft(v, 8));
+                                swapped.StoreUnsafe(ref spanRef, (nuint)i);
+                            }
+                        }
+                        else if (System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated && span16.Length >= 16)
+                        {
+                            for (; i <= span16.Length - 16; i += 16)
+                            {
+                                var v = System.Runtime.Intrinsics.Vector256.LoadUnsafe(ref spanRef, (nuint)i);
+                                var swapped = System.Runtime.Intrinsics.Vector256.BitwiseOr(
+                                    System.Runtime.Intrinsics.Vector256.ShiftRightLogical(v, 8),
+                                    System.Runtime.Intrinsics.Vector256.ShiftLeft(v, 8));
+                                swapped.StoreUnsafe(ref spanRef, (nuint)i);
+                            }
+                        }
+
+                        for (; i < span16.Length; i++)
+                        {
+                            System.Runtime.CompilerServices.Unsafe.Add(ref spanRef, i) = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(System.Runtime.CompilerServices.Unsafe.Add(ref spanRef, i));
                         }
                     }
                 }
@@ -261,32 +288,66 @@ namespace LbpArchiveToolkit.Utils
 
             if (format == 0x85)
             {
-                for (int i = 0; i < dataLength / 4 && i < totalPixels; i++)
+                int max = Math.Min(dataLength, (int)(totalPixels * 4));
+                ref byte srcRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan(dataOffset));
+                ref byte dstRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bgra.AsSpan());
+                int i = 0;
+
+                if (System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated && max >= 64)
                 {
-                    int src = dataOffset + i * 4;
-                    int dst = i * 4;
-                    bgra[dst] = data[src + 3];
-                    bgra[dst + 1] = data[src + 2];
-                    bgra[dst + 2] = data[src + 1];
-                    bgra[dst + 3] = data[src];
+                    var mask = System.Runtime.Intrinsics.Vector512.Create(
+                        (byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12,
+                        19, 18, 17, 16, 23, 22, 21, 20, 27, 26, 25, 24, 31, 30, 29, 28,
+                        35, 34, 33, 32, 39, 38, 37, 36, 43, 42, 41, 40, 47, 46, 45, 44,
+                        51, 50, 49, 48, 55, 54, 53, 52, 59, 58, 57, 56, 63, 62, 61, 60);
+
+                    for (; i <= max - 64; i += 64)
+                    {
+                        var v = System.Runtime.Intrinsics.Vector512.LoadUnsafe(ref srcRef, (nuint)i);
+                        System.Runtime.Intrinsics.Vector512.Shuffle(v, mask).StoreUnsafe(ref dstRef, (nuint)i);
+                    }
                 }
+                else if (System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated && max >= 32)
+                {
+                    var mask = System.Runtime.Intrinsics.Vector256.Create(
+                        (byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12,
+                        19, 18, 17, 16, 23, 22, 21, 20, 27, 26, 25, 24, 31, 30, 29, 28);
+
+                    for (; i <= max - 32; i += 32)
+                    {
+                        var v = System.Runtime.Intrinsics.Vector256.LoadUnsafe(ref srcRef, (nuint)i);
+                        System.Runtime.Intrinsics.Vector256.Shuffle(v, mask).StoreUnsafe(ref dstRef, (nuint)i);
+                    }
+                }
+
+                var srcSpan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(data.AsSpan(dataOffset + i, max - i));
+                var dstSpan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan(i, max - i));
+                for (int j = 0; j < srcSpan.Length; j++)
+                {
+                    dstSpan[j] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(srcSpan[j]);
+                }
+                
                 return bgra;
             }
             else if (format == 0x89)
             {
-                Array.Copy(data, dataOffset, bgra, 0, (int)totalPixels * 4);
+                int max = Math.Min(dataLength, (int)(totalPixels * 4));
+                System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                    ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bgra.AsSpan()),
+                    ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan()), dataOffset),
+                    (uint)max);
                 return bgra;
             }
             else if (format == 0x81)
             {
-                for (int i = 0; i < dataLength && i < totalPixels; i++)
+                int max = Math.Min(dataLength, (int)totalPixels);
+                ref byte srcRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan()), dataOffset);
+                ref uint dstRef = ref System.Runtime.CompilerServices.Unsafe.As<byte, uint>(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bgra.AsSpan()));
+                
+                for (int i = 0; i < max; i++)
                 {
-                    byte val = data[dataOffset + i];
-                    int dst = i * 4;
-                    bgra[dst] = val;
-                    bgra[dst + 1] = val;
-                    bgra[dst + 2] = val;
-                    bgra[dst + 3] = 255;
+                    uint val = System.Runtime.CompilerServices.Unsafe.Add(ref srcRef, i);
+                    System.Runtime.CompilerServices.Unsafe.Add(ref dstRef, i) = val | (val << 8) | (val << 16) | 0xFF000000;
                 }
                 return bgra;
             }
@@ -364,8 +425,9 @@ namespace LbpArchiveToolkit.Utils
 
         private static void DecodeDXT1Block(ReadOnlySpan<byte> data, int srcOffset, Span<uint> dest, int bx, int by, int width, int height, bool isDxt1)
         {
-            ushort c0 = (ushort)(data[srcOffset] | (data[srcOffset + 1] << 8));
-            ushort c1 = (ushort)(data[srcOffset + 2] | (data[srcOffset + 3] << 8));
+            ref byte srcRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data), srcOffset);
+            ushort c0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ushort>(ref srcRef);
+            ushort c1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ushort>(ref System.Runtime.CompilerServices.Unsafe.Add(ref srcRef, 2));
 
             Span<uint> colors = stackalloc uint[4];
             colors[0] = RGB565toBGRA(c0);
@@ -382,10 +444,7 @@ namespace LbpArchiveToolkit.Utils
                 colors[3] = 0;
             }
 
-            uint indices = (uint)data[srcOffset + 4] |
-                           ((uint)data[srcOffset + 5] << 8) |
-                           ((uint)data[srcOffset + 6] << 16) |
-                           ((uint)data[srcOffset + 7] << 24);
+            uint indices = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref System.Runtime.CompilerServices.Unsafe.Add(ref srcRef, 4));
 
             int startY = by * 4;
             int startX = bx * 4;
@@ -420,7 +479,8 @@ namespace LbpArchiveToolkit.Utils
                 int py = startY + y;
                 if (py >= height) continue;
                 int rowOffset = py * width;
-                uint rowAlpha = (uint)data[srcOffset + y * 2] | ((uint)data[srcOffset + y * 2 + 1] << 8);
+                ref byte alphaRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data), srcOffset + y * 2);
+                uint rowAlpha = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ushort>(ref alphaRef);
                 for (int x = 0; x < 4; x++)
                 {
                     uint a = rowAlpha & 0xF;
@@ -457,12 +517,9 @@ namespace LbpArchiveToolkit.Utils
                 alphas[7] = 255;
             }
 
-            ulong alphaIndices = (ulong)data[srcOffset + 2] |
-                                 ((ulong)data[srcOffset + 3] << 8) |
-                                 ((ulong)data[srcOffset + 4] << 16) |
-                                 ((ulong)data[srcOffset + 5] << 24) |
-                                 ((ulong)data[srcOffset + 6] << 32) |
-                                 ((ulong)data[srcOffset + 7] << 40);
+            ref byte alphaRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data), srcOffset + 2);
+            ulong alphaIndices = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref alphaRef) |
+                                 ((ulong)System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ushort>(ref System.Runtime.CompilerServices.Unsafe.Add(ref alphaRef, 4)) << 32);
 
             int startY = by * 4;
             int startX = bx * 4;
@@ -621,7 +678,10 @@ namespace LbpArchiveToolkit.Utils
 
                             if (srcIndex + bytesPerBlock <= localSrcSpan.Length && localDestOffset + bytesPerBlock <= localDestSpan.Length)
                             {
-                                localSrcSpan.Slice(srcIndex, bytesPerBlock).CopyTo(localDestSpan.Slice(localDestOffset, bytesPerBlock));
+                                System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                                    ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(localDestSpan), localDestOffset),
+                                    ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(localSrcSpan), srcIndex),
+                                    (uint)bytesPerBlock);
                             }
                             localDestOffset += bytesPerBlock;
                         }

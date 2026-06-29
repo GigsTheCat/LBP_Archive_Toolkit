@@ -160,7 +160,7 @@ namespace LbpArchiveToolkit.Services
 
             bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
             bool hasTagsFilter = advanced.RequiredLabels.Count > 0 || advanced.RequiredTags.Count > 0 || advanced.IsTeamPick;
-            bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable;
+            bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable && !hasKeyword;
             string pfx = (_hasFtsTable && (hasKeyword || useFtsForTags)) ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
@@ -278,7 +278,7 @@ namespace LbpArchiveToolkit.Services
 
                 long id = reader.GetInt64(0);
 
-                if (!_hasFtsTable)
+                if (needsCSharpFiltering)
                 {
                     long l0 = 0, l1 = 0;
                     if (reqL0 != 0 || reqL1 != 0)

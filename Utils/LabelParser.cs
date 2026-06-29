@@ -106,7 +106,8 @@ namespace LbpArchiveToolkit.Utils
 
         private static uint CalculateLams(string tag)
         {
-            byte[] bytes = System.Text.Encoding.ASCII.GetBytes(tag);
+            Span<byte> bytes = stackalloc byte[tag.Length];
+            System.Text.Encoding.ASCII.GetBytes(tag, bytes);
             ulong v0 = 0;
             ulong v1 = 0xC8509800;
 

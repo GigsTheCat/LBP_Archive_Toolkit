@@ -892,8 +892,25 @@ namespace LbpArchiveToolkit.Services
         {
             int i = 0;
 
+            // Process 16 elements (64 bytes) at a time if Vector512 is supported
+            if (Vector512.IsHardwareAccelerated && v.Length >= 16)
+            {
+                Vector512<byte> shuffleMask = Vector512.Create(
+                    (byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12,
+                    19, 18, 17, 16, 23, 22, 21, 20, 27, 26, 25, 24, 31, 30, 29, 28,
+                    35, 34, 33, 32, 39, 38, 37, 36, 43, 42, 41, 40, 47, 46, 45, 44,
+                    51, 50, 49, 48, 55, 54, 53, 52, 59, 58, 57, 56, 63, 62, 61, 60);
+
+                for (; i <= v.Length - 16; i += 16)
+                {
+                    ref byte byteRef = ref System.Runtime.CompilerServices.Unsafe.As<uint, byte>(ref v[i]);
+                    var vec = Vector512.LoadUnsafe(ref byteRef);
+                    var swapped = Vector512.Shuffle(vec, shuffleMask);
+                    swapped.StoreUnsafe(ref byteRef);
+                }
+            }
             // Process 8 elements (32 bytes) at a time if Vector256 is supported
-            if (Vector256.IsHardwareAccelerated && v.Length >= 8)
+            else if (Vector256.IsHardwareAccelerated && v.Length >= 8)
             {
                 Vector256<byte> shuffleMask = Vector256.Create(
                     (byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12,

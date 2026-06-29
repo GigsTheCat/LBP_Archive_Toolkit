@@ -23,7 +23,7 @@
     <Product>LBP Archive Toolkit</Product>
     <Description>A tool for searching for archived LBP levels.</Description>
     
-    <Version>1.3.4</Version>
+    <Version>1.3.5</Version>
   </PropertyGroup>
 
   <ItemGroup>
