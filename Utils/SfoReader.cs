@@ -69,7 +69,14 @@ namespace LbpArchiveToolkit.Utils
                             // Bounds safety check to prevent EndOfStreamException on corrupted files
                             int safeLength = (int)Math.Min(entry.dataLen, fs.Length - fs.Position);
                             byte[] dataBytes = br.ReadBytes(safeLength);
-                            string decodedText = Encoding.UTF8.GetString(dataBytes).TrimEnd('\0');
+                            
+                            int nullIndex = Array.IndexOf(dataBytes, (byte)0);
+                            if (nullIndex >= 0)
+                            {
+                                dataBytes = dataBytes[..nullIndex];
+                            }
+                            
+                            string decodedText = Encoding.UTF8.GetString(dataBytes);
 
                             if (key == "SUB_TITLE") result.Title = decodedText;
                             else if (key == "DETAIL") result.Description = decodedText;

@@ -177,12 +177,8 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colHash)).Append(", ")
                         .Append(SafeCol(_colIcon)).Append(", ")
                         .Append(SafeCol(_colMmPick)).Append(", ")
-                        .Append(SafeCol(_colLabels));
-
-            if (!_hasFtsTable)
-            {
-                queryBuilder.Append(", ").Append(SafeCol(_colTags));
-            }
+                        .Append(SafeCol(_colLabels)).Append(", ")
+                        .Append(SafeCol(_colTags));
 
             queryBuilder.Append(" FROM slot ");
 
@@ -271,10 +267,9 @@ namespace LbpArchiveToolkit.Services
             var dateCache = new Dictionary<string, string>();
             var nameCache = new Dictionary<string, string>();
 
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
-                if (token.IsCancellationRequested) yield break;
 
                 long id = reader.GetInt64(0);
 
@@ -439,21 +434,20 @@ namespace LbpArchiveToolkit.Services
 
         public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter, CancellationToken token = default)
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 var items = new List<UserItem>();
                 if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
                 EnsureSchemaResolved();
 
-                // Wait synchronously if a RAM load was requested (since this method is inside Task.Run)
                 if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam)
                 {
-                    EnsureRamDbLoadedAsync(null).GetAwaiter().GetResult();
+                    await EnsureRamDbLoadedAsync(null).ConfigureAwait(false);
                 }
 
                 using var conn = new SqliteConnection(GetConnectionString());
-                conn.Open();
+                await conn.OpenAsync(token).ConfigureAwait(false);
                 ApplyConnectionOptimizations(conn);
 
                 var queryBuilder = new StringBuilder();
@@ -493,10 +487,9 @@ namespace LbpArchiveToolkit.Services
                 using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);
                 foreach (var param in parameters) cmd.Parameters.Add(param);
 
-                using var reader = cmd.ExecuteReader();
-                while (reader.Read())
+                using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    if (token.IsCancellationRequested) break;
 
                     items.Add(new UserItem
                     {
@@ -587,7 +580,7 @@ namespace LbpArchiveToolkit.Services
             parameters.Add(new SqliteParameter("@match", matchTerm));
         }
 
-        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1, bool hasFts)
+        private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1, bool useFtsForTags)
         {
             if (gameFilter > 0 && _colGame != "NULL")
             {
@@ -623,7 +616,7 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
-            if (advanced.IsTeamPick && !_hasFtsTable && _colMmPick != "NULL")
+            if (advanced.IsTeamPick && !useFtsForTags && _colMmPick != "NULL")
             {
                 query.Append($" AND {pfx}{_colMmPick} = 1");
             }

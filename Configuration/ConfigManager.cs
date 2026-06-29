@@ -38,7 +38,6 @@ namespace LbpArchiveToolkit.Configuration
         #region Paths & Constants
 
         private static readonly System.Threading.Lock _saveLock = new();
-        private static readonly SemaphoreSlim _saveLockAsync = new SemaphoreSlim(1, 1);
 
         private static readonly string AppDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -171,9 +170,9 @@ namespace LbpArchiveToolkit.Configuration
 
         public static void SaveConfig()
         {
-            lock (_saveLock)
+            try
             {
-                try
+                lock (_saveLock)
                 {
                     string json = GetConfigJson();
                     Directory.CreateDirectory(AppDataFolder);
@@ -181,35 +180,19 @@ namespace LbpArchiveToolkit.Configuration
                     File.WriteAllText(tempPath, json);
                     File.Move(tempPath, ConfigPath, overwrite: true);
                 }
-                catch (Exception ex)
-                {
-                    LbpArchiveToolkit.LogManager.Log("ConfigManager.SaveConfig", ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                LbpArchiveToolkit.LogManager.Log("ConfigManager.SaveConfig", ex);
             }
         }
 
         /// <summary>
         /// Commits the current static state out to the configuration JSON file in AppData asynchronously.
         /// </summary>
-        public static async Task SaveConfigAsync()
+        public static Task SaveConfigAsync()
         {
-            await _saveLockAsync.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                string json = GetConfigJson();
-                Directory.CreateDirectory(AppDataFolder);
-                string tempPath = ConfigPath + ".tmp";
-                await File.WriteAllTextAsync(tempPath, json).ConfigureAwait(false);
-                File.Move(tempPath, ConfigPath, overwrite: true);
-            }
-            catch (Exception ex)
-            {
-                LbpArchiveToolkit.LogManager.Log("ConfigManager.SaveConfigAsync", ex);
-            }
-            finally
-            {
-                _saveLockAsync.Release();
-            }
+            return Task.Run(SaveConfig);
         }
 
         #endregion

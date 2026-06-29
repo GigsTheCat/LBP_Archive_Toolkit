@@ -251,6 +251,11 @@ namespace LbpArchiveToolkit.Services
                             }
                         }
                     }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        LbpArchiveToolkit.LogManager.Log($"AssetDownloader.ProcessQueueAsync (Item: {currentHash})", ex);
+                    }
                     finally
                     {
                         ctx.IncrementProcessed();
@@ -261,7 +266,7 @@ namespace LbpArchiveToolkit.Services
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                LbpArchiveToolkit.LogManager.Log("AssetDownloader.ProcessQueueAsync", ex);
+                LbpArchiveToolkit.LogManager.Log("AssetDownloader.ProcessQueueAsync (Fatal)", ex);
                 ctx.QueueWriter.TryComplete(ex);
             }
         }

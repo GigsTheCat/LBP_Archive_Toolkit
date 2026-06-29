@@ -67,6 +67,11 @@ namespace LbpArchiveToolkit
             public UserItem? SelectedUser { get; set; }
         }
 
+        static MainWindow()
+        {
+            SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
+        }
+
         #endregion
 
         #region Initialization & Lifecycle
@@ -96,7 +101,6 @@ namespace LbpArchiveToolkit
 
             dgResults.ItemsSource = _resultsList;
             dgUsers.ItemsSource = _userResultsList;
-            SharedHttpClient.DefaultRequestHeaders.Add("User-Agent", "LbpArchiveToolkit/1.0");
 
             // Globally listen for ANY copy events (Ctrl+C or Right Click -> Copy) in the description box
             DataObject.AddCopyingHandler(txtDescription, (s, e) =>

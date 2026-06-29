@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -49,45 +51,50 @@ public static class LogManager
 {
     private static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit");
     private static readonly string LogPath = Path.Combine(AppDataFolder, "debug_log.txt");
-    private static readonly System.Threading.Lock LockObj = new();
+    private static readonly Channel<string> _logChannel = Channel.CreateUnbounded<string>();
+
+    static LogManager()
+    {
+        Task.Run(ProcessLogQueueAsync);
+    }
+
+    private static async Task ProcessLogQueueAsync()
+    {
+        try
+        {
+            Directory.CreateDirectory(AppDataFolder);
+            await foreach (var message in _logChannel.Reader.ReadAllAsync())
+            {
+                try
+                {
+                    if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
+                        File.Delete(LogPath);
+
+                    await File.AppendAllTextAsync(LogPath, message);
+                }
+                catch { }
+            }
+        }
+        catch { }
+    }
 
     public static void Log(string context, Exception ex)
     {
         try
         {
-            lock (LockObj)
-            {
-                Directory.CreateDirectory(AppDataFolder);
-
-                if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
-                    File.Delete(LogPath);
-
-                File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR in {context}: {ex.GetType().Name} - {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}{Environment.NewLine}");
-            }
+            string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR in {context}: {ex.GetType().Name} - {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+            _logChannel.Writer.TryWrite(logMessage);
         }
-        catch
-        {
-            // Fail silently to prevent recursive logging failures
-        }
+        catch { }
     }
 
     public static void LogWarning(string context, string message)
     {
         try
         {
-            lock (LockObj)
-            {
-                Directory.CreateDirectory(AppDataFolder);
-
-                if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
-                    File.Delete(LogPath);
-
-                File.AppendAllText(LogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] WARNING in {context}: {message}{Environment.NewLine}{Environment.NewLine}");
-            }
+            string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] WARNING in {context}: {message}{Environment.NewLine}{Environment.NewLine}";
+            _logChannel.Writer.TryWrite(logMessage);
         }
-        catch
-        {
-            // Fail silently
-        }
+        catch { }
     }
 }

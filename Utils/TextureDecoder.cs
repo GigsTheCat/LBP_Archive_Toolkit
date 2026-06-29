@@ -148,13 +148,12 @@ namespace LbpArchiveToolkit.Utils
 
                 if (typeStr == "TEX")
                 {
-                    if (finalData.Length >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
+                    if (totalDecompSize >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
                     {
                         return DecodeDdsToBitmapCentered(finalData, (int)totalDecompSize);
                     }
                     else
                     {
-                        // Some valid TEX files are literally just JPGs/PNGs embedded without format blocks
                         return CenterWpfImageToBitmap(finalData, (int)totalDecompSize);
                     }
                 }
@@ -441,7 +440,7 @@ namespace LbpArchiveToolkit.Utils
             else
             {
                 colors[2] = MixColors(colors[0], colors[1], 1, 1, 2);
-                colors[3] = 0;
+                colors[3] = 0; // Transparent Black
             }
 
             uint indices = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref System.Runtime.CompilerServices.Unsafe.Add(ref srcRef, 4));
