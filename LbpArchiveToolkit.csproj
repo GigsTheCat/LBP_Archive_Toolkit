@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <LangVersion>preview</LangVersion>
     <AssemblyName>LBP Archive Toolkit</AssemblyName>
     <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
