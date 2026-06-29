@@ -3,7 +3,7 @@ This app allows you to search the LBP archive for levels to download and backup.
 
 ## Prerequisites
 - **Windows 10 or 11** (x64)
-- **.NET 10 Desktop Runtime** (if you don't have it, you'll be prompted to download it from Microsoft when you start the app)
+- **.NET 11 preview Desktop Runtime** (if you don't have it, you'll be prompted to download it from Microsoft when you start the app)
   
 ## How to Use
 1. [Download](https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases) the latest `.zip` release, extract it, and place the app folder anywhere.
