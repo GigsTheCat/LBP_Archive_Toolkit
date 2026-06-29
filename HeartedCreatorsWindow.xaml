@@ -99,9 +99,9 @@
                                       SelectionChanged="LvHearted_SelectionChanged">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="CREATOR ↕" Width="*" Binding="{Binding NpHandle}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="TOTAL LEVELS ↕" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="♥ ↕" Width="100" Binding="{Binding HeartCount}">
+                                    <DataGridTextColumn Header="CREATOR" Width="*" Binding="{Binding NpHandle}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="TOTAL LEVELS" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="♥" Width="100" Binding="{Binding HeartCount}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>

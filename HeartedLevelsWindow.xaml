@@ -89,9 +89,9 @@
                                       SelectionChanged="LvHearted_SelectionChanged">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="LEVEL NAME ↕" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="CREATOR ↕" Width="200" Binding="{Binding Creator}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="GAME ↕" Width="100" Binding="{Binding Game}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="CREATOR" Width="200" Binding="{Binding Creator}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="GAME" Width="100" Binding="{Binding Game}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </ContentControl>

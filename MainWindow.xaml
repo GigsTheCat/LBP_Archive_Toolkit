@@ -339,10 +339,10 @@
                                       SelectionChanged="DgResults_SelectionChanged" Visibility="Visible">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="SAVED ↕" Width="70" Binding="{Binding Saved}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="GAME ↕" Width="80" Binding="{Binding Game}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="PUBLISHED ↕" Width="120" Binding="{Binding Date}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTemplateColumn Header="CREATOR ↕" Width="140">
+                                    <DataGridTextColumn Header="SAVED" Width="70" Binding="{Binding Saved}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="GAME" Width="80" Binding="{Binding Game}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="PUBLISHED" Width="120" Binding="{Binding Date}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTemplateColumn Header="CREATOR" Width="140">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
@@ -356,7 +356,7 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="LEVEL NAME ↕" Width="*">
+                                    <DataGridTemplateColumn Header="LEVEL NAME" Width="*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding LevelName}" Style="{StaticResource DataGridTextCenterStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
@@ -369,8 +369,8 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="PLAYS ↕" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="♥ ↕" Width="60" Binding="{Binding Hearts}">
+                                    <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>
@@ -383,7 +383,7 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="GENRE ↕" Width="110" Binding="{Binding Genre}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="GENRE" Width="110" Binding="{Binding Genre}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
 
@@ -395,12 +395,12 @@
                                       SelectionChanged="DgUsers_SelectionChanged" Visibility="Collapsed">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="CREATOR ↕" Width="*" Binding="{Binding NpHandle}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="TOTAL LEVELS ↕" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="LBP1 ↕" Width="90" Binding="{Binding Lbp1UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="LBP2 ↕" Width="90" Binding="{Binding Lbp2UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="LBP3 ↕" Width="90" Binding="{Binding Lbp3UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="♥ ↕" Width="100" Binding="{Binding HeartCount}">
+                                    <DataGridTextColumn Header="CREATOR" Width="*" Binding="{Binding NpHandle}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="TOTAL LEVELS" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="LBP1" Width="90" Binding="{Binding Lbp1UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="LBP2" Width="90" Binding="{Binding Lbp2UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="LBP3" Width="90" Binding="{Binding Lbp3UsedSlots}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="♥" Width="100" Binding="{Binding HeartCount}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>

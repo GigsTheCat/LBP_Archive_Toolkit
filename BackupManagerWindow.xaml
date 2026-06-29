@@ -85,9 +85,9 @@
                                   SelectionChanged="LvBackups_SelectionChanged">
                             
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="LEVEL &amp; CREATOR ↕" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="FOLDER ID ↕" Width="200" Binding="{Binding FolderName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="DATE BACKED UP ↕" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="LEVEL &amp; CREATOR" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="FOLDER ID" Width="200" Binding="{Binding FolderName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="DATE BACKED UP" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </ContentControl>
