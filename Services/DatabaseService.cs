@@ -206,7 +206,7 @@ namespace LbpArchiveToolkit.Services
 
                 if (useFtsForTags)
                 {
-                    var tagTokens = new List<string>();
+                    List<string> tagTokens = [with(capacity: advanced.RequiredLabels.Count + advanced.RequiredTags.Count + 1)];
                     foreach (var l in advanced.RequiredLabels) tagTokens.Add($"\"LBL_{l.Replace(" ", "")}\"");
                     foreach (var t in advanced.RequiredTags) tagTokens.Add($"\"TAG_{t.Replace(" ", "")}\"");
                     if (advanced.IsTeamPick) tagTokens.Add("\"MM_PICK\"");
@@ -286,13 +286,23 @@ namespace LbpArchiveToolkit.Services
                         byte[]? labelsBlob = reader.IsDBNull(12) ? null : reader.GetFieldValue<byte[]>(12);
                         if (labelsBlob != null)
                         {
-                            for (int i = 0; i < 85; i++)
+                            int len = labelsBlob.Length;
+                            if (len >= 8)
                             {
-                                int byteIndex = (labelsBlob.Length - 1) - (i >> 3);
-                                if (byteIndex >= 0 && byteIndex < labelsBlob.Length && (labelsBlob[byteIndex] & (1 << (i & 7))) != 0)
+                                l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(labelsBlob.AsSpan(len - 8));
+                                int remaining = len - 8;
+                                if (remaining > 0)
                                 {
-                                    if (i < 64) l0 |= (1L << i); else l1 |= (1L << (i - 64));
+                                    Span<byte> temp = stackalloc byte[8];
+                                    labelsBlob.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
+                                    l1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
                                 }
+                            }
+                            else if (len > 0)
+                            {
+                                Span<byte> temp = stackalloc byte[8];
+                                labelsBlob.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
+                                l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
                             }
                         }
                         if ((l0 & reqL0) != reqL0 || (l1 & reqL1) != reqL1)
@@ -307,13 +317,23 @@ namespace LbpArchiveToolkit.Services
                         byte[]? tagsBlob = reader.IsDBNull(13) ? null : reader.GetFieldValue<byte[]>(13);
                         if (tagsBlob != null)
                         {
-                            for (int i = 0; i < 76; i++)
+                            int len = tagsBlob.Length;
+                            if (len >= 8)
                             {
-                                int byteIndex = (tagsBlob.Length - 1) - (i >> 3);
-                                if (byteIndex >= 0 && byteIndex < tagsBlob.Length && (tagsBlob[byteIndex] & (1 << (i & 7))) != 0)
+                                t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(tagsBlob.AsSpan(len - 8));
+                                int remaining = len - 8;
+                                if (remaining > 0)
                                 {
-                                    if (i < 64) t0 |= (1L << i); else t1 |= (1L << (i - 64));
+                                    Span<byte> temp = stackalloc byte[8];
+                                    tagsBlob.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
+                                    t1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
                                 }
+                            }
+                            else if (len > 0)
+                            {
+                                Span<byte> temp = stackalloc byte[8];
+                                tagsBlob.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
+                                t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
                             }
                         }
                         if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
@@ -492,14 +512,14 @@ namespace LbpArchiveToolkit.Services
             });
         }
 
-        private static readonly HashSet<string> _actualGenres = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
+        private static readonly FrozenSet<string> _actualGenres = [
+            with(StringComparer.OrdinalIgnoreCase),
             "Arcade", "Cinematic", "Driving", "Fighter", "FirstOrThirdPerson",
             "Gallery", "MiniGames", "Multiplayer", "Platform", "PlatformerRaces",
             "PlatformShooter", "Puzzle", "RPG", "Shooter", "Social", "Sports",
             "Story", "Strategy", "SurvivalChallenge", "TOP_DOWN", "Tutorial",
             "UniquePlatformer", "VehicleShooter"
-        };
+        ];
 
         public Task<HashSet<string>> GetGenresAsync()
         {
@@ -714,10 +734,12 @@ namespace LbpArchiveToolkit.Services
             return _intToGenreMap.TryGetValue(id, out string? name) ? name : "Unknown";
         }
 
-        private static int GetTagIndex(string tagName)
-        {
-            return Array.IndexOf((string[])TagParser.GetNames(), tagName);
-        }
+        private static readonly FrozenDictionary<string, int> _tagToIndexMap = TagParser.GetNames()
+            .Select((name, index) => new { name, index })
+            .ToFrozenDictionary(x => x.name, x => x.index, StringComparer.OrdinalIgnoreCase);
+
+        private static int GetTagIndex(string tagName) => 
+            _tagToIndexMap.TryGetValue(tagName, out int index) ? index : -1;
 
         #endregion
     }

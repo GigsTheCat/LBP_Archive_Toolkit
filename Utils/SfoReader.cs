@@ -13,9 +13,8 @@ namespace LbpArchiveToolkit.Utils
 
             try
             {
-                byte[] fileBytes = File.ReadAllBytes(sfoFilePath);
-                using (MemoryStream fs = new MemoryStream(fileBytes))
-                using (BinaryReader br = new BinaryReader(fs))
+                using var fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var br = new BinaryReader(fs);
                 {
                     // Check Magic Header: "\0PSF"
                     byte[] magic = br.ReadBytes(4);

@@ -118,14 +118,15 @@ namespace LbpArchiveToolkit
             _userSelectionCts?.Cancel();
             _userSelectionCts = null;
 
-            if (_currentSearch != null)
+            var current = _currentSearch;
+            if (current != null)
             {
-                if (_currentSearch.SearchTypeIndex == 0)
-                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (current.SearchTypeIndex == 0)
+                    current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
-                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+                    current.SelectedUser = dgUsers.SelectedItem as UserItem;
 
-                ConfigManager.LastSearch = _currentSearch;
+                ConfigManager.LastSearch = current;
             }
 
             ConfigManager.SaveConfig();
@@ -634,15 +635,16 @@ namespace LbpArchiveToolkit
             progressBar.Visibility = Visibility.Visible;
             progressBar.IsIndeterminate = true;
 
-            if (_currentSearch != null)
+            var current = _currentSearch;
+            if (current != null)
             {
                 // Save the currently selected item BEFORE we clear the DataGrid
-                if (_currentSearch.SearchTypeIndex == 0)
-                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (current.SearchTypeIndex == 0)
+                    current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
-                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+                    current.SelectedUser = dgUsers.SelectedItem as UserItem;
 
-                PushToHistory(_searchHistory, _currentSearch);
+                PushToHistory(_searchHistory, current);
             }
 
             // Clear previous results to avoid old icons flashing
@@ -842,14 +844,15 @@ namespace LbpArchiveToolkit
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
         {
-            if (_searchHistory.Count > 0 && _currentSearch != null)
+            var current = _currentSearch;
+            if (_searchHistory.Count > 0 && current != null)
             {
-                if (_currentSearch.SearchTypeIndex == 0)
-                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (current.SearchTypeIndex == 0)
+                    current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
-                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+                    current.SelectedUser = dgUsers.SelectedItem as UserItem;
 
-                PushToHistory(_forwardHistory, _currentSearch);
+                PushToHistory(_forwardHistory, current);
                 ApplySearchState(_searchHistory.Pop());
             }
 
@@ -859,14 +862,15 @@ namespace LbpArchiveToolkit
 
         private void BtnForward_Click(object sender, RoutedEventArgs e)
         {
-            if (_forwardHistory.Count > 0 && _currentSearch != null)
+            var current = _currentSearch;
+            if (_forwardHistory.Count > 0 && current != null)
             {
-                if (_currentSearch.SearchTypeIndex == 0)
-                    _currentSearch.SelectedItem = dgResults.SelectedItem as LevelItem;
+                if (current.SearchTypeIndex == 0)
+                    current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
-                    _currentSearch.SelectedUser = dgUsers.SelectedItem as UserItem;
+                    current.SelectedUser = dgUsers.SelectedItem as UserItem;
 
-                PushToHistory(_searchHistory, _currentSearch);
+                PushToHistory(_searchHistory, current);
                 ApplySearchState(_forwardHistory.Pop());
             }
 

@@ -10,6 +10,12 @@ using System.Threading.RateLimiting;
 
 namespace LbpArchiveToolkit.Services
 {
+    public abstract record ExtractionResult
+    {
+        public sealed record Success : ExtractionResult;
+        public sealed record Error(string Message) : ExtractionResult;
+    }
+
     public class ExtractionConfig
     {
         public string DownloadServer { get; set; } = "zaprit";
@@ -111,10 +117,10 @@ namespace LbpArchiveToolkit.Services
             return null;
         }
 
-        public static async Task<(bool Success, string ErrorMessage)> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, ExtractionConfig config, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
+        public static async Task<ExtractionResult> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, ExtractionConfig config, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
         {
-            if (string.IsNullOrEmpty(lvl.Hash)) return (false, "Level hash is missing or empty.");
-            if (!IsValidHash(lvl.Hash)) return (false, "Level hash contains invalid path characters.");
+            if (string.IsNullOrEmpty(lvl.Hash)) return new ExtractionResult.Error("Level hash is missing or empty.");
+            if (!IsValidHash(lvl.Hash)) return new ExtractionResult.Error("Level hash contains invalid path characters.");
 
             var slotInfo = CreateSlotInfo(lvl);
             PopulateSlotInfoFromDatabase(lvl.Id, dbPath, slotInfo);
@@ -148,7 +154,7 @@ namespace LbpArchiveToolkit.Services
                 if (!string.IsNullOrEmpty(lvl.IconHash))
                 {
                     iconHashStr = lvl.IconHash.ToLowerInvariant();
-                    if (!IsValidHash(iconHashStr)) return (false, "Level icon hash contains invalid path characters.");
+                    if (!IsValidHash(iconHashStr)) return new ExtractionResult.Error("Level icon hash contains invalid path characters.");
                     if (iconHashStr.Length > 8)
                     {
                         ctx.AddDiscoveredHash(iconHashStr);
@@ -176,11 +182,11 @@ namespace LbpArchiveToolkit.Services
                     await Task.WhenAll(workers).ConfigureAwait(false);
                 }).ConfigureAwait(false);
 
-                if (token.IsCancellationRequested) return (false, "Extraction was cancelled.");
+                if (token.IsCancellationRequested) return new ExtractionResult.Error("Extraction was cancelled.");
 
                 if (!isRootGuid && !ctx.Resources.ContainsKey(rootHash))
                 {
-                    return (false, "The root level file could not be fetched (Likely missing from server).");
+                    return new ExtractionResult.Error("The root level file could not be fetched (Likely missing from server).");
                 }
 
                 ctx.ReportProgress("Encrypting and building save archive...");
@@ -189,13 +195,13 @@ namespace LbpArchiveToolkit.Services
                 await SaveDataBuilder.BuildAndWriteSaveDataAsync(lvl, slotInfo, sortedResources, backupDir, client, token).ConfigureAwait(false);
 
                 ctx.ReportProgress("Finished successfully!");
-                return (true, string.Empty);
+                return new ExtractionResult.Success();
             }
-            catch (OperationCanceledException) { return (false, "Extraction was cancelled."); }
+            catch (OperationCanceledException) { return new ExtractionResult.Error("Extraction was cancelled."); }
             catch (Exception ex)
             {
                 cts.Cancel();
-                return (false, $"File saving or network error: {ex.Message}");
+                return new ExtractionResult.Error($"File saving or network error: {ex.Message}");
             }
         }
 

@@ -1,12 +1,13 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LbpArchiveToolkit.Configuration
 {
     /// <summary>
     /// Manages the persistence and loading of user preferences, UI states, and network routing logic.
     /// </summary>
-    public static class ConfigManager
+    public static partial class ConfigManager
     {
         #region Configuration Properties
 
@@ -54,7 +55,10 @@ namespace LbpArchiveToolkit.Configuration
         /// <summary>
         /// A direct 1:1 schema used to map JSON files to the static manager state safely.
         /// </summary>
-        private class ConfigData
+        [JsonSerializable(typeof(ConfigData))]
+        internal partial class ConfigJsonContext : JsonSerializerContext { }
+
+        internal class ConfigData
         {
             public string? DatabasePath { get; set; }
             public string? BackupDirectory { get; set; }
@@ -106,7 +110,7 @@ namespace LbpArchiveToolkit.Configuration
             try
             {
                 string json = File.ReadAllText(pathToLoad);
-                var data = JsonSerializer.Deserialize<ConfigData>(json);
+                var data = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.ConfigData);
 
                 if (data != null)
                 {
@@ -161,7 +165,7 @@ namespace LbpArchiveToolkit.Configuration
                 LastSearch = LastSearch
             };
 
-            var options = new JsonSerializerOptions { WriteIndented = true };
+            var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = ConfigJsonContext.Default };
             return JsonSerializer.Serialize(data, options);
         }
 

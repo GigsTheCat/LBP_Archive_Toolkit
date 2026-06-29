@@ -52,7 +52,7 @@ namespace LbpArchiveToolkit.Services
 
                         var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
 
-                        if (result.Success)
+                        if (result is ExtractionResult.Success)
                         {
                             successCount++;
 
@@ -63,13 +63,13 @@ namespace LbpArchiveToolkit.Services
 
                             onLevelSaved?.Invoke(lvl);
                         }
-                        else
+                        else if (result is ExtractionResult.Error err)
                         {
-                            if (result.ErrorMessage.Contains("cancelled")) wasCancelled = true;
+                            if (err.Message.Contains("cancelled")) wasCancelled = true;
                             else
                             {
                                 failureCount++;
-                                errorMessages.Add($"'{lvl.LevelName}': {result.ErrorMessage}");
+                                errorMessages.Add($"'{lvl.LevelName}': {err.Message}");
                             }
                         }
                     }
