@@ -125,11 +125,20 @@
                             </DockPanel>
 
                             <StackPanel Grid.Row="3">
+    <!-- Status Text -->
     <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-        <Button x:Name="btnEdit" Content="EDIT INFO" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Margin="0,0,10,0" Width="165" Click="BtnEdit_Click"/>
-        <Button x:Name="btnDelete" Content="DELETE BACKUP" IsEnabled="False" Style="{DynamicResource BtnDelete}" Width="165" Click="BtnDelete_Click"/>
-    </StackPanel>
+    
+    <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
+    <Grid Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/> <!-- Spacing gap -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <Button x:Name="btnEdit" Grid.Column="0" Content="EDIT INFO" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Click="BtnEdit_Click"/>
+        <Button x:Name="btnDelete" Grid.Column="2" Content="DELETE BACKUP" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
+    </Grid>
 </StackPanel>
                         </Grid>
                     </ContentControl>

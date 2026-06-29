@@ -8,7 +8,9 @@ namespace LbpArchiveToolkit.Themes
         public static readonly IReadOnlyDictionary<string, string> AvailableThemes = new Dictionary<string, string>
         {
             { "DefaultTheme", "Default Theme" },
-            { "CraftTheme", "Craft Theme" }
+            { "CraftTheme", "Craft Theme" },
+            { "SapphireTheme", "Sapphire Sparkles" },
+            { "AuroraTheme", "Aurora Theme" }
         };
 
         public static void ApplyTheme(string themeName)
