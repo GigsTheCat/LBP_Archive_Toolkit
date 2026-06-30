@@ -183,11 +183,19 @@ namespace LbpArchiveToolkit.Services
             ms.Position = fatOffset;
 
             var hashes = new SortedDictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            Span<byte> hashBuf = stackalloc byte[20];
+            Span<byte> uintBuf = stackalloc byte[4];
+
             for (int i = 0; i < entryCount; i++)
             {
-                string hash = Convert.ToHexStringLower(br.ReadBytes(20));
-                uint offset = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
-                uint size = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                ms.ReadExactly(hashBuf);
+                string hash = Convert.ToHexStringLower(hashBuf);
+                
+                ms.ReadExactly(uintBuf);
+                uint offset = BinaryPrimitives.ReadUInt32BigEndian(uintBuf);
+                
+                ms.ReadExactly(uintBuf);
+                uint size = BinaryPrimitives.ReadUInt32BigEndian(uintBuf);
 
                 // Protect against out of bounds errors in corrupted/offset-shifted FAT reads
                 if (offset + size > buffer.Length) continue;
@@ -326,23 +334,18 @@ namespace LbpArchiveToolkit.Services
             byte[] result = new byte[source.Length];
             Array.Copy(source, result, source.Length);
 
-            for (int i = 0; i <= result.Length - 20; i++)
+            Span<byte> searchSpan = result;
+            int index;
+            
+            // IndexOf is SIMD-accelerated and sweeps memory natively
+            while ((index = searchSpan.IndexOf(oldHash)) != -1)
             {
-                bool match = true;
-                for (int j = 0; j < 20; j++)
-                {
-                    if (result[i + j] != oldHash[j])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match)
-                {
-                    Array.Copy(newHash, 0, result, i, 20);
-                    i += 19;
-                }
+                newHash.CopyTo(searchSpan.Slice(index, 20));
+                
+                // Slice forward to advance the search window
+                searchSpan = searchSpan.Slice(index + 20);
             }
+            
             return result;
         }
 
@@ -429,9 +432,9 @@ namespace LbpArchiveToolkit.Services
                 }
                 else
                 {
-                    byte[] buf = new byte[4];
+                    Span<byte> buf = stackalloc byte[4];
                     BinaryPrimitives.WriteInt32BigEndian(buf, value);
-                    outStream.Write(buf, 0, 4);
+                    outStream.Write(buf);
                 }
             }
 
@@ -1048,8 +1051,8 @@ namespace LbpArchiveToolkit.Services
                 dataInfos[i] = (size, offset);
             }
 
-            w.Write(Encoding.ASCII.GetBytes("\0PSF"));
-            w.Write(new byte[] { 0x01, 0x01, 0x00, 0x00 });
+            w.Write((ReadOnlySpan<byte>)[0x00, 0x50, 0x53, 0x46]); // "\0PSF"
+            w.Write((ReadOnlySpan<byte>)[0x01, 0x01, 0x00, 0x00]);
             w.WriteUInt32LE(0);
             w.WriteUInt32LE(0);
             w.WriteUInt32LE(11);
@@ -1057,9 +1060,9 @@ namespace LbpArchiveToolkit.Services
             for (int i = 0; i < 11; i++)
             {
                 w.WriteUInt16LE((ushort)keyOffsets[i]);
-                if (entries[i].fmt == 4 && entries[i].maxLen == 4 && (entries[i].key == "ATTRIBUTE" || entries[i].key == "PARENTAL_LEVEL")) w.Write(new byte[] { 0x04, 0x04 });
-                else if (entries[i].key == "ACCOUNT_ID" || entries[i].key == "PARAMS" || entries[i].key == "PARAMS2") w.Write(new byte[] { 0x04, 0x00 });
-                else w.Write(new byte[] { 0x04, 0x02 });
+                if (entries[i].fmt == 4 && entries[i].maxLen == 4 && (entries[i].key == "ATTRIBUTE" || entries[i].key == "PARENTAL_LEVEL")) w.Write((ReadOnlySpan<byte>)[0x04, 0x04]);
+                else if (entries[i].key == "ACCOUNT_ID" || entries[i].key == "PARAMS" || entries[i].key == "PARAMS2") w.Write((ReadOnlySpan<byte>)[0x04, 0x00]);
+                else w.Write((ReadOnlySpan<byte>)[0x04, 0x02]);
 
                 w.WriteUInt32LE((uint)dataInfos[i].size);
                 w.WriteUInt32LE(entries[i].maxLen);
@@ -1069,7 +1072,7 @@ namespace LbpArchiveToolkit.Services
             uint keyTableOffset = (uint)ms.Position;
             keyTable.WriteTo(ms);
             uint pad2 = (uint)(ms.Position % 4);
-            if (pad2 != 0) w.Write(new byte[4 - pad2]);
+            if (pad2 != 0) w.Write(stackalloc byte[(int)(4 - pad2)]);
 
             uint dataTableOffset = (uint)ms.Position;
             dataTable.WriteTo(ms);
@@ -1090,7 +1093,7 @@ namespace LbpArchiveToolkit.Services
 
             if (version == 4)
             {
-                pfKey = HMACSHA1.HashData(KEYGEN_KEY, pfKeyOrig);
+                HMACSHA1.HashData(KEYGEN_KEY, pfKeyOrig, pfKey);
             }
 
             ulong pfIndexSize = 1;
@@ -1103,13 +1106,17 @@ namespace LbpArchiveToolkit.Services
             using var wE = new BinaryWriter(pfEntries);
             wE.WriteUInt64BE(pfIndexSize);
             wE.Write(sfoFilename);
-            wE.Write(new byte[7]);
-            wE.Write(new byte[64]);
-            wE.Write(HMACSHA1.HashData(SAVEGAME_PARAM_SFO_KEY, sfo));
-            wE.Write(new byte[20]);
-            wE.Write(new byte[20]);
-            wE.Write(new byte[20]);
-            wE.Write(new byte[40]);
+            wE.Write(stackalloc byte[7]);
+            wE.Write(stackalloc byte[64]);
+            
+            Span<byte> sfoMac = stackalloc byte[20];
+            HMACSHA1.HashData(SAVEGAME_PARAM_SFO_KEY, sfo, sfoMac);
+            wE.Write(sfoMac);
+            
+            wE.Write(stackalloc byte[20]);
+            wE.Write(stackalloc byte[20]);
+            wE.Write(stackalloc byte[20]);
+            wE.Write(stackalloc byte[40]);
             wE.WriteUInt64BE((ulong)sfo.Length);
 
             using var pfIndex = new MemoryStream();
@@ -1119,21 +1126,24 @@ namespace LbpArchiveToolkit.Services
             wI.WriteUInt64BE(pfEntrySize);
             wI.WriteUInt64BE(0);
 
-            byte[] pfEntrySigTable;
+            byte[] pfEntrySigTable = new byte[20];
             var ms = new MemoryStream();
             ms.Write(sfoFilename, 0, sfoFilename.Length);
-            ms.Write(pfEntries.ToArray(), 80, pfEntries.ToArray().Length - 80);
-            pfEntrySigTable = HMACSHA1.HashData(pfKey, ms.ToArray());
+            ms.Write(pfEntries.ToArray(), 80, (int)pfEntries.Length - 80);
+            HMACSHA1.HashData(pfKey, ms.ToArray(), pfEntrySigTable);
 
-            byte[] pfIndexSig = HMACSHA1.HashData(pfKey, pfIndex.ToArray());
-            byte[] pfEntrySigTableSig = HMACSHA1.HashData(pfKey, pfEntrySigTable);
+            Span<byte> pfIndexSig = stackalloc byte[20];
+            HMACSHA1.HashData(pfKey, pfIndex.ToArray(), pfIndexSig);
+            
+            Span<byte> pfEntrySigTableSig = stackalloc byte[20];
+            HMACSHA1.HashData(pfKey, pfEntrySigTable, pfEntrySigTableSig);
 
             byte[] pfHeader = new byte[64];
             using (var msH = new MemoryStream(pfHeader))
             {
-                msH.Write(pfEntrySigTableSig, 0, pfEntrySigTableSig.Length);
-                msH.Write(pfIndexSig, 0, pfIndexSig.Length);
-                msH.Write(pfKeyOrig, 0, pfKeyOrig.Length);
+                msH.Write(pfEntrySigTableSig);
+                msH.Write(pfIndexSig);
+                msH.Write(pfKeyOrig);
             }
 
             using (var aes = System.Security.Cryptography.Aes.Create())
@@ -1148,8 +1158,8 @@ namespace LbpArchiveToolkit.Services
 
             using var pfd = new MemoryStream();
             using var wP = new BinaryWriter(pfd);
-            wP.Write(new byte[] { 0, 0, 0, 0 });
-            wP.Write(Encoding.ASCII.GetBytes("PFDB"));
+            wP.Write((ReadOnlySpan<byte>)[0, 0, 0, 0]);
+            wP.Write("PFDB"u8);
             wP.WriteUInt64BE(version);
             wP.Write(pfHeaderIv);
             wP.Write(pfHeader);
