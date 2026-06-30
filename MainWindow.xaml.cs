@@ -511,6 +511,12 @@ namespace LbpArchiveToolkit
             backupWin.ShowDialog();
         }
 
+        private void MenuLogViewer_Click(object sender, RoutedEventArgs e)
+        {
+            var logWin = new LogViewerWindow { Owner = this };
+            logWin.ShowDialog();
+        }
+
         private void MenuAbout_Click(object sender, RoutedEventArgs e)
         {
             var aboutWin = new AboutWindow { Owner = this };

@@ -249,6 +249,7 @@
                     <MenuItem Header="Hearted Creators..." Click="MenuHeartedCreators_Click"/>
                 </MenuItem>
                 <MenuItem Header="Info">
+                    <MenuItem Header="Log Viewer" Click="MenuLogViewer_Click"/>
                     <MenuItem Header="About" Click="MenuAbout_Click"/>
                 </MenuItem>
             </Menu>
