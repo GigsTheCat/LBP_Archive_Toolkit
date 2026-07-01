@@ -23,6 +23,8 @@ namespace LbpArchiveToolkit
         {
             public string? FolderName { get; set; }
             public string? LevelName { get; set; }
+            public string? Creator { get; set; }
+            public string? Game { get; set; }
             public string? Description { get; set; }
             public string? FullPath { get; set; }
             public string? IconPath { get; set; }
@@ -109,7 +111,13 @@ namespace LbpArchiveToolkit
             string iconPath = Path.Combine(folderPath, "ICON0.PNG");
 
             string levelName = "Unknown Level";
+            string creator = "Unknown";
             string description = "No description provided.";
+            string game = "Unknown";
+
+            if (folderName.Contains("00141") || folderName.Contains("98148") || folderName.Contains("30018")) game = "LBP1";
+            else if (folderName.Contains("00850") || folderName.Contains("98245") || folderName.Contains("30058")) game = "LBP2";
+            else if (folderName.Contains("01663") || folderName.Contains("98362") || folderName.Contains("30095")) game = "LBP3";
 
             if (File.Exists(sfoPath))
             {
@@ -119,6 +127,7 @@ namespace LbpArchiveToolkit
                 int byIndex = levelName.LastIndexOf(" by ");
                 if (byIndex >= 0)
                 {
+                    creator = levelName.Substring(byIndex + 4);
                     levelName = levelName.Substring(0, byIndex);
                 }
 
@@ -129,6 +138,8 @@ namespace LbpArchiveToolkit
             {
                 FolderName = folderName,
                 LevelName = levelName,
+                Creator = creator,
+                Game = game,
                 Description = description,
                 FullPath = folderPath,
                 IconPath = iconPath,
@@ -168,11 +179,12 @@ namespace LbpArchiveToolkit
         private void LvBackups_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             btnDelete.IsEnabled = lvBackups.SelectedItems.Count > 0;
+            btnMove.IsEnabled = lvBackups.SelectedItems.Count > 0;
             btnEdit.IsEnabled = lvBackups.SelectedItems.Count == 1;
 
             if (lvBackups.SelectedItem is BackupItem selected)
             {
-                txtLevelTitle.Text = selected.LevelName;
+                txtLevelTitle.Text = $"{selected.LevelName} by {selected.Creator}";
                 txtDescription.Text = selected.Description;
                 LoadIconPreview(selected.IconPath);
             }
@@ -211,7 +223,7 @@ namespace LbpArchiveToolkit
 
                         selected.LevelName = newName;
                         selected.Description = newDesc;
-                        txtLevelTitle.Text = newName;
+                        txtLevelTitle.Text = $"{newName} by {selected.Creator}";
                         txtDescription.Text = newDesc;
                         lvBackups.Items.Refresh();
 
@@ -306,6 +318,99 @@ namespace LbpArchiveToolkit
                     lvBackups.SelectedIndex = fallbackIndex;
                     lvBackups.ScrollIntoView(BackupList[fallbackIndex]);
                 }
+            }
+        }
+
+        private void BtnMove_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedItems = lvBackups.SelectedItems.Cast<BackupItem>().ToList();
+            if (!selectedItems.Any()) return;
+
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "Select Destination Folder"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                string destDir = dialog.FolderName;
+                int movedCount = 0;
+                
+                lvBackups.SelectedIndex = -1;
+
+                foreach (var item in selectedItems)
+                {
+                    try
+                    {
+                        if (item.FullPath != null)
+                        {
+                            string sourcePath = item.FullPath;
+                            string destPath = Path.Combine(destDir, item.FolderName ?? Path.GetFileName(sourcePath));
+
+                            if (Directory.Exists(destPath))
+                            {
+                                CustomDialog.Show(this, $"Destination already contains a folder named {item.FolderName}.", "Skip", false);
+                                continue;
+                            }
+
+                            MoveDirectoryRobust(sourcePath, destPath);
+                            BackupList.Remove(item);
+                            movedCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomDialog.Show(this, $"Failed to move {item.FolderName}.\nError: {ex.Message}", "Error");
+                    }
+                }
+
+                txtStatus.Text = $"Moved {movedCount} backup(s).";
+                
+                if (movedCount > 0)
+                {
+                    CustomDialog.Show(this, $"Successfully moved {movedCount} backup(s) to the new location.", "Move Successful", false);
+                }
+
+                if (BackupList.Any())
+                {
+                    lvBackups.SelectedIndex = 0;
+                    lvBackups.ScrollIntoView(BackupList[0]);
+                }
+            }
+        }
+
+        private void MoveDirectoryRobust(string sourceDir, string destDir)
+        {
+            string sourceRoot = Path.GetPathRoot(Path.GetFullPath(sourceDir)) ?? "";
+            string destRoot = Path.GetPathRoot(Path.GetFullPath(destDir)) ?? "";
+
+            if (string.Equals(sourceRoot, destRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                // Same drive/volume, OS can do a fast file table update
+                Directory.Move(sourceDir, destDir);
+            }
+            else
+            {
+                // Different drive/volume, requires a safe deep copy followed by deletion
+                CopyDirectoryRecursively(sourceDir, destDir);
+                Directory.Delete(sourceDir, true);
+            }
+        }
+
+        private void CopyDirectoryRecursively(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string targetFile = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, targetFile);
+            }
+
+            foreach (string dir in Directory.GetDirectories(sourceDir))
+            {
+                string targetDir = Path.Combine(destDir, Path.GetFileName(dir));
+                CopyDirectoryRecursively(dir, targetDir);
             }
         }
 

@@ -86,8 +86,8 @@
                                   SelectionChanged="LvBackups_SelectionChanged">
                             
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="LEVEL &amp; CREATOR" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="FOLDER ID" Width="200" Binding="{Binding FolderName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                <DataGridTextColumn Header="GAME" Width="100" Binding="{Binding Game}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                                 <DataGridTextColumn Header="DATE BACKED UP" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -128,16 +128,19 @@
     <!-- Status Text -->
     <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
     
-    <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
+     <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="10"/> <!-- Spacing gap -->
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
         <Button x:Name="btnEdit" Grid.Column="0" Content="EDIT INFO" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Click="BtnEdit_Click"/>
-        <Button x:Name="btnDelete" Grid.Column="2" Content="DELETE BACKUP" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
+        <Button x:Name="btnMove" Grid.Column="2" Content="MOVE" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Click="BtnMove_Click"/>
+        <Button x:Name="btnDelete" Grid.Column="4" Content="DELETE" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
     </Grid>
 </StackPanel>
                         </Grid>
