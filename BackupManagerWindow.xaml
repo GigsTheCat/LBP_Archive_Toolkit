@@ -31,6 +31,15 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="#453868"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#574880"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Border Background="{DynamicResource BgPrimary}">
@@ -67,6 +76,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="LOCAL BACKUPS" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,15"/>
@@ -124,10 +134,7 @@
                                 </Border>
                             </DockPanel>
 
-                            <StackPanel Grid.Row="3">
-    <!-- Status Text -->
-    <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-    
+                            <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
      <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
@@ -146,6 +153,11 @@
                         </Grid>
                     </ContentControl>
                 </Grid>
+
+                <DockPanel Grid.Row="2" Margin="0,15,0,5">
+                    <Button x:Name="btnChangeDir" Content="CHANGE FOLDER..." DockPanel.Dock="Right" Style="{DynamicResource BtnSecondary}" Padding="15,6" FontSize="11" Click="BtnChangeDir_Click"/>
+                    <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </DockPanel>
             </Grid>
         </DockPanel>
      </Grid>

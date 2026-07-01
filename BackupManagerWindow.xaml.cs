@@ -16,7 +16,7 @@ namespace LbpArchiveToolkit
     {
         #region State & Data Models
 
-        private readonly string _backupDir;
+        private string _backupDir;
         public ObservableCollection<BackupItem> BackupList { get; set; } = new();
 
         public class BackupItem
@@ -411,6 +411,22 @@ namespace LbpArchiveToolkit
             {
                 string targetDir = Path.Combine(destDir, Path.GetFileName(dir));
                 CopyDirectoryRecursively(dir, targetDir);
+            }
+        }
+
+        private void BtnChangeDir_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "Select Backup Directory"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                _backupDir = dialog.FolderName;
+                ConfigManager.BackupDirectory = _backupDir;
+                _ = ConfigManager.SaveConfigAsync();
+                LoadBackups();
             }
         }
 
