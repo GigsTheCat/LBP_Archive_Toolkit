@@ -50,8 +50,6 @@ namespace LbpArchiveToolkit
             Timeout = TimeSpan.FromMinutes(5)
         };
 
-        [GeneratedRegex(@"(\@[a-zA-Z0-9_-]+)")]
-        private static partial Regex MentionRegex();
 
         public class SearchState
         {
@@ -137,34 +135,7 @@ namespace LbpArchiveToolkit
             base.OnClosing(e);
         }
 
-        private void RestoreWindowPosition()
-        {
-            bool hasSavedLocation = ConfigManager.WindowLeft != -1 && ConfigManager.WindowTop != -1;
-
-            if (ConfigManager.WindowWidth > 0 && ConfigManager.WindowHeight > 0 && hasSavedLocation)
-            {
-                this.Width = ConfigManager.WindowWidth;
-                this.Height = ConfigManager.WindowHeight;
-
-                double virtualLeft = SystemParameters.VirtualScreenLeft;
-                double virtualTop = SystemParameters.VirtualScreenTop;
-                double virtualRight = virtualLeft + SystemParameters.VirtualScreenWidth;
-                double virtualBottom = virtualTop + SystemParameters.VirtualScreenHeight;
-
-                bool isOffScreen =
-                    ConfigManager.WindowLeft >= virtualRight ||
-                    ConfigManager.WindowTop >= virtualBottom ||
-                    (ConfigManager.WindowLeft + ConfigManager.WindowWidth) <= virtualLeft ||
-                    (ConfigManager.WindowTop + ConfigManager.WindowHeight) <= virtualTop;
-
-                if (!isOffScreen)
-                {
-                    this.WindowStartupLocation = WindowStartupLocation.Manual;
-                    this.Left = ConfigManager.WindowLeft;
-                    this.Top = ConfigManager.WindowTop;
-                }
-            }
-        }
+        private void RestoreWindowPosition() => LbpArchiveToolkit.Utils.WindowPositionManager.RestorePosition(this);
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -181,61 +152,10 @@ namespace LbpArchiveToolkit
 
         private async Task CheckForUpdatesAsync()
         {
-            if ((DateTime.Now - ConfigManager.LastUpdateCheck).TotalHours < 12)
-                return;
-
-            try
-            {
-                ConfigManager.LastUpdateCheck = DateTime.Now;
-                string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
-                var response = await SharedHttpClient.GetStringAsync(url);
-                var json = JsonNode.Parse(response);
-                string? tag = json?["tag_name"]?.ToString();
-
-                if (!string.IsNullOrEmpty(tag))
-                {
-                    string versionStr = tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag.Substring(1) : tag;
-                    if (Version.TryParse(versionStr, out Version? latestVersion))
-                    {
-                        var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                        if (currentVersion != null && latestVersion > currentVersion)
-                        {
-                            if (!this.IsVisible) return;
-
-                            bool update = CustomDialog.Show(this, "A new version of LBP Archive Toolkit is available.\n\nWould you like to download it now?", "Update Available", isYesNo: true);
-                            if (update)
-                            {
-                                Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogManager.Log("MainWindow.CheckForUpdatesAsync", ex);
-            }
+            await LbpArchiveToolkit.Services.UpdateService.CheckForUpdatesAsync(this, SharedHttpClient);
         }
 
-        private void SaveWindowPosition()
-        {
-            ConfigManager.IsMaximized = (this.WindowState == WindowState.Maximized);
-
-            if (this.WindowState == WindowState.Normal)
-            {
-                ConfigManager.WindowWidth = this.Width;
-                ConfigManager.WindowHeight = this.Height;
-                ConfigManager.WindowLeft = this.Left;
-                ConfigManager.WindowTop = this.Top;
-            }
-            else
-            {
-                ConfigManager.WindowWidth = this.RestoreBounds.Width;
-                ConfigManager.WindowHeight = this.RestoreBounds.Height;
-                ConfigManager.WindowLeft = this.RestoreBounds.Left;
-                ConfigManager.WindowTop = this.RestoreBounds.Top;
-            }
-        }
+        private void SaveWindowPosition() => LbpArchiveToolkit.Utils.WindowPositionManager.SavePosition(this);
 
         private async Task LoadGenresAsync()
         {
@@ -636,6 +556,72 @@ namespace LbpArchiveToolkit
 
         #region Search & Navigation Logic
 
+        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix)
+        {
+            _resultsList = new ObservableCollection<LevelItem>();
+            dgResults.ItemsSource = _resultsList;
+            dgResults.Items.SortDescriptions.Clear();
+            
+            if (limitFilter == "All")
+            {
+                dgResults.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
+            }
+
+            int count = 0;
+            var sw = Stopwatch.StartNew();
+            var progressReporter = new Progress<string>(status => txtStatus.Text = status);
+            var savedLevelsSnapshot = _savedLevels.ToHashSet();
+            var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
+
+            await Task.Run(async () =>
+            {
+                var buffer = new List<LevelItem>();
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, criteria, progressReporter, token).ConfigureAwait(false))
+                {
+                    buffer.Add(lvl);
+                    count++;
+
+                    if (sw.ElapsedMilliseconds > 500)
+                    {
+                        var chunk = buffer.ToList();
+                        buffer.Clear();
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            foreach (var item in chunk) _resultsList.Add(item);
+                            txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels..." : $"{statusPrefix} {count} levels for '{keyword}'...";
+                        }, System.Windows.Threading.DispatcherPriority.Background);
+                        sw.Restart();
+                    }
+                }
+                if (buffer.Count > 0)
+                {
+                    var chunk = buffer.ToList();
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        foreach (var item in chunk) _resultsList.Add(item);
+                    });
+                }
+            });
+
+            progressBar.IsIndeterminate = false;
+            progressBar.Maximum = count;
+            progressBar.Value = count;
+            txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels." : $"{statusPrefix} {count} levels for '{keyword}'.";
+        }
+
+        private async Task PerformUserSearchAsync(string keyword, bool exact, string? limitFilter, CancellationToken token, string statusPrefix)
+        {
+            var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter, token);
+
+            progressBar.IsIndeterminate = false;
+            progressBar.Maximum = results.Count;
+            progressBar.Value = results.Count;
+
+            _userResultsList = results;
+            dgUsers.ItemsSource = _userResultsList;
+            txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {results.Count} creators." : $"{statusPrefix} {results.Count} creators matching '{keyword}'.";
+        }
+
         private async void BtnSearch_Click(object sender, RoutedEventArgs e)
         {
             string keyword = txtSearch.Text.Trim();
@@ -683,129 +669,65 @@ namespace LbpArchiveToolkit
             var heartedLevelsSnapshot = HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet();
 
             try
+        {
+            if (searchType == 0)
             {
-                if (searchType == 0)
+                await PerformLevelSearchAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found");
+
+                if (dgResults.Items.Count > 0)
                 {
-                    _resultsList = new ObservableCollection<LevelItem>();
-                    dgResults.ItemsSource = _resultsList;
-
-                    dgResults.Items.SortDescriptions.Clear();
-                    if (limitFilter == "All")
-                    {
-                        dgResults.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
-                    }
-
-                    int count = 0;
-                    var sw = Stopwatch.StartNew();
-
-                    var progressReporter = new Progress<string>(status =>
-                    {
-                        txtStatus.Text = status;
-                    });
-
-                    await Task.Run(async () =>
-                    {
-                        var buffer = new List<LevelItem>();
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, _advancedCriteria, progressReporter, searchToken).ConfigureAwait(false))
-                        {
-                            buffer.Add(lvl);
-                            count++;
-
-
-                            if (sw.ElapsedMilliseconds > 500)
-                            {
-                                var chunk = buffer.ToList();
-                                buffer.Clear();
-
-                                // Use Background priority so the UI rendering doesn't steal CPU time from the DB reader
-                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                {
-                                    foreach (var item in chunk) _resultsList.Add(item);
-                                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels..." : $"Found {count} levels for '{keyword}'...";
-                                }, System.Windows.Threading.DispatcherPriority.Background);
-
-                                sw.Restart();
-                            }
-                        }
-
-                        // Flush any remaining items to the UI once complete
-                        if (buffer.Count > 0)
-                        {
-                            var chunk = buffer.ToList();
-                            await Application.Current.Dispatcher.InvokeAsync(() =>
-                            {
-                                foreach (var item in chunk) _resultsList.Add(item);
-                            });
-                        }
-                    });
-
-                    progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = count;
-                    progressBar.Value = count;
-                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {count} levels." : $"Found {count} levels for '{keyword}'.";
-
-                    if (dgResults.Items.Count > 0)
-                    {
-                        dgResults.SelectedIndex = 0;
-                        dgResults.ScrollIntoView(dgResults.Items[0]);
-                    }
-
-                    _currentSearch = new SearchState
-                    {
-                        SearchText = keyword,
-                        SearchTypeIndex = 0,
-                        GameIndex = gameFilter,
-                        Genre = genreFilter ?? "All Genres",
-                        LimitIndex = limitFilterIdx,
-                        Exact = exact,
-                        SearchDesc = searchDesc,
-                        AdvancedCriteria = new AdvancedSearchCriteria
-                        {
-                            MinHearts = _advancedCriteria.MinHearts,
-                            MinPlays = _advancedCriteria.MinPlays,
-                            IsTeamPick = _advancedCriteria.IsTeamPick,
-                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
-                        }
-                    };
-                }
-                else
-                {
-                    var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter, searchToken);
-
-                    progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = results.Count;
-                    progressBar.Value = results.Count;
-
-                    _userResultsList = results;
-                    dgUsers.ItemsSource = _userResultsList;
-                    txtStatus.Text = string.IsNullOrEmpty(keyword) ? $"Found {results.Count} creators." : $"Found {results.Count} creators matching '{keyword}'.";
-
-                    if (results.Any())
-                    {
-                        dgUsers.SelectedIndex = 0;
-                        dgUsers.ScrollIntoView(results[0]);
-                    }
-
-                    _currentSearch = new SearchState
-                    {
-                        SearchText = keyword,
-                        SearchTypeIndex = 1,
-                        LimitIndex = limitFilterIdx,
-                        Exact = exact,
-                        AdvancedCriteria = new AdvancedSearchCriteria
-                        {
-                            MinHearts = _advancedCriteria.MinHearts,
-                            MinPlays = _advancedCriteria.MinPlays,
-                            IsTeamPick = _advancedCriteria.IsTeamPick,
-                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
-                        }
-                    };
+                    dgResults.SelectedIndex = 0;
+                    dgResults.ScrollIntoView(dgResults.Items[0]);
                 }
 
-                btnBack.IsEnabled = _searchHistory.Count > 0;
+                _currentSearch = new SearchState
+                {
+                    SearchText = keyword,
+                    SearchTypeIndex = 0,
+                    GameIndex = gameFilter,
+                    Genre = genreFilter ?? "All Genres",
+                    LimitIndex = limitFilterIdx,
+                    Exact = exact,
+                    SearchDesc = searchDesc,
+                    AdvancedCriteria = new AdvancedSearchCriteria
+                    {
+                        MinHearts = _advancedCriteria.MinHearts,
+                        MinPlays = _advancedCriteria.MinPlays,
+                        IsTeamPick = _advancedCriteria.IsTeamPick,
+                        RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
+                        RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                    }
+                };
             }
+            else
+            {
+                await PerformUserSearchAsync(keyword, exact, limitFilter, searchToken, "Found");
+
+                if (_userResultsList.Any())
+                {
+                    dgUsers.SelectedIndex = 0;
+                    dgUsers.ScrollIntoView(_userResultsList[0]);
+                }
+
+                _currentSearch = new SearchState
+                {
+                    SearchText = keyword,
+                    SearchTypeIndex = 1,
+                    LimitIndex = limitFilterIdx,
+                    Exact = exact,
+                    AdvancedCriteria = new AdvancedSearchCriteria
+                    {
+                        MinHearts = _advancedCriteria.MinHearts,
+                        MinPlays = _advancedCriteria.MinPlays,
+                        IsTeamPick = _advancedCriteria.IsTeamPick,
+                        RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
+                        RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                    }
+                };
+            }
+
+            btnBack.IsEnabled = _searchHistory.Count > 0;
+        }
             catch (FileNotFoundException)
             {
                 var missingDbDialog = new MissingDatabaseDialog { Owner = this };
@@ -957,112 +879,52 @@ namespace LbpArchiveToolkit
             var searchToken = _searchCts.Token;
 
             try
+        {
+            if (state.SearchTypeIndex == 0)
             {
-                if (state.SearchTypeIndex == 0)
+                await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, state.AdvancedCriteria, searchToken, "Restored");
+
+                dgResults.SelectedItem = null;
+                if (state.SelectedItem != null)
                 {
-                    _resultsList = new ObservableCollection<LevelItem>();
-                    dgResults.ItemsSource = _resultsList;
-
-                    dgResults.Items.SortDescriptions.Clear();
-                    if (limitFilter == "All")
+                    var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
+                    if (itemToSelect != null)
                     {
-                        dgResults.Items.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
-                    }
-
-                    int count = 0;
-                    var sw = Stopwatch.StartNew();
-
-                    var progressReporter = new Progress<string>(status =>
-                    {
-                        txtStatus.Text = status;
-                    });
-
-                    await Task.Run(async () =>
-                    {
-                        var buffer = new List<LevelItem>();
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, state.AdvancedCriteria, progressReporter, searchToken).ConfigureAwait(false))
-                        {
-                            buffer.Add(lvl);
-                            count++;
-
-                            if (sw.ElapsedMilliseconds > 500)
-                            {
-                                var chunk = buffer.ToList();
-                                buffer.Clear();
-
-                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                {
-                                    foreach (var item in chunk) _resultsList.Add(item);
-                                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels..." : $"Restored {count} levels for '{state.SearchText}'...";
-                                }, System.Windows.Threading.DispatcherPriority.Background);
-
-                                sw.Restart();
-                            }
-                        }
-
-                        if (buffer.Count > 0)
-                        {
-                            var chunk = buffer.ToList();
-                            await Application.Current.Dispatcher.InvokeAsync(() =>
-                            {
-                                foreach (var item in chunk) _resultsList.Add(item);
-                            });
-                        }
-                    });
-
-                    progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = count;
-                    progressBar.Value = count;
-                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {count} levels." : $"Restored {count} levels for '{state.SearchText}'.";
-
-                    dgResults.SelectedItem = null;
-                    if (state.SelectedItem != null)
-                    {
-                        var itemToSelect = _resultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id);
-                        if (itemToSelect != null)
-                        {
-                            dgResults.SelectedItem = itemToSelect;
-                            dgResults.UpdateLayout();
-                            dgResults.ScrollIntoView(itemToSelect);
-                        }
-                    }
-                    if (dgResults.SelectedItem == null && dgResults.Items.Count > 0)
-                    {
-                        dgResults.SelectedIndex = 0;
+                        dgResults.SelectedItem = itemToSelect;
                         dgResults.UpdateLayout();
-                        dgResults.ScrollIntoView(dgResults.Items[0]);
+                        dgResults.ScrollIntoView(itemToSelect);
                     }
                 }
-                else
+                if (dgResults.SelectedItem == null && dgResults.Items.Count > 0)
                 {
-                    var results = await _dbService.SearchUsersAsync(state.SearchText, state.Exact, limitFilter, searchToken);
-                    progressBar.IsIndeterminate = false;
-                    progressBar.Maximum = results.Count;
-                    progressBar.Value = results.Count;
-
-                    _userResultsList = results;
-                    dgUsers.ItemsSource = _userResultsList;
-                    txtStatus.Text = string.IsNullOrEmpty(state.SearchText) ? $"Restored {results.Count} creators." : $"Restored {results.Count} creators matching '{state.SearchText}'.";
-
-                    dgUsers.SelectedItem = null;
-                    if (state.SelectedUser != null)
-                    {
-                        var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
-                        if (userToSelect != null)
-                        {
-                            dgUsers.SelectedItem = userToSelect;
-                            dgUsers.UpdateLayout();
-                            dgUsers.ScrollIntoView(userToSelect);
-                        }
-                    }
-                    if (dgUsers.SelectedItem == null && _userResultsList.Any())
-                    {
-                        dgUsers.SelectedIndex = 0;
-                        dgUsers.UpdateLayout();
-                        dgUsers.ScrollIntoView(_userResultsList[0]);
-                    }
+                    dgResults.SelectedIndex = 0;
+                    dgResults.UpdateLayout();
+                    dgResults.ScrollIntoView(dgResults.Items[0]);
                 }
             }
+            else
+            {
+                await PerformUserSearchAsync(state.SearchText, state.Exact, limitFilter, searchToken, "Restored");
+
+                dgUsers.SelectedItem = null;
+                if (state.SelectedUser != null)
+                {
+                    var userToSelect = _userResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle);
+                    if (userToSelect != null)
+                    {
+                        dgUsers.SelectedItem = userToSelect;
+                        dgUsers.UpdateLayout();
+                        dgUsers.ScrollIntoView(userToSelect);
+                    }
+                }
+                if (dgUsers.SelectedItem == null && _userResultsList.Any())
+                {
+                    dgUsers.SelectedIndex = 0;
+                    dgUsers.UpdateLayout();
+                    dgUsers.ScrollIntoView(_userResultsList[0]);
+                }
+            }
+        }
             catch (Exception)
             {
                 txtStatus.Text = "Failed to restore search.";
@@ -1209,44 +1071,11 @@ namespace LbpArchiveToolkit
 
         private void SetDescriptionRichText(string? text)
         {
-            txtDescription.IsDocumentEnabled = true;
-            txtDescription.Document.Blocks.Clear();
-            if (string.IsNullOrEmpty(text)) return;
-
-            int lastIndex = 0;
-            FlowDocument doc = txtDescription.Document;
-            Paragraph para = new Paragraph();
-
-            foreach (var match in MentionRegex().EnumerateMatches(text))
+            LbpArchiveToolkit.Utils.RichTextHelper.SetDescriptionRichText(txtDescription, text, name => 
             {
-                if (match.Index > lastIndex)
-                {
-                    para.Inlines.Add(new Run(text.Substring(lastIndex, match.Index - lastIndex)));
-                }
-
-                string mentionStr = text.Substring(match.Index, match.Length);
-                Hyperlink link = new Hyperlink(new Run(mentionStr));
-                link.Foreground = Brushes.LightBlue;
-                link.Cursor = Cursors.Hand;
-
-                link.Click += (s, e) =>
-                {
-                    string name = mentionStr.Substring(1);
-                    txtSearch.Text = name;
-                    cmbSearchType.SelectedIndex = 1; // Switch UI to Creators, CmbSearchType_SelectionChanged triggers search
-                    e.Handled = true;
-                };
-                para.Inlines.Add(link);
-
-                lastIndex = match.Index + match.Length;
-            }
-
-            if (lastIndex < text.Length)
-            {
-                para.Inlines.Add(new Run(text.Substring(lastIndex)));
-            }
-
-            doc.Blocks.Add(para);
+                txtSearch.Text = name;
+                cmbSearchType.SelectedIndex = 1; 
+            });
         }
 
         private async Task LoadIconAsync(string? hash, CancellationToken token)
