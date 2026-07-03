@@ -240,7 +240,7 @@ namespace LbpArchiveToolkit.Services
                         {
                             ctx.AddResource(currentHash, fileData);
 
-                            var deps = SaveDataBuilder.GetDependenciesFast(fileData);
+                            var deps = LbpArchiveToolkit.Utils.SltbProcessor.GetDependenciesFast(fileData);
                             foreach (var dep in deps)
                             {
                                 if (IsValidHash(dep) && ctx.AddDiscoveredHash(dep))
