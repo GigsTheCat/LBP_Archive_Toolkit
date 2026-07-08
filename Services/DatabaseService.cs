@@ -202,13 +202,6 @@ namespace LbpArchiveToolkit.Services
                 if (hasKeyword && !searchContribsActive)
                     queryBuilder.Append("INNER JOIN slot_fts f ON s.id = f.id ");
 
-                if (searchContribsActive)
-                {
-                    if (_hasContribFtsTable)
-                        queryBuilder.Append("INNER JOIN level_contributors_fts cf ON s.id = cf.slot_id ");
-                    else if (_hasContribsTable)
-                        queryBuilder.Append("INNER JOIN level_contributors c ON s.id = c.slot_id ");
-                }
 
                 if (useFtsForTags)
                     queryBuilder.Append("INNER JOIN slot_tags_fts tf ON s.id = tf.rowid ");
@@ -256,11 +249,6 @@ namespace LbpArchiveToolkit.Services
 
             BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, useFtsForTags);
 
-            if (searchContribsActive)
-            {
-                queryBuilder.Append(" GROUP BY s.id");
-            }
-
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
 
             if (_hasFtsTable && hasKeyword && !searchContribsActive)
@@ -276,21 +264,6 @@ namespace LbpArchiveToolkit.Services
                 else
                 {
                     queryBuilder.Append(" ORDER BY f.rank");
-                }
-            }
-            else if (_hasContribFtsTable && searchContribsActive)
-            {
-                if (isAllLimit)
-                {
-                    queryBuilder.Append(" ORDER BY cf.rank");
-                }
-                else if (_colHeart != "NULL")
-                {
-                    queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
-                }
-                else
-                {
-                    queryBuilder.Append(" ORDER BY cf.rank");
                 }
             }
             else if (_colHeart != "NULL")
@@ -671,7 +644,7 @@ namespace LbpArchiveToolkit.Services
                 matchTerm = string.Join(" AND ", safeWords);
             }
 
-            query.Append("level_contributors_fts MATCH @matchContrib");
+            query.Append("s.id IN (SELECT slot_id FROM level_contributors_fts WHERE level_contributors_fts MATCH @matchContrib) ");
             parameters.Add(new SqliteParameter("@matchContrib", matchTerm));
         }
 
@@ -679,7 +652,7 @@ namespace LbpArchiveToolkit.Services
         {
             if (exact)
             {
-                query.Append("c.npHandle LIKE @kContrib");
+                query.Append("s.id IN (SELECT slot_id FROM level_contributors WHERE npHandle LIKE @kContrib) ");
                 parameters.Add(new SqliteParameter("@kContrib", $"%{keyword}%"));
             }
             else
@@ -688,10 +661,10 @@ namespace LbpArchiveToolkit.Services
                 var conds = new List<string>();
                 for (int i = 0; i < words.Length; i++)
                 {
-                    conds.Add($"c.npHandle LIKE @wContrib{i}");
+                    conds.Add($"npHandle LIKE @wContrib{i}");
                     parameters.Add(new SqliteParameter($"@wContrib{i}", $"%{words[i]}%"));
                 }
-                query.Append("(" + string.Join(" AND ", conds) + ")");
+                query.Append("s.id IN (SELECT slot_id FROM level_contributors WHERE " + string.Join(" AND ", conds) + ") ");
             }
         }
 
