@@ -747,9 +747,13 @@ namespace LbpArchiveToolkit.Services
         {
             if (_isSchemaResolved) return;
 
+            if (!File.Exists(_dbPath)) return;
+
             lock (_schemaLock)
             {
                 if (_isSchemaResolved) return;
+
+                if (!File.Exists(_dbPath)) return;
 
                 var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
