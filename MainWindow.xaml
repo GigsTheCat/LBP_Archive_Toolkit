@@ -120,8 +120,8 @@
         <Style x:Key="BtnExtract" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpEmerald}"/>
             <Setter Property="Foreground" Value="#003D2A"/>
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#38E8B8"/>
@@ -286,9 +286,10 @@
 
                         <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Search Type:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="cmbSearchType" SelectedIndex="0" Width="110" SelectionChanged="CmbSearchType_SelectionChanged">
+                            <ComboBox x:Name="cmbSearchType" SelectedIndex="0" Width="125" SelectionChanged="CmbSearchType_SelectionChanged">
                                 <ComboBoxItem Content="Levels"/>
                                 <ComboBoxItem Content="Creators"/>
+                                <ComboBoxItem x:Name="cbiContributions" Content="Contributions"/>
                             </ComboBox>
 
                             <!-- Level Filters Panel -->
@@ -486,8 +487,9 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-                                    <Button x:Name="btnHeartToggle" Content="♥ HEART LEVEL" Margin="0,0,0,10" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnHeartToggle_Click"/>
-                                    <Button x:Name="btnCopyHash" Content="COPY HASH" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnCopyHash_Click"/>
+                                    <Button x:Name="btnHeartToggle" Content="♥ HEART LEVEL" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnHeartToggle_Click"/>
+                                    <Button x:Name="btnCopyHash" Content="COPY HASH" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnCopyHash_Click"/>
+                                    <Button x:Name="btnShowContributors" Content="CONTRIBUTORS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnShowContributors_Click"/>
                                     <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnExtract_Click"/>
                                 </StackPanel>
                             </Grid>
@@ -533,8 +535,8 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-                                    <Button x:Name="btnUserHeartToggle" Content="♥ HEART CREATOR" Margin="0,0,0,10" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnUserHeartToggle_Click"/>
-                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
+                                    <Button x:Name="btnUserHeartToggle" Content="♥ HEART CREATOR" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnUserHeartToggle_Click"/>
+                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
                                     <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnDownloadAllLevels_Click"/>
                                 </StackPanel>
                             </Grid>

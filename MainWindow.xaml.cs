@@ -123,7 +123,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (current != null)
             {
-                if (current.SearchTypeIndex == 0)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -147,7 +147,28 @@ namespace LbpArchiveToolkit
                 ApplySearchState(ConfigManager.LastSearch);
             }
 
+            UpdateContributorFeatures();
             await CheckForUpdatesAsync();
+        }
+
+        private void UpdateContributorFeatures()
+        {
+            if (_dbService.HasContributorsTable)
+            {
+                cbiContributions.Visibility = Visibility.Visible;
+                btnShowContributors.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                cbiContributions.Visibility = Visibility.Collapsed;
+                btnShowContributors.Visibility = Visibility.Collapsed;
+                
+                // Snap them back to level search if they restart the app into this unselectable state
+                if (cmbSearchType.SelectedIndex == 2)
+                {
+                    cmbSearchType.SelectedIndex = 0;
+                }
+            }
         }
 
         private async Task CheckForUpdatesAsync()
@@ -420,6 +441,7 @@ namespace LbpArchiveToolkit
             if (settingsWin.ShowDialog() == true)
             {
                 _dbService = new DatabaseService(ConfigManager.DatabasePath);
+                UpdateContributorFeatures();
                 txtStatus.Text = "Config saved successfully.";
                 _ = LoadGenresAsync();
             }
@@ -482,6 +504,78 @@ namespace LbpArchiveToolkit
             }
         }
 
+        private async void BtnShowContributors_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgResults.SelectedItem is LevelItem selectedLevel)
+            {
+                btnShowContributors.IsEnabled = false;
+                try
+                {
+                    var contributors = await _dbService.GetContributorsAsync(selectedLevel.Id);
+                    if (contributors.Count == 0)
+                    {
+                        CustomDialog.Show(this, "No contributors were found for this level.", "Contributors", false);
+                    }
+                    else
+                    {
+                        var dialog = new CustomDialog("", "Contributors", false) { Owner = this };
+                        dialog.txtMessage.Inlines.Clear();
+
+                        var noteRun = new Run("Note: May include creators who have changed their names or have no levels in the archive.\n\n")
+                        {
+                            FontSize = 12,
+                            Foreground = (Brush)FindResource("FgSecondary")
+                        };
+                        dialog.txtMessage.Inlines.Add(noteRun);
+
+                        foreach (var c in contributors)
+                        {
+                            var link = new Hyperlink(new Run("• " + c))
+                            {
+                                Foreground = (Brush)FindResource("LbpCyan"),
+                                Cursor = Cursors.Hand,
+                                TextDecorations = null
+                            };
+
+                            link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
+                            link.MouseLeave += (s, ev) => link.TextDecorations = null;
+
+                            string creatorName = c;
+                            link.Click += (s, ev) =>
+                            {
+                                dialog.Close();
+                                txtSearch.Text = creatorName;
+                                chkExact.IsChecked = true;
+                                
+                                // Index 1 is the 'Creators' search type
+                                if (cmbSearchType.SelectedIndex == 1)
+                                {
+                                    BtnSearch_Click(btnSearch, null!);
+                                }
+                                else
+                                {
+                                    // Changing the index automatically fires CmbSearchType_SelectionChanged, starting the search
+                                    cmbSearchType.SelectedIndex = 1;
+                                }
+                            };
+                            dialog.txtMessage.Inlines.Add(link);
+                            dialog.txtMessage.Inlines.Add(new Run("\n"));
+                        }
+
+                        dialog.ShowDialog();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    CustomDialog.Show(this, $"Error fetching contributors: {ex.Message}", "Error", false);
+                }
+                finally
+                {
+                    btnShowContributors.IsEnabled = true;
+                }
+            }
+        }
+
         private void BtnCopyHash_Click(object sender, RoutedEventArgs e)
         {
             if (dgResults.SelectedItem is LevelItem selected && !string.IsNullOrEmpty(selected.Hash))
@@ -534,10 +628,11 @@ namespace LbpArchiveToolkit
         private void CmbSearchType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cmbSearchType == null) return;
-            bool isLevels = cmbSearchType.SelectedIndex == 0;
+            bool isLevels = cmbSearchType.SelectedIndex == 0 || cmbSearchType.SelectedIndex == 2;
+            bool isContrib = cmbSearchType.SelectedIndex == 2;
 
             panelLevelFilters?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            chkSearchDesc?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
+            chkSearchDesc?.Visibility = (isLevels && !isContrib) ? Visibility.Visible : Visibility.Collapsed;
             btnAdvanced?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
 
             dgResults?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
@@ -556,7 +651,7 @@ namespace LbpArchiveToolkit
 
         #region Search & Navigation Logic
 
-        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix)
+        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions = false)
         {
             _resultsList = new ObservableCollection<LevelItem>();
             dgResults.ItemsSource = _resultsList;
@@ -576,7 +671,7 @@ namespace LbpArchiveToolkit
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
-                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, criteria, progressReporter, token).ConfigureAwait(false))
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, criteria, progressReporter, searchContributions, token).ConfigureAwait(false))
                 {
                     buffer.Add(lvl);
                     count++;
@@ -635,7 +730,7 @@ namespace LbpArchiveToolkit
             if (current != null)
             {
                 // Save the currently selected item BEFORE we clear the DataGrid
-                if (current.SearchTypeIndex == 0)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -670,9 +765,10 @@ namespace LbpArchiveToolkit
 
             try
         {
-            if (searchType == 0)
+            if (searchType == 0 || searchType == 2)
             {
-                await PerformLevelSearchAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found");
+                bool searchContribs = searchType == 2;
+                await PerformLevelSearchAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs);
 
                 if (dgResults.Items.Count > 0)
                 {
@@ -683,7 +779,7 @@ namespace LbpArchiveToolkit
                 _currentSearch = new SearchState
                 {
                     SearchText = keyword,
-                    SearchTypeIndex = 0,
+                    SearchTypeIndex = searchType,
                     GameIndex = gameFilter,
                     Genre = genreFilter ?? "All Genres",
                     LimitIndex = limitFilterIdx,
@@ -779,7 +875,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (_searchHistory.Count > 0 && current != null)
             {
-                if (current.SearchTypeIndex == 0)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -797,7 +893,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (_forwardHistory.Count > 0 && current != null)
             {
-                if (current.SearchTypeIndex == 0)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -880,9 +976,10 @@ namespace LbpArchiveToolkit
 
             try
         {
-            if (state.SearchTypeIndex == 0)
+            if (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2)
             {
-                await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, state.AdvancedCriteria, searchToken, "Restored");
+                bool searchContribs = state.SearchTypeIndex == 2;
+                await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, state.AdvancedCriteria, searchToken, "Restored", searchContribs);
 
                 dgResults.SelectedItem = null;
                 if (state.SelectedItem != null)
@@ -972,6 +1069,7 @@ namespace LbpArchiveToolkit
 
                 btnExtract.IsEnabled = true;
                 btnCopyHash.IsEnabled = !string.IsNullOrEmpty(selectedLevel.Hash);
+                btnShowContributors.IsEnabled = true;
 
                 btnHeartToggle.IsEnabled = true;
                 RefreshCurrentSelectionHeartState();
@@ -992,6 +1090,7 @@ namespace LbpArchiveToolkit
             {
                 btnExtract.IsEnabled = false;
                 btnCopyHash.IsEnabled = false;
+                btnShowContributors.IsEnabled = false;
                 btnHeartToggle.IsEnabled = false;
                 btnHeartToggle.Content = "♥ HEART LEVEL";
                 iconHeartOverlay.Visibility = Visibility.Hidden;

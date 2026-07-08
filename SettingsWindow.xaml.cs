@@ -93,7 +93,7 @@ namespace LbpArchiveToolkit
 
         private bool _promptedForDb = false;
 
-        private void CheckFtsSupport(string dbPath)
+        private void CheckDbFeatures(string dbPath)
         {
             if (_promptedForDb || !File.Exists(dbPath)) return;
 
@@ -102,12 +102,23 @@ namespace LbpArchiveToolkit
                 var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
                 conn.Open();
+                
                 using var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn);
                 bool hasFts = System.Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
-                if (!hasFts)
+
+                using var cmdContrib = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors'", conn);
+                bool hasContrib = System.Convert.ToInt32(cmdContrib.ExecuteScalar()) > 0;
+
+                if (!hasFts || !hasContrib)
                 {
                     _promptedForDb = true;
-                    bool download = CustomDialog.Show(this, "The selected database does not support FTS5 hardware acceleration. Searching will be much slower.\n\nWould you like to download the newer, faster version?", "Outdated Database", isYesNo: true);
+                    string msg = !hasFts && !hasContrib
+                        ? "The selected database is outdated. It lacks FTS5 hardware acceleration and Contributor data. Searching will be slower and contributor features will be disabled.\n\nWould you like to download the newer version?"
+                        : (!hasFts 
+                            ? "The selected database does not support FTS5 hardware acceleration. Searching will be much slower.\n\nWould you like to download the newer, faster version?"
+                            : "The selected database is an older version and does not include Contributor data. Contributor features will be disabled.\n\nWould you like to download the newer version to enable these features?");
+
+                    bool download = CustomDialog.Show(this, msg, "Outdated Database", isYesNo: true);
                     if (download)
                     {
                         Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
@@ -116,7 +127,7 @@ namespace LbpArchiveToolkit
             }
             catch (Exception ex)
             {
-                LbpArchiveToolkit.LogManager.Log("SettingsWindow.CheckFtsSupport", ex);
+                LbpArchiveToolkit.LogManager.Log("SettingsWindow.CheckDbFeatures", ex);
             }
         }
 
@@ -132,7 +143,7 @@ namespace LbpArchiveToolkit
             if (dialog.ShowDialog() == true)
             {
                 txtDbPath.Text = dialog.FileName;
-                CheckFtsSupport(dialog.FileName);
+                CheckDbFeatures(dialog.FileName);
             }
         }
 
@@ -260,7 +271,7 @@ namespace LbpArchiveToolkit
 
             if (txtDbPath.Text != ConfigManager.DatabasePath)
             {
-                CheckFtsSupport(txtDbPath.Text);
+                CheckDbFeatures(txtDbPath.Text);
             }
 
             ConfigManager.DatabasePath = txtDbPath.Text;
