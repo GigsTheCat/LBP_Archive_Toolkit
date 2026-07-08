@@ -45,3 +45,4 @@ Currently Windows only.
 
 ## Credits
 Some code is heavily based on / reverse engineered from [lbp_archive_dl](https://github.com/uhwot/lbp_archive_dl) and cwlib, but also with several improvements, modernizations, and fixes.
+The contributor data was obtained using cwlib.
