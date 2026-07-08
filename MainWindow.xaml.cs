@@ -262,24 +262,32 @@ namespace LbpArchiveToolkit
 
                 // ContextMenus exist outside the standard visual tree, so we safely resolve the DataContext
                 if (menu.DataContext is LevelItem level1)
-                    creatorName = level1.Creator;
-                else if (menu.PlacementTarget is FrameworkElement fe && fe.DataContext is LevelItem level2)
-                    creatorName = level2.Creator;
+                creatorName = level1.Creator;
+            else if (menu.PlacementTarget is FrameworkElement fe && fe.DataContext is LevelItem level2)
+                creatorName = level2.Creator;
+            else if (dgResults.SelectedItem is LevelItem selectedLevel)
+                creatorName = selectedLevel.Creator; // Fallback for the Details Pane TextBlock
 
-                if (!string.IsNullOrEmpty(creatorName))
+            if (!string.IsNullOrEmpty(creatorName))
+            {
+                bool isHearted = HeartedCreatorsManager.IsHearted(creatorName);
+
+                // Iterate to find the specific menu item by its x:Name instead of its Header string
+                foreach (var item in menu.Items)
                 {
-                    bool isHearted = HeartedCreatorsManager.IsHearted(creatorName);
-
-                    // Iterate to find the specific menu item by its x:Name instead of its Header string
-                    foreach (var item in menu.Items)
+                    if (item is MenuItem menuItem)
                     {
-                        if (item is MenuItem menuItem && menuItem.Name == "MenuHeartCreator")
+                        if (menuItem.Name == "MenuHeartCreator")
                         {
                             menuItem.Header = isHearted ? "Unheart Creator" : "Heart Creator";
-                            break;
+                        }
+                        else if (menuItem.Name == "MenuSearchContributions")
+                        {
+                            menuItem.Visibility = _dbService.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
                         }
                     }
                 }
+            }
             }
         }
 
@@ -621,7 +629,33 @@ namespace LbpArchiveToolkit
             if (dgResults.SelectedItem is LevelItem selected)
             {
                 txtSearch.Text = selected.Creator;
-                cmbSearchType.SelectedIndex = 1; // Switch UI to Creators, CmbSearchType_SelectionChanged triggers search
+                
+                if (cmbSearchType.SelectedIndex == 1)
+                {
+                    BtnSearch_Click(btnSearch, null!);
+                }
+                else
+                {
+                    cmbSearchType.SelectedIndex = 1; // Switch UI to Creators, CmbSearchType_SelectionChanged triggers search
+                }
+            }
+        }
+
+        private void SearchContributionsContext_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgResults.SelectedItem is LevelItem selected)
+            {
+                txtSearch.Text = selected.Creator;
+                chkExact.IsChecked = true;
+                
+                if (cmbSearchType.SelectedIndex == 2)
+                {
+                    BtnSearch_Click(btnSearch, null!);
+                }
+                else
+                {
+                    cmbSearchType.SelectedIndex = 2; // Switch UI to Contributions, CmbSearchType_SelectionChanged triggers search
+                }
             }
         }
 

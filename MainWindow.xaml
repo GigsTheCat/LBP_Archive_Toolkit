@@ -351,6 +351,7 @@
                                                     <TextBlock.ContextMenu>
                                                         <ContextMenu Opened="CreatorContextMenu_Opened">
                                                             <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
+                                                            <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Click="SearchContributionsContext_Click"/>
                                                             <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Click="HeartCreatorContext_Click"/>
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
@@ -466,8 +467,10 @@
                                     </TextBlock>
                                     <TextBlock x:Name="txtCreator" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap">
                                         <TextBlock.ContextMenu>
-                                            <ContextMenu>
+                                            <ContextMenu Opened="CreatorContextMenu_Opened">
                                                 <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
+                                                <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Click="SearchContributionsContext_Click"/>
+                                                <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Click="HeartCreatorContext_Click"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
