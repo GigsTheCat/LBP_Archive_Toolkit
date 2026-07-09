@@ -1186,7 +1186,7 @@ namespace LbpArchiveToolkit
                 btnUserHeartToggle.IsEnabled = false;
                 btnUserHeartToggle.Content = "♥ HEART CREATOR";
                 userIconHeartOverlay.Visibility = Visibility.Hidden;
-                userIconEllipse.Fill = (Brush)FindResource("BgPrimary");
+                userIconRect.Fill = (Brush)FindResource("BgPrimary");
                 txtUserIconStatus.Text = "Select a creator\nto view details";
                 txtUserNpHandle.Text = "";
                 txtUserStats.Text = "";
@@ -1241,7 +1241,7 @@ namespace LbpArchiveToolkit
 
         private async Task LoadUserIconAsync(string? hash, string npHandle, CancellationToken token)
         {
-            userIconEllipse.Fill = (Brush)FindResource("BgPrimary");
+            userIconRect.Fill = (Brush)FindResource("BgPrimary");
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -1258,7 +1258,7 @@ namespace LbpArchiveToolkit
 
             if (brush != null)
             {
-                userIconEllipse.Fill = brush;
+                userIconRect.Fill = brush;
                 txtUserIconStatus.Text = "";
             }
             else

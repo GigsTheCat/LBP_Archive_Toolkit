@@ -72,14 +72,14 @@ namespace LbpArchiveToolkit
                 txtUserStats.Text = "";
                 txtUserSummary.Text = "";
                 iconHeartOverlay.Visibility = Visibility.Hidden;
-                iconEllipse.Fill = (Brush)FindResource("BgPrimary");
+                iconRect.Fill = (Brush)FindResource("BgPrimary");
                 txtIconStatus.Text = "Select a creator\nto view details";
             }
         }
 
         private async Task LoadUserIconAsync(string? hash, string npHandle, CancellationToken token)
         {
-            iconEllipse.Fill = (Brush)FindResource("BgPrimary");
+            iconRect.Fill = (Brush)FindResource("BgPrimary");
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -96,7 +96,7 @@ namespace LbpArchiveToolkit
 
             if (brush != null)
             {
-                iconEllipse.Fill = brush;
+                iconRect.Fill = brush;
                 txtIconStatus.Text = "";
             }
             else
