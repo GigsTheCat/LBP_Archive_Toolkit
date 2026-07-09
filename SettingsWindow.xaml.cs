@@ -109,14 +109,19 @@ namespace LbpArchiveToolkit
                 using var cmdContrib = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors'", conn);
                 bool hasContrib = System.Convert.ToInt32(cmdContrib.ExecuteScalar()) > 0;
 
-                if (!hasFts || !hasContrib)
+                using var cmdCompletion = new SqliteCommand("SELECT count(*) FROM pragma_table_info('slot') WHERE name='completionCount' OR name='completions'", conn);
+                bool hasCompletion = System.Convert.ToInt32(cmdCompletion.ExecuteScalar()) > 0;
+
+                if (!hasFts || !hasContrib || !hasCompletion)
                 {
                     _promptedForDb = true;
-                    string msg = !hasFts && !hasContrib
-                        ? "The selected database is outdated. It lacks FTS5 hardware acceleration and Contributor data. Searching will be slower and contributor features will be disabled.\n\nWould you like to download the newer version?"
-                        : (!hasFts 
-                            ? "The selected database does not support FTS5 hardware acceleration. Searching will be much slower.\n\nWould you like to download the newer, faster version?"
-                            : "The selected database is an older version and does not include Contributor data. Contributor features will be disabled.\n\nWould you like to download the newer version to enable these features?");
+
+                    var missing = new System.Collections.Generic.List<string>();
+                    if (!hasFts) missing.Add("• FTS5 Hardware Acceleration (Slower searches)");
+                    if (!hasContrib) missing.Add("• Contributor Data (Contributor features disabled)");
+                    if (!hasCompletion) missing.Add("• Level Completion Statistics (Completion counts won't be shown)");
+
+                    string msg = $"The selected database is an older version and lacks the following features:\n\n{string.Join("\n", missing)}\n\nWould you like to download the newer version from archive.org to enable these features?";
 
                     bool download = CustomDialog.Show(this, msg, "Outdated Database", isYesNo: true);
                     if (download)

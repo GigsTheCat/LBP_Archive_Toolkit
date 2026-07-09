@@ -373,8 +373,8 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
+                            <DataGridTextColumn x:Name="colClears" Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                            <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>

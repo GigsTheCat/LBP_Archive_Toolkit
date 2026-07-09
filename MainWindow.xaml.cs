@@ -2,6 +2,7 @@
 using LbpArchiveToolkit.Models;
 using LbpArchiveToolkit.Services;
 using System.Collections.ObjectModel;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -150,11 +151,58 @@ namespace LbpArchiveToolkit
             }
 
             UpdateContributorFeatures();
+            CheckDbFeatures(ConfigManager.DatabasePath);
             await CheckForUpdatesAsync();
+        }
+
+        private bool _promptedForDb = false;
+
+        private void CheckDbFeatures(string dbPath)
+        {
+            if (_promptedForDb || !File.Exists(dbPath)) return;
+
+            try
+            {
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
+                using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
+                conn.Open();
+                
+                using var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn);
+                bool hasFts = System.Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
+
+                using var cmdContrib = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors'", conn);
+                bool hasContrib = System.Convert.ToInt32(cmdContrib.ExecuteScalar()) > 0;
+
+                using var cmdCompletion = new SqliteCommand("SELECT count(*) FROM pragma_table_info('slot') WHERE name='completionCount' OR name='completions'", conn);
+                bool hasCompletion = System.Convert.ToInt32(cmdCompletion.ExecuteScalar()) > 0;
+
+                if (!hasFts || !hasContrib || !hasCompletion)
+                {
+                    _promptedForDb = true;
+
+                    var missing = new System.Collections.Generic.List<string>();
+                    if (!hasFts) missing.Add("• FTS5 Hardware Acceleration (Slower searches)");
+                    if (!hasContrib) missing.Add("• Contributor Data (Contributor features disabled)");
+                    if (!hasCompletion) missing.Add("• Level Completion Statistics (Completion counts won't be shown)");
+
+                    string msg = $"The currently selected database is an older version and lacks the following features:\n\n{string.Join("\n", missing)}\n\nWould you like to download the newer version from archive.org to enable these features?";
+
+                    bool download = CustomDialog.Show(this, msg, "Outdated Database", isYesNo: true);
+                    if (download)
+                    {
+                        Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Log("MainWindow.CheckDbFeatures", ex);
+            }
         }
 
         private void UpdateContributorFeatures()
         {
+            // Update Contributor Features
             if (_dbService.HasContributorsTable)
             {
                 cbiContributions.Visibility = Visibility.Visible;
@@ -172,6 +220,12 @@ namespace LbpArchiveToolkit
                 {
                     cmbSearchType.SelectedIndex = 0;
                 }
+            }
+
+            // Update Completion Data Features
+            if (colClears != null)
+            {
+                colClears.Visibility = _dbService.HasCompletionData ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -1120,7 +1174,9 @@ namespace LbpArchiveToolkit
                 }
 
                 txtLevelName.Text = selectedLevel.LevelName;
-                txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}  |  Clears: {selectedLevel.Clears}  |  ♥ {selectedLevel.Hearts}";
+                
+                string clearsText = _dbService.HasCompletionData ? $"  |  Clears: {selectedLevel.Clears}" : "";
+                txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}{clearsText}  |  ♥ {selectedLevel.Hearts}";
 
                 SetDescriptionRichText(selectedLevel.Description);
 

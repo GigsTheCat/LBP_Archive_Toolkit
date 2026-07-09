@@ -33,6 +33,15 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        public bool HasCompletionData
+        {
+            get
+            {
+                EnsureSchemaResolved();
+                return _colCompletion != "NULL";
+            }
+        }
+
         private string _colGame = "NULL";
         private string _colDate = "NULL";
         private string _colDesc = "NULL";
