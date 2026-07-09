@@ -762,6 +762,12 @@ namespace LbpArchiveToolkit
 
         #region Search & Navigation Logic
 
+        private void BtnCancelSearch_Click(object sender, RoutedEventArgs e)
+        {
+            _searchCts?.Cancel();
+            txtStatus.Text = "Cancelling search...";
+        }
+
         private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions = false)
         {
             _resultsList = new ObservableCollection<LevelItem>();
@@ -832,6 +838,19 @@ namespace LbpArchiveToolkit
         {
             string keyword = txtSearch.Text.Trim();
 
+            int searchType = cmbSearchType.SelectedIndex;
+            bool hasAdvancedFilters = _advancedCriteria.MinHearts > 0 ||
+                                      _advancedCriteria.MinPlays > 0 ||
+                                      _advancedCriteria.IsTeamPick ||
+                                      _advancedCriteria.RequiredLabels.Count > 0 ||
+                                      _advancedCriteria.RequiredTags.Count > 0;
+
+            if (string.IsNullOrWhiteSpace(keyword) && cmbLimit.SelectedIndex == 4 && !hasAdvancedFilters)
+            {
+                CustomDialog.Show(this, "Performing a blank search with 'All' results and no advanced filters will load too many results and may crash the application.\n\nPlease add a search keyword, reduce the limit, or apply advanced filters.", "Search Too Broad", false);
+                return;
+            }
+
             SetUIState(isSearching: true);
             txtStatus.Text = "Searching database...";
             progressBar.Visibility = Visibility.Visible;
@@ -859,11 +878,10 @@ namespace LbpArchiveToolkit
             _forwardHistory.Clear();
             btnForward.IsEnabled = false;
 
-            _searchCts?.Cancel();
+             _searchCts?.Cancel();
             _searchCts = new CancellationTokenSource();
             var searchToken = _searchCts.Token;
 
-            int searchType = cmbSearchType.SelectedIndex;
             bool exact = chkExact.IsChecked == true;
             bool searchDesc = chkSearchDesc.IsChecked == true;
             int gameFilter = cmbGame.SelectedIndex;
@@ -950,6 +968,10 @@ namespace LbpArchiveToolkit
                     }
                 }
                 txtStatus.Text = "Search failed. Database missing.";
+            }
+            catch (OperationCanceledException)
+            {
+                txtStatus.Text = "Search cancelled.";
             }
             catch (Exception ex)
             {
@@ -1133,6 +1155,10 @@ namespace LbpArchiveToolkit
                 }
             }
         }
+            catch (OperationCanceledException)
+            {
+                txtStatus.Text = "Search cancelled.";
+            }
             catch (Exception)
             {
                 txtStatus.Text = "Failed to restore search.";
@@ -1147,7 +1173,8 @@ namespace LbpArchiveToolkit
         private void SetUIState(bool isSearching)
         {
             txtSearch.IsEnabled = !isSearching;
-            btnSearch.IsEnabled = !isSearching;
+            btnSearch.Visibility = isSearching ? Visibility.Collapsed : Visibility.Visible;
+            btnCancelSearch.Visibility = isSearching ? Visibility.Visible : Visibility.Collapsed;
         }
 
         #endregion

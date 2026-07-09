@@ -269,6 +269,7 @@
                                 <Button x:Name="btnForward" Content="→" Width="40" Height="40" FontSize="18" Style="{DynamicResource BtnNav}" IsEnabled="False" Click="BtnForward_Click"/>
                             </StackPanel>
                             
+                            <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="Collapsed" Click="BtnCancelSearch_Click"/>
                             <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Click="BtnSearch_Click"/>
                             
                             <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
@@ -344,7 +345,7 @@
                                     <DataGridTextColumn Header="SAVED" Width="70" Binding="{Binding Saved}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="GAME" Width="80" Binding="{Binding Game}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="PUBLISHED" Width="120" Binding="{Binding Date}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTemplateColumn Header="CREATOR" Width="140">
+                                    <DataGridTemplateColumn Header="CREATOR" Width="140" SortMemberPath="Creator">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
@@ -359,7 +360,7 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="LEVEL NAME" Width="*">
+                                    <DataGridTemplateColumn Header="LEVEL NAME" Width="*" SortMemberPath="LevelName">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding LevelName}" Style="{StaticResource DataGridTextCenterStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
