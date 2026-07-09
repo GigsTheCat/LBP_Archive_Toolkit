@@ -1087,6 +1087,20 @@ namespace LbpArchiveToolkit
                 _isApplyingState = false;
             }
 
+            bool hasAdvancedFilters = state.AdvancedCriteria.MinHearts > 0 ||
+                                      state.AdvancedCriteria.MinPlays > 0 ||
+                                      state.AdvancedCriteria.IsTeamPick ||
+                                      (state.AdvancedCriteria.RequiredLabels != null && state.AdvancedCriteria.RequiredLabels.Count > 0) ||
+                                      (state.AdvancedCriteria.RequiredTags != null && state.AdvancedCriteria.RequiredTags.Count > 0);
+
+            if (string.IsNullOrWhiteSpace(state.SearchText) && state.LimitIndex == 4 && !hasAdvancedFilters)
+            {
+                txtStatus.Text = "Previous search was too broad and will not be restored.";
+                _currentSearch = null;
+                ConfigManager.LastSearch = null;
+                return;
+            }
+
             SetUIState(isSearching: true);
             txtStatus.Text = "Restoring search...";
             progressBar.Visibility = Visibility.Visible;
