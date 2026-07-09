@@ -163,6 +163,7 @@
                                     <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
                                     <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" IsEnabled="False" Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" Click="BtnRemove_Click"/>
                                     <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
+                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserContributions_Click" Visibility="Collapsed"/>
                                     <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" IsEnabled="False" Style="{DynamicResource BtnExtract}" Click="BtnDownloadAllLevels_Click"/>
                                 </StackPanel>
                             </Grid>

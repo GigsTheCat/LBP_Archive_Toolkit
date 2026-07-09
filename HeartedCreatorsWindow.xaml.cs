@@ -22,6 +22,15 @@ namespace LbpArchiveToolkit
 
             LoadHeartedCreators();
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
+            Loaded += HeartedCreatorsWindow_Loaded;
+        }
+
+        private void HeartedCreatorsWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (this.Owner is MainWindow mainWindow)
+            {
+                btnViewUserContributions.Visibility = mainWindow.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void TitleBar_Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -48,6 +57,7 @@ namespace LbpArchiveToolkit
         {
             btnRemove.IsEnabled = lvHearted.SelectedItems.Count > 0;
             btnViewUserLevels.IsEnabled = lvHearted.SelectedItems.Count > 0;
+            btnViewUserContributions.IsEnabled = lvHearted.SelectedItems.Count > 0;
             btnDownloadAllLevels.IsEnabled = lvHearted.SelectedItems.Count > 0;
 
             if (lvHearted.SelectedItem is UserItem selected)
@@ -139,6 +149,15 @@ namespace LbpArchiveToolkit
             {
                 this.Close();
                 mainWindow.InitiateCreatorSearch(selectedUser.NpHandle);
+            }
+        }
+
+        private void BtnViewUserContributions_Click(object sender, RoutedEventArgs e)
+        {
+            if (lvHearted.SelectedItem is UserItem selectedUser && this.Owner is MainWindow mainWindow)
+            {
+                this.Close();
+                mainWindow.InitiateContributionsSearch(selectedUser.NpHandle);
             }
         }
 

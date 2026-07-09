@@ -540,6 +540,7 @@
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
                                     <Button x:Name="btnUserHeartToggle" Content="♥ HEART CREATOR" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnUserHeartToggle_Click"/>
                                     <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
+                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserContributions_Click" Visibility="Collapsed"/>
                                     <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnDownloadAllLevels_Click"/>
                                 </StackPanel>
                             </Grid>

@@ -27,6 +27,8 @@ namespace LbpArchiveToolkit
         private CancellationTokenSource? _searchCts;
 
         private DatabaseService _dbService;
+        public bool HasContributorsTable => _dbService.HasContributorsTable;
+
         private ObservableCollection<LevelItem> _resultsList = new();
         private List<UserItem> _userResultsList = new();
         private readonly HashSet<long> _savedLevels = new();
@@ -157,11 +159,13 @@ namespace LbpArchiveToolkit
             {
                 cbiContributions.Visibility = Visibility.Visible;
                 btnShowContributors.Visibility = Visibility.Visible;
+                btnViewUserContributions.Visibility = Visibility.Visible;
             }
             else
             {
                 cbiContributions.Visibility = Visibility.Collapsed;
                 btnShowContributors.Visibility = Visibility.Collapsed;
+                btnViewUserContributions.Visibility = Visibility.Collapsed;
                 
                 // Snap them back to level search if they restart the app into this unselectable state
                 if (cmbSearchType.SelectedIndex == 2)
@@ -334,6 +338,25 @@ namespace LbpArchiveToolkit
             else
             {
                 cmbSearchType.SelectedIndex = 0;
+            }
+        }
+
+        public void InitiateContributionsSearch(string npHandle)
+        {
+            txtSearch.Text = npHandle;
+            chkExact.IsChecked = true;
+            chkSearchDesc.IsChecked = false;
+            cmbGame.SelectedIndex = 0;
+            cmbGenre.SelectedIndex = 0;
+            _advancedCriteria = new AdvancedSearchCriteria();
+
+            if (cmbSearchType.SelectedIndex == 2)
+            {
+                BtnSearch_Click(btnSearch, null!);
+            }
+            else
+            {
+                cmbSearchType.SelectedIndex = 2;
             }
         }
 
@@ -1169,6 +1192,7 @@ namespace LbpArchiveToolkit
                                       $"Click the button below to view all levels published by {selectedUser.NpHandle}.";
 
                 btnViewUserLevels.IsEnabled = true;
+                btnViewUserContributions.IsEnabled = true;
                 btnDownloadAllLevels.IsEnabled = true;
                 btnUserHeartToggle.IsEnabled = true;
                 RefreshCurrentUserSelectionHeartState();
@@ -1182,6 +1206,7 @@ namespace LbpArchiveToolkit
             else
             {
                 btnViewUserLevels.IsEnabled = false;
+                btnViewUserContributions.IsEnabled = false;
                 btnDownloadAllLevels.IsEnabled = false;
                 btnUserHeartToggle.IsEnabled = false;
                 btnUserHeartToggle.Content = "♥ HEART CREATOR";
@@ -1199,6 +1224,14 @@ namespace LbpArchiveToolkit
             if (dgUsers.SelectedItem is UserItem selectedUser)
             {
                 InitiateCreatorSearch(selectedUser.NpHandle);
+            }
+        }
+
+        private void BtnViewUserContributions_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                InitiateContributionsSearch(selectedUser.NpHandle);
             }
         }
 
