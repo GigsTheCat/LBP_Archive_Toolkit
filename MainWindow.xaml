@@ -373,6 +373,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
@@ -434,7 +435,10 @@
                                     <RowDefinition Height="Auto"/> 
                                 </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,15">
+                                <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,10">
+                                    <Grid.LayoutTransform>
+                                        <ScaleTransform ScaleX="0.85" ScaleY="0.85"/>
+                                    </Grid.LayoutTransform>
                                     <Ellipse Fill="Black" Opacity="0.3" Margin="-3" RenderTransformOrigin="0.5,0.5">
                                         <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
@@ -457,15 +461,15 @@
                                     </TextBlock>
                                 </Grid>
 
-                                <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtLevelName" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center">
+                                <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                                    <TextBlock x:Name="txtLevelName" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="18" TextWrapping="Wrap" TextAlignment="Center">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Copy Level Name" Click="CopyLevelNameContext_Click"/>
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
-                                    <TextBlock x:Name="txtCreator" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap">
+                                    <TextBlock x:Name="txtCreator" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu Opened="CreatorContextMenu_Opened">
                                                 <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>

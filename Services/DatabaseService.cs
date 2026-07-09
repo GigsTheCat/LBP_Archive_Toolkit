@@ -37,6 +37,7 @@ namespace LbpArchiveToolkit.Services
         private string _colDate = "NULL";
         private string _colDesc = "NULL";
         private string _colPlay = "NULL";
+        private string _colCompletion = "NULL";
         private string _colHeart = "NULL";
         private string _colGenre = "NULL";
         private string _colHash = "NULL";
@@ -185,6 +186,7 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colDate)).Append(", ")
                         .Append(SafeCol(_colDesc)).Append(", ")
                         .Append(SafeCol(_colPlay)).Append(", ")
+                        .Append(SafeCol(_colCompletion)).Append(", ")
                         .Append(SafeCol(_colHeart)).Append(", ")
                         .Append(SafeCol(_colGenre)).Append(", ")
                         .Append(SafeCol(_colHash)).Append(", ")
@@ -304,7 +306,7 @@ namespace LbpArchiveToolkit.Services
                     long l0 = 0, l1 = 0;
                     if (reqL0 != 0 || reqL1 != 0)
                     {
-                        byte[]? labelsBlob = reader.IsDBNull(12) ? null : reader.GetFieldValue<byte[]>(12);
+                        byte[]? labelsBlob = reader.IsDBNull(13) ? null : reader.GetFieldValue<byte[]>(13);
                         if (labelsBlob != null)
                         {
                             int len = labelsBlob.Length;
@@ -335,7 +337,7 @@ namespace LbpArchiveToolkit.Services
                     long t0 = 0, t1 = 0;
                     if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
                     {
-                        byte[]? tagsBlob = reader.IsDBNull(13) ? null : reader.GetFieldValue<byte[]>(13);
+                        byte[]? tagsBlob = reader.IsDBNull(14) ? null : reader.GetFieldValue<byte[]>(14);
                         if (tagsBlob != null)
                         {
                             int len = tagsBlob.Length;
@@ -441,11 +443,12 @@ namespace LbpArchiveToolkit.Services
                     Date = date,
                     Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
                     Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
-                    Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
-                    Genre = reader.IsDBNull(8) ? "Unknown" : (reader.GetFieldType(8) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(8), "Unknown") : MapGenreToString(reader.GetValue(8))),
-                    Hash = reader.IsDBNull(9) ? "" : (reader.GetFieldType(9) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(9)) : reader.GetString(9)),
-                    IconHash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
-                    IsMmPick = reader.IsDBNull(11) ? false : reader.GetBoolean(11)
+                    Clears = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
+                    Hearts = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
+                    Genre = reader.IsDBNull(9) ? "Unknown" : (reader.GetFieldType(9) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(9), "Unknown") : MapGenreToString(reader.GetValue(9))),
+                    Hash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
+                    IconHash = reader.IsDBNull(11) ? "" : (reader.GetFieldType(11) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(11)) : reader.GetString(11)),
+                    IsMmPick = reader.IsDBNull(12) ? false : reader.GetBoolean(12)
                 };
 
                 yield return levelItem;
@@ -765,6 +768,7 @@ namespace LbpArchiveToolkit.Services
                 _colDate = GetDbColumn(columns, "timestamp", "publishDate", "firstPublished", "timeCreated");
                 _colDesc = GetDbColumn(columns, "description", "desc");
                 _colPlay = GetDbColumn(columns, "playCount", "plays", "play_count");
+                _colCompletion = GetDbColumn(columns, "completionCount", "completions");
                 _colHeart = GetDbColumn(columns, "heartCount", "hearts", "heart_count");
                 _colGenre = GetDbColumn(columns, "genre", "levelGenre", "level_genre");
                 _colHash = GetDbColumn(columns, "rootLevel", "root_level", "rootLevelHash", "hash");

@@ -1120,7 +1120,7 @@ namespace LbpArchiveToolkit
                 }
 
                 txtLevelName.Text = selectedLevel.LevelName;
-                txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}  |  ♥ {selectedLevel.Hearts}";
+                txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}  |  Clears: {selectedLevel.Clears}  |  ♥ {selectedLevel.Hearts}";
 
                 SetDescriptionRichText(selectedLevel.Description);
 

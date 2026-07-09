@@ -19,6 +19,7 @@ namespace LbpArchiveToolkit.Models
         public string? Creator { get; set; }
         public string? LevelName { get; set; }
         public int Plays { get; set; }
+        public int Clears { get; set; }
         public int Hearts { get; set; }
         public string? Genre { get; set; }
         public string? Hash { get; set; }
