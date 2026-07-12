@@ -26,11 +26,10 @@ namespace LbpArchiveToolkit
 
         private void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
-
             this.Opacity = 0;
 
-            CustomDialog.Show(this.Owner ?? this, "Once downloaded, go to Settings and select the .db file.", "Download Started", false);
+            var downloadsWin = new DownloadsWindow { Owner = this.Owner ?? this };
+            downloadsWin.ShowDialog();
 
             DialogResult = true; // Closes dialog completely and signals parent to open Settings
         }
