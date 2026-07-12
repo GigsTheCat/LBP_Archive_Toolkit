@@ -25,6 +25,27 @@ namespace LbpArchiveToolkit
             _isInitialized = true;
         }
 
+        private void UpdateRamUsageText(string dbPath)
+        {
+            if (File.Exists(dbPath))
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(dbPath);
+                    double gbSize = fileInfo.Length / (1024.0 * 1024.0 * 1024.0);
+                    chkLoadDbIntoRam.Content = $"Load entire DB into RAM (Extreme speed, requires ~{gbSize:F1} GB free RAM)";
+                }
+                catch
+                {
+                    chkLoadDbIntoRam.Content = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
+                }
+            }
+            else
+            {
+                chkLoadDbIntoRam.Content = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
+            }
+        }
+
         private void LoadConfigToUI()
         {
             txtDbPath.Text = ConfigManager.DatabasePath;
@@ -45,6 +66,8 @@ namespace LbpArchiveToolkit
             chkLbp2Beta.IsChecked = ConfigManager.Lbp2BetaToRetail;
             chkUseMmap.IsChecked = ConfigManager.UseMemoryMappedIO;
             chkLoadDbIntoRam.IsChecked = ConfigManager.LoadDbIntoRam;
+            
+            UpdateRamUsageText(ConfigManager.DatabasePath);
 
             // Dynamically populate available themes from the ThemeManager
             cmbTheme.Items.Clear();
@@ -148,6 +171,7 @@ namespace LbpArchiveToolkit
             if (dialog.ShowDialog() == true)
             {
                 txtDbPath.Text = dialog.FileName;
+                UpdateRamUsageText(dialog.FileName);
                 CheckDbFeatures(dialog.FileName);
             }
         }

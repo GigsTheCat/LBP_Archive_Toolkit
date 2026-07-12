@@ -119,7 +119,18 @@ namespace LbpArchiveToolkit.Services
             {
                 if (_keepAliveMemConn == null)
                 {
-                    progress?.Report("Loading 4.2GB database into RAM... (This may take a moment)");
+                    string sizeStr = "the";
+                    if (File.Exists(_dbPath))
+                    {
+                        try
+                        {
+                            double gbSize = new FileInfo(_dbPath).Length / (1024.0 * 1024.0 * 1024.0);
+                            sizeStr = $"{gbSize:F1} GB";
+                        }
+                        catch { }
+                    }
+                    progress?.Report($"Loading {sizeStr} database into RAM... (This may take a moment)");
+                    
                     await Task.Run(() =>
                     {
                         var memConn = new SqliteConnection("Data Source=lbpramdb;Mode=Memory;Cache=Shared");

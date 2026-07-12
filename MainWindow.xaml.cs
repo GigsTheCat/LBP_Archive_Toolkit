@@ -590,6 +590,12 @@ namespace LbpArchiveToolkit
             aboutWin.ShowDialog();
         }
 
+        private void MenuDownloads_Click(object sender, RoutedEventArgs e)
+        {
+            var downloadsWin = new DownloadsWindow { Owner = this };
+            downloadsWin.ShowDialog();
+        }
+
         private async void ShowToast(string message, UIElement placementTarget)
         {
             txtNotification.Text = message;
