@@ -29,6 +29,7 @@ namespace LbpArchiveToolkit
 
         private DatabaseService _dbService;
         public bool HasContributorsTable => _dbService.HasContributorsTable;
+        public bool HasObjectContributorsTable => _dbService.HasObjectContributorsTable;
 
         private ObservableCollection<LevelItem> _resultsList = new();
         private List<UserItem> _userResultsList = new();
@@ -126,7 +127,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (current != null)
             {
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -217,6 +218,22 @@ namespace LbpArchiveToolkit
                 
                 // Snap them back to level search if they restart the app into this unselectable state
                 if (cmbSearchType.SelectedIndex == 2)
+                {
+                    cmbSearchType.SelectedIndex = 0;
+                }
+            }
+
+            if (_dbService.HasObjectContributorsTable)
+            {
+                cbiObjects.Visibility = Visibility.Visible;
+                btnViewUserObjects.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                cbiObjects.Visibility = Visibility.Collapsed;
+                btnViewUserObjects.Visibility = Visibility.Collapsed;
+
+                if (cmbSearchType.SelectedIndex == 3)
                 {
                     cmbSearchType.SelectedIndex = 0;
                 }
@@ -343,6 +360,10 @@ namespace LbpArchiveToolkit
                         {
                             menuItem.Visibility = _dbService.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
                         }
+                        else if (menuItem.Name == "MenuSearchObjects")
+                        {
+                            menuItem.Visibility = _dbService.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
+                        }
                     }
                 }
             }
@@ -411,6 +432,25 @@ namespace LbpArchiveToolkit
             else
             {
                 cmbSearchType.SelectedIndex = 2;
+            }
+        }
+
+        public void InitiateObjectsSearch(string npHandle)
+        {
+            txtSearch.Text = npHandle;
+            chkExact.IsChecked = true;
+            chkSearchDesc.IsChecked = false;
+            cmbGame.SelectedIndex = 0;
+            cmbGenre.SelectedIndex = 0;
+            _advancedCriteria = new AdvancedSearchCriteria();
+
+            if (cmbSearchType.SelectedIndex == 3)
+            {
+                BtnSearch_Click(btnSearch, null!);
+            }
+            else
+            {
+                cmbSearchType.SelectedIndex = 3;
             }
         }
 
@@ -597,7 +637,9 @@ namespace LbpArchiveToolkit
                 try
                 {
                     var contributors = await _dbService.GetContributorsAsync(selectedLevel.Id);
-                    if (contributors.Count == 0)
+                    var objectContributors = await _dbService.GetObjectContributorsAsync(selectedLevel.Id);
+                    
+                    if (contributors.Count == 0 && objectContributors.Count == 0)
                     {
                         CustomDialog.Show(this, "No contributors were found for this level.", "Contributors", false);
                     }
@@ -613,38 +655,77 @@ namespace LbpArchiveToolkit
                         };
                         dialog.txtMessage.Inlines.Add(noteRun);
 
-                        foreach (var c in contributors)
+                        if (contributors.Count > 0)
                         {
-                            var link = new Hyperlink(new Run("• " + c))
+                            dialog.txtMessage.Inlines.Add(new Run("Level Contributors:\n") { FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("LbpOrange") });
+                            foreach (var c in contributors)
                             {
-                                Foreground = (Brush)FindResource("LbpCyan"),
-                                Cursor = Cursors.Hand,
-                                TextDecorations = null
-                            };
+                                var link = new Hyperlink(new Run("• " + c))
+                                {
+                                    Foreground = (Brush)FindResource("LbpCyan"),
+                                    Cursor = Cursors.Hand,
+                                    TextDecorations = null
+                                };
 
-                            link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
-                            link.MouseLeave += (s, ev) => link.TextDecorations = null;
+                                link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
+                                link.MouseLeave += (s, ev) => link.TextDecorations = null;
 
-                            string creatorName = c;
-                            link.Click += (s, ev) =>
+                                string creatorName = c;
+                                link.Click += (s, ev) =>
+                                {
+                                    dialog.Close();
+                                    txtSearch.Text = creatorName;
+                                    chkExact.IsChecked = true;
+                                    
+                                    if (cmbSearchType.SelectedIndex == 1)
+                                    {
+                                        BtnSearch_Click(btnSearch, null!);
+                                    }
+                                    else
+                                    {
+                                        cmbSearchType.SelectedIndex = 1;
+                                    }
+                                };
+                                dialog.txtMessage.Inlines.Add(link);
+                                dialog.txtMessage.Inlines.Add(new Run("\n"));
+                            }
+                            if (objectContributors.Count > 0) dialog.txtMessage.Inlines.Add(new Run("\n"));
+                        }
+
+                        if (objectContributors.Count > 0)
+                        {
+                            dialog.txtMessage.Inlines.Add(new Run("Object Contributors:\n") { FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("LbpOrange") });
+                            foreach (var c in objectContributors)
                             {
-                                dialog.Close();
-                                txtSearch.Text = creatorName;
-                                chkExact.IsChecked = true;
-                                
-                                // Index 1 is the 'Creators' search type
-                                if (cmbSearchType.SelectedIndex == 1)
+                                var link = new Hyperlink(new Run("• " + c))
                                 {
-                                    BtnSearch_Click(btnSearch, null!);
-                                }
-                                else
+                                    Foreground = (Brush)FindResource("LbpCyan"),
+                                    Cursor = Cursors.Hand,
+                                    TextDecorations = null
+                                };
+
+                                link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
+                                link.MouseLeave += (s, ev) => link.TextDecorations = null;
+
+                                string creatorName = c;
+                                link.Click += (s, ev) =>
                                 {
-                                    // Changing the index automatically fires CmbSearchType_SelectionChanged, starting the search
-                                    cmbSearchType.SelectedIndex = 1;
-                                }
-                            };
-                            dialog.txtMessage.Inlines.Add(link);
-                            dialog.txtMessage.Inlines.Add(new Run("\n"));
+                                    dialog.Close();
+                                    txtSearch.Text = creatorName;
+                                    chkExact.IsChecked = true;
+                                    
+                                    if (cmbSearchType.SelectedIndex == 1)
+                                    {
+                                        BtnSearch_Click(btnSearch, null!);
+                                    }
+                                    else
+                                    {
+                                        cmbSearchType.SelectedIndex = 1;
+                                    }
+                                };
+                                dialog.txtMessage.Inlines.Add(link);
+                                dialog.txtMessage.Inlines.Add(new Run("\n"));
+                            }
                         }
 
                         dialog.ShowDialog();
@@ -736,14 +817,33 @@ namespace LbpArchiveToolkit
             }
         }
 
+        private void SearchObjectsContext_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgResults.SelectedItem is LevelItem selected)
+            {
+                txtSearch.Text = selected.Creator;
+                chkExact.IsChecked = true;
+                
+                if (cmbSearchType.SelectedIndex == 3)
+                {
+                    BtnSearch_Click(btnSearch, null!);
+                }
+                else
+                {
+                    cmbSearchType.SelectedIndex = 3; // Switch UI to Objects By, CmbSearchType_SelectionChanged triggers search
+                }
+            }
+        }
+
         private void CmbSearchType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cmbSearchType == null) return;
-            bool isLevels = cmbSearchType.SelectedIndex == 0 || cmbSearchType.SelectedIndex == 2;
+            bool isLevels = cmbSearchType.SelectedIndex == 0 || cmbSearchType.SelectedIndex == 2 || cmbSearchType.SelectedIndex == 3;
             bool isContrib = cmbSearchType.SelectedIndex == 2;
+            bool isObjects = cmbSearchType.SelectedIndex == 3;
 
             panelLevelFilters?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
-            chkSearchDesc?.Visibility = (isLevels && !isContrib) ? Visibility.Visible : Visibility.Collapsed;
+            chkSearchDesc?.Visibility = (isLevels && !isContrib && !isObjects) ? Visibility.Visible : Visibility.Collapsed;
             btnAdvanced?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
 
             dgResults?.Visibility = isLevels ? Visibility.Visible : Visibility.Collapsed;
@@ -768,7 +868,7 @@ namespace LbpArchiveToolkit
             txtStatus.Text = "Cancelling search...";
         }
 
-        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions = false)
+        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions = false, bool searchObjects = false)
         {
             _resultsList = new ObservableCollection<LevelItem>();
             dgResults.ItemsSource = _resultsList;
@@ -788,7 +888,7 @@ namespace LbpArchiveToolkit
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
-                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, criteria, progressReporter, searchContributions, token).ConfigureAwait(false))
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, savedLevelsSnapshot, heartedLevelsSnapshot, criteria, progressReporter, searchContributions, searchObjects, token).ConfigureAwait(false))
                 {
                     buffer.Add(lvl);
                     count++;
@@ -860,7 +960,7 @@ namespace LbpArchiveToolkit
             if (current != null)
             {
                 // Save the currently selected item BEFORE we clear the DataGrid
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -894,10 +994,11 @@ namespace LbpArchiveToolkit
 
             try
         {
-            if (searchType == 0 || searchType == 2)
+            if (searchType == 0 || searchType == 2 || searchType == 3)
             {
                 bool searchContribs = searchType == 2;
-                await PerformLevelSearchAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs);
+                bool searchObjects = searchType == 3;
+                await PerformLevelSearchAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs, searchObjects);
 
                 if (dgResults.Items.Count > 0)
                 {
@@ -1008,7 +1109,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (_searchHistory.Count > 0 && current != null)
             {
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -1026,7 +1127,7 @@ namespace LbpArchiveToolkit
             var current = _currentSearch;
             if (_forwardHistory.Count > 0 && current != null)
             {
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
                     current.SelectedItem = dgResults.SelectedItem as LevelItem;
                 else
                     current.SelectedUser = dgUsers.SelectedItem as UserItem;
@@ -1123,10 +1224,11 @@ namespace LbpArchiveToolkit
 
             try
         {
-            if (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2)
+            if (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2 || state.SearchTypeIndex == 3)
             {
                 bool searchContribs = state.SearchTypeIndex == 2;
-                await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, state.AdvancedCriteria, searchToken, "Restored", searchContribs);
+                bool searchObjects = state.SearchTypeIndex == 3;
+                await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, genreFilter, limitFilter, state.AdvancedCriteria, searchToken, "Restored", searchContribs, searchObjects);
 
                 dgResults.SelectedItem = null;
                 if (state.SelectedItem != null)
@@ -1290,6 +1392,7 @@ namespace LbpArchiveToolkit
 
                 btnViewUserLevels.IsEnabled = true;
                 btnViewUserContributions.IsEnabled = true;
+                btnViewUserObjects.IsEnabled = true;
                 btnDownloadAllLevels.IsEnabled = true;
                 btnUserHeartToggle.IsEnabled = true;
                 RefreshCurrentUserSelectionHeartState();
@@ -1304,6 +1407,7 @@ namespace LbpArchiveToolkit
             {
                 btnViewUserLevels.IsEnabled = false;
                 btnViewUserContributions.IsEnabled = false;
+                btnViewUserObjects.IsEnabled = false;
                 btnDownloadAllLevels.IsEnabled = false;
                 btnUserHeartToggle.IsEnabled = false;
                 btnUserHeartToggle.Content = "♥ HEART CREATOR";
@@ -1329,6 +1433,14 @@ namespace LbpArchiveToolkit
             if (dgUsers.SelectedItem is UserItem selectedUser)
             {
                 InitiateContributionsSearch(selectedUser.NpHandle);
+            }
+        }
+
+        private void BtnViewUserObjects_Click(object sender, RoutedEventArgs e)
+        {
+            if (dgUsers.SelectedItem is UserItem selectedUser)
+            {
+                InitiateObjectsSearch(selectedUser.NpHandle);
             }
         }
 

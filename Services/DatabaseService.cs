@@ -23,6 +23,8 @@ namespace LbpArchiveToolkit.Services
         private bool _hasTagsFtsTable = false;
         private bool _hasContribsTable = false;
         private bool _hasContribFtsTable = false;
+        private bool _hasObjectContribsTable = false;
+        private bool _hasObjectContribFtsTable = false;
 
         public bool HasContributorsTable
         {
@@ -30,6 +32,15 @@ namespace LbpArchiveToolkit.Services
             {
                 EnsureSchemaResolved();
                 return _hasContribsTable;
+            }
+        }
+
+        public bool HasObjectContributorsTable
+        {
+            get
+            {
+                EnsureSchemaResolved();
+                return _hasObjectContribsTable;
             }
         }
 
@@ -135,7 +146,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, [EnumeratorCancellation] CancellationToken token = default)
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -183,7 +194,8 @@ namespace LbpArchiveToolkit.Services
             bool hasTagsFilter = advanced.RequiredLabels.Count > 0 || advanced.RequiredTags.Count > 0 || advanced.IsTeamPick;
             bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable && !hasKeyword;
             bool searchContribsActive = searchContributions && hasKeyword;
-            bool isFtsContext = (_hasFtsTable && (hasKeyword || useFtsForTags)) || searchContribsActive;
+            bool searchObjectsActive = searchObjects && hasKeyword;
+            bool isFtsContext = (_hasFtsTable && (hasKeyword || useFtsForTags)) || searchContribsActive || searchObjectsActive;
             string pfx = isFtsContext ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
@@ -210,7 +222,7 @@ namespace LbpArchiveToolkit.Services
             {
                 queryBuilder.Append("s ");
 
-                if (hasKeyword && !searchContribsActive)
+                if (hasKeyword && !searchContribsActive && !searchObjectsActive)
                     queryBuilder.Append("INNER JOIN slot_fts f ON s.id = f.id ");
 
 
@@ -228,6 +240,15 @@ namespace LbpArchiveToolkit.Services
                             BuildContribFtsSearchCondition(queryBuilder, parameters, keyword, exact);
                         else if (_hasContribsTable)
                             BuildContribSearchCondition(queryBuilder, parameters, keyword, exact);
+                        else
+                            queryBuilder.Append("1=0 "); // Fallback if no tables exist
+                    }
+                    else if (searchObjectsActive)
+                    {
+                        if (_hasObjectContribFtsTable)
+                            BuildObjectFtsSearchCondition(queryBuilder, parameters, keyword, exact);
+                        else if (_hasObjectContribsTable)
+                            BuildObjectSearchCondition(queryBuilder, parameters, keyword, exact);
                         else
                             queryBuilder.Append("1=0 "); // Fallback if no tables exist
                     }
@@ -262,7 +283,7 @@ namespace LbpArchiveToolkit.Services
 
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
 
-            if (_hasFtsTable && hasKeyword && !searchContribsActive)
+            if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
             {
                 if (isAllLimit)
                 {
@@ -573,6 +594,27 @@ namespace LbpArchiveToolkit.Services
             return list;
         }
 
+        public async Task<List<string>> GetObjectContributorsAsync(long slotId, CancellationToken token = default)
+        {
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            var list = new List<string>();
+            if (!_hasObjectContribsTable) return list;
+
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            ApplyConnectionOptimizations(conn);
+
+            using var cmd = new SqliteCommand("SELECT npHandle FROM object_contributors WHERE slot_id = @id ORDER BY npHandle ASC", conn);
+            cmd.Parameters.AddWithValue("@id", slotId);
+
+            using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                list.Add(reader.GetString(0));
+            }
+            return list;
+        }
+
         public Task<HashSet<string>> GetGenresAsync()
         {
             // Instantly return the statically known genres to avoid the 1-2 second startup delay
@@ -680,6 +722,47 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        private void BuildObjectFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
+        {
+            string matchTerm = "";
+            string Sanitize(string s) => System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
+
+            if (exact)
+            {
+                matchTerm = $"\"{Sanitize(keyword)}\"*";
+            }
+            else
+            {
+                var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var safeWords = new List<string>();
+                foreach (var w in words) safeWords.Add($"\"{Sanitize(w)}\"*");
+                matchTerm = string.Join(" AND ", safeWords);
+            }
+
+            query.Append("s.id IN (SELECT slot_id FROM object_contributors_fts WHERE object_contributors_fts MATCH @matchObjContrib) ");
+            parameters.Add(new SqliteParameter("@matchObjContrib", matchTerm));
+        }
+
+        private void BuildObjectSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
+        {
+            if (exact)
+            {
+                query.Append("s.id IN (SELECT slot_id FROM object_contributors WHERE npHandle LIKE @kObjContrib) ");
+                parameters.Add(new SqliteParameter("@kObjContrib", $"%{keyword}%"));
+            }
+            else
+            {
+                var words = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var conds = new List<string>();
+                for (int i = 0; i < words.Length; i++)
+                {
+                    conds.Add($"npHandle LIKE @wObjContrib{i}");
+                    parameters.Add(new SqliteParameter($"@wObjContrib{i}", $"%{words[i]}%"));
+                }
+                query.Append("s.id IN (SELECT slot_id FROM object_contributors WHERE " + string.Join(" AND ", conds) + ") ");
+            }
+        }
+
         private void BuildFilters(StringBuilder query, List<SqliteParameter> parameters, int gameFilter, string? genreFilter, string pfx, AdvancedSearchCriteria advanced, long reqL0, long reqL1, long reqT0, long reqT1, bool useFtsForTags)
         {
             if (gameFilter > 0 && _colGame != "NULL")
@@ -771,6 +854,16 @@ namespace LbpArchiveToolkit.Services
                 using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors_fts'", conn))
                 {
                     _hasContribFtsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                }
+
+                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='object_contributors'", conn))
+                {
+                    _hasObjectContribsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                }
+
+                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='object_contributors_fts'", conn))
+                {
+                    _hasObjectContribFtsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
                 }
 
                 _colGame = GetDbColumn(columns, "gameVersion", "game");

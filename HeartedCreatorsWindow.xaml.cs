@@ -30,6 +30,7 @@ namespace LbpArchiveToolkit
             if (this.Owner is MainWindow mainWindow)
             {
                 btnViewUserContributions.Visibility = mainWindow.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
+                btnViewUserObjects.Visibility = mainWindow.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -58,6 +59,7 @@ namespace LbpArchiveToolkit
             btnRemove.IsEnabled = lvHearted.SelectedItems.Count > 0;
             btnViewUserLevels.IsEnabled = lvHearted.SelectedItems.Count > 0;
             btnViewUserContributions.IsEnabled = lvHearted.SelectedItems.Count > 0;
+            btnViewUserObjects.IsEnabled = lvHearted.SelectedItems.Count > 0;
             btnDownloadAllLevels.IsEnabled = lvHearted.SelectedItems.Count > 0;
 
             if (lvHearted.SelectedItem is UserItem selected)
@@ -158,6 +160,15 @@ namespace LbpArchiveToolkit
             {
                 this.Close();
                 mainWindow.InitiateContributionsSearch(selectedUser.NpHandle);
+            }
+        }
+
+        private void BtnViewUserObjects_Click(object sender, RoutedEventArgs e)
+        {
+            if (lvHearted.SelectedItem is UserItem selectedUser && this.Owner is MainWindow mainWindow)
+            {
+                this.Close();
+                mainWindow.InitiateObjectsSearch(selectedUser.NpHandle);
             }
         }
 
