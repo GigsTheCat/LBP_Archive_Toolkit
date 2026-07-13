@@ -2,10 +2,19 @@ namespace LbpArchiveToolkit.Utils
 {
     public static class LabelParser
     {
+        public static IReadOnlyList<string> GetTags() => LabelTags;
         public static IReadOnlyList<string> GetFriendlyNames() => FriendlyLabelNames;
+        
         public static bool IsLbp2Label(string friendlyName)
         {
             int idx = System.Array.IndexOf(FriendlyLabelNames, friendlyName);
+            if (idx >= 0) return IsLbp2Label(LabelHashes[idx]);
+            return false;
+        }
+
+        public static bool IsLbp2LabelByTag(string tag)
+        {
+            int idx = System.Array.IndexOf(LabelTags, tag);
             if (idx >= 0) return IsLbp2Label(LabelHashes[idx]);
             return false;
         }
@@ -56,8 +65,46 @@ namespace LbpArchiveToolkit.Utils
             for (int i = 0; i < LabelTags.Length; i++)
             {
                 LabelHashes[i] = CalculateLams(LabelTags[i]);
-                // Pre-compute the friendly formatted names exactly once
-                FriendlyLabelNames[i] = LabelTags[i].Replace("LABEL_", "").Replace("_", " ");
+                
+                string friendly = LabelTags[i].Replace("LABEL_", "").Replace("_", " ");
+                switch (LabelTags[i])
+                {
+                    // LBP2 & LBP3 Labels
+                    case "LABEL_MagicBag": friendly = "Creatinator"; break;
+                    case "LABEL_DirectControl": friendly = "Controlinator"; break;
+                    case "LABEL_SinglePlayer": friendly = "Single Player"; break;
+                    case "LABEL_Platform": friendly = "Platformer"; break;
+                    case "LABEL_SurvivalChallenge": friendly = "Survival Challenge"; break;
+                    case "LABEL_WALLJUMP": friendly = "Wall Jump"; break;
+                    case "LABEL_MEMORISER": friendly = "Memorizer"; break;
+                    case "LABEL_HEROCAPE": friendly = "Hero Cape"; break;
+                    case "LABEL_ATTRACT_TWEAK": friendly = "Attract-o-Tweaker"; break;
+                    case "LABEL_ATTRACT_GEL": friendly = "Attract-o-Gel"; break;
+                    case "LABEL_PowerGlove": friendly = "Grabinators"; break;
+                    case "LABEL_LowGravity": friendly = "Low Gravity"; break;
+                    case "LABEL_JumpPads": friendly = "Bounce Pads"; break;
+                    case "LABEL_GrapplingHook": friendly = "Grappling Hook"; break;
+
+                    // LBP3 only labels
+                    case "LABEL_SINGLE_PLAYER": friendly = "Single Player"; break;
+                    case "LABEL_Mini_Game": friendly = "Mini-Game"; break;
+                    case "LABEL_Sci_Fi": friendly = "Sci-Fi"; break;
+                    case "LABEL_CO_OP": friendly = "Co-op"; break;
+                    case "LABEL_TOP_DOWN": friendly = "Top Down"; break;
+                    case "LABEL_FLOATY_FLUID_NAME": friendly = "Floaty Fluid"; break;
+                    case "LABEL_HOVERBOARD_NAME": friendly = "Hoverboard"; break;
+                    case "LABEL_SPRINGINATOR": friendly = "Springinator"; break;
+                    case "LABEL_SACKPOCKET": friendly = "Sackpocket"; break;
+                    case "LABEL_QUESTS": friendly = "Quests"; break;
+                    case "LABEL_INTERACTIVE_STREAM": friendly = "Interactive Stream"; break;
+                    case "LABEL_CREATED_CHARACTERS": friendly = "Created Characters"; break;
+                    case "LABEL_SACKBOY": friendly = "Sackboy"; break;
+                    case "LABEL_SWOOP": friendly = "Swoop"; break;
+                    case "LABEL_TOGGLE": friendly = "Toggle"; break;
+                    case "LABEL_ODDSOCK": friendly = "OddSock"; break;
+                }
+                
+                FriendlyLabelNames[i] = friendly;
             }
 
             // Pre-calculate LBP2 specific hashes
@@ -65,6 +112,13 @@ namespace LbpArchiveToolkit.Utils
             {
                 Lbp2ValidHashes.Add(CalculateLams(tag));
             }
+        }
+
+        public static string GetOriginalTag(string friendlyName)
+        {
+            int idx = System.Array.IndexOf(FriendlyLabelNames, friendlyName);
+            if (idx >= 0) return LabelTags[idx];
+            return "LABEL_" + friendlyName.Replace(" ", "_");
         }
 
         public static bool IsLbp2Label(uint hash) => Lbp2ValidHashes.Contains(hash);

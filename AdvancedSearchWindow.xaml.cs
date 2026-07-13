@@ -20,17 +20,23 @@ namespace LbpArchiveToolkit
             chkTeamPick.IsChecked = Criteria.IsTeamPick;
 
             // LBP2 and LBP3 Labels
-            foreach (var labelName in LabelParser.GetFriendlyNames())
+            var labelTags = LabelParser.GetTags();
+            var friendlyNames = LabelParser.GetFriendlyNames();
+            for (int i = 0; i < labelTags.Count; i++)
             {
+                string tag = labelTags[i];
+                string friendly = friendlyNames[i];
+
                 var cb = new CheckBox
                 {
-                    Content = labelName,
-                    Width = 140,
+                    Content = friendly,
+                    Tag = tag, // Store the raw internal tag behind the scenes
+                    Width = 165,
                     Margin = new Thickness(0, 5, 10, 5),
-                    IsChecked = Criteria.RequiredLabels.Contains(labelName)
+                    IsChecked = Criteria.RequiredLabels.Contains(tag)
                 };
 
-                if (LabelParser.IsLbp2Label(labelName)) wpLbp2Labels.Children.Add(cb);
+                if (LabelParser.IsLbp2LabelByTag(tag)) wpLbp2Labels.Children.Add(cb);
                 else wpLbp3Labels.Children.Add(cb);
             }
 
@@ -40,7 +46,8 @@ namespace LbpArchiveToolkit
                 var cb = new CheckBox
                 {
                     Content = tagName,
-                    Width = 140,
+                    Tag = tagName, // Use Tag here as well for consistency
+                    Width = 165,
                     Margin = new Thickness(0, 5, 10, 5),
                     IsChecked = Criteria.RequiredTags.Contains(tagName)
                 };
@@ -88,13 +95,13 @@ namespace LbpArchiveToolkit
             Criteria.RequiredTags.Clear();
 
             foreach (var child in wpLbp2Labels.Children)
-                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Tag.ToString()!);
 
             foreach (var child in wpLbp3Labels.Children)
-                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Content.ToString()!);
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Tag.ToString()!);
 
             foreach (var child in wpLbp1Tags.Children)
-                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredTags.Add(cb.Content.ToString()!);
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredTags.Add(cb.Tag.ToString()!);
         }
     }
 }

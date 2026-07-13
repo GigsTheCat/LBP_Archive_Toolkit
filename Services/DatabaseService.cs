@@ -175,12 +175,12 @@ namespace LbpArchiveToolkit.Services
             ApplyConnectionOptimizations(conn);
 
             long reqL0 = 0, reqL1 = 0;
-            var friendlyNames = LabelParser.GetFriendlyNames();
+            var labelTags = LabelParser.GetTags();
             foreach (var reqLabel in advanced.RequiredLabels)
             {
-                for (int i = 0; i < friendlyNames.Count; i++)
+                for (int i = 0; i < labelTags.Count; i++)
                 {
-                    if (friendlyNames[i] == reqLabel)
+                    if (labelTags[i] == reqLabel)
                     {
                         if (i < 64) reqL0 |= (1L << i); else reqL1 |= (1L << (i - 64));
                         break;
@@ -272,7 +272,12 @@ namespace LbpArchiveToolkit.Services
                 if (useFtsForTags)
                 {
                     List<string> tagTokens = [with(capacity: advanced.RequiredLabels.Count + advanced.RequiredTags.Count + 1)];
-                    foreach (var l in advanced.RequiredLabels) tagTokens.Add($"\"LBL_{l.Replace(" ", "")}\"");
+                    foreach (var l in advanced.RequiredLabels)
+                    {
+                        // 'l' is already the raw tag at this point (e.g. "LABEL_SINGLE_PLAYER")
+                        string ftsTag = l.Replace("LABEL_", "").Replace("_", "");
+                        tagTokens.Add($"\"LBL_{ftsTag}\"");
+                    }
                     foreach (var t in advanced.RequiredTags) tagTokens.Add($"\"TAG_{t.Replace(" ", "")}\"");
                     if (advanced.IsTeamPick) tagTokens.Add("\"MM_PICK\"");
 
