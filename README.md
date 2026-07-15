@@ -14,7 +14,8 @@ This app allows you to search the LBP archive for levels to download and backup.
 6. **Local Archives:** If you have a local copy of the full 1.2 TB level archive, you can select `local` as your download server and point the app to your archive folder. (Unzip all the folders to make indexing faster).
 7. Save your settings and have fun!
 
-<img width="1520" height="960" alt="image" src="https://github.com/user-attachments/assets/33d7a639-fe41-4059-b244-9f482b199b52" />
+<img width="1617" height="960" alt="image" src="https://github.com/user-attachments/assets/b7e58aa6-689d-45c9-8472-31b15b2c62b7" />
+
 
 
 
