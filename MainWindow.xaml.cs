@@ -1362,7 +1362,11 @@ namespace LbpArchiveToolkit
                 if (selectedLevel.Labels != null && selectedLevel.Labels.Count > 0)
                 {
                     Style tagStyle = (Style)FindResource("DisplayTagStyle");
-                    foreach (var label in selectedLevel.Labels)
+                    
+                    // Sort the combined labels and tags alphabetically
+                    var sortedLabels = selectedLevel.Labels.OrderBy(l => l).ToList();
+                    
+                    foreach (var label in sortedLabels)
                     {
                         var tagControl = new ContentControl
                         {
