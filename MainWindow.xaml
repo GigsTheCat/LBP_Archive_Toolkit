@@ -203,6 +203,30 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Padding" Value="8,0"/>
         </Style>
+
+        <Style x:Key="DisplayTagStyle" TargetType="ContentControl">
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="1,1,2,2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Border Background="#3D325C" 
+                                BorderBrush="{DynamicResource BorderSubtle}" 
+                                BorderThickness="1" 
+                                CornerRadius="6"
+                                Margin="{TemplateBinding Margin}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.4" Direction="315" Color="Black"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- ROUNDED APP WRAPPER -->
@@ -261,8 +285,13 @@
                     <RowDefinition Height="*"/>    
                     <RowDefinition Height="Auto"/> 
                 </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>     
+                    <ColumnDefinition Width="15"/>    
+                    <ColumnDefinition Width="340"/>   
+                </Grid.ColumnDefinitions>
 
-                <ContentControl Grid.Row="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
+                <ContentControl Grid.Row="0" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,15">
                             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,15,0">
@@ -288,7 +317,7 @@
 
                         <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Search Type:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="cmbSearchType" SelectedIndex="0" Width="125" SelectionChanged="CmbSearchType_SelectionChanged">
+                            <ComboBox x:Name="cmbSearchType" SelectedIndex="0" Width="125" SelectionChanged="CmbSearchType_SelectionChanged" Margin="0,0,8,5">
                                 <ComboBoxItem Content="Levels"/>
                                 <ComboBoxItem Content="Creators"/>
                                 <ComboBoxItem x:Name="cbiContributions" Content="Contributions"/>
@@ -297,22 +326,22 @@
 
                             <!-- Level Filters Panel -->
                             <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="10,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbGame" SelectedIndex="0" Width="110">
+                                <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbGame" SelectedIndex="0" Width="110" Margin="0,0,8,5">
                                     <ComboBoxItem Content="All Games"/>
                                     <ComboBoxItem Content="LBP 1"/>
                                     <ComboBoxItem Content="LBP 2"/>
                                     <ComboBoxItem Content="LBP 3"/>
                                 </ComboBox>
 
-                                <TextBlock Text="Genre:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="10,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbGenre" SelectedIndex="0" Width="150">
+                                <TextBlock Text="Genre:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbGenre" SelectedIndex="0" Width="150" Margin="0,0,8,5">
                                     <ComboBoxItem Content="All Genres"/>
                                 </ComboBox>
                             </StackPanel>
 
-                            <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="10,0,8,0" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="cmbLimit" SelectedIndex="2" Width="75" Margin="0,0,25,0">
+                            <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="cmbLimit" SelectedIndex="2" Width="75" Margin="0,0,15,5">
                                 <ComboBoxItem Content="100"/>
                                 <ComboBoxItem Content="200"/>
                                 <ComboBoxItem Content="500"/>
@@ -320,21 +349,14 @@
                                 <ComboBoxItem Content="All"/>
                             </ComboBox>
 
-                            <CheckBox x:Name="chkExact" Content="Exact Phrase"/>
-                            <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions"/>
-                            <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="15,0,0,0" FontSize="11" Click="BtnAdvanced_Click"/>
+                            <CheckBox x:Name="chkExact" Content="Exact Phrase" Margin="0,0,15,5"/>
+                            <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" Margin="0,0,15,5"/>
+                            <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Click="BtnAdvanced_Click"/>
                         </WrapPanel>
                     </StackPanel>
                 </ContentControl>
 
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>     
-                        <ColumnDefinition Width="15"/>    
-                        <ColumnDefinition Width="340"/>   
-                    </Grid.ColumnDefinitions>
-
-                    <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
+                <ContentControl Grid.Row="1" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <Grid>
                             <!-- Levels DataGrid -->
                             <DataGrid x:Name="dgResults" 
@@ -426,23 +448,21 @@
                         </Grid>
                     </ContentControl>
 
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
+                <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
 
-                    <Grid Grid.Column="2">
+                <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
                         <!-- Levels Details Pane -->
                         <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Visible">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
                                     <RowDefinition Height="Auto"/> 
+                                    <RowDefinition Height="Auto"/> 
                                     <RowDefinition Height="*"/>    
                                     <RowDefinition Height="Auto"/> 
                                 </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,10">
-                                    <Grid.LayoutTransform>
-                                        <ScaleTransform ScaleX="0.85" ScaleY="0.85"/>
-                                    </Grid.LayoutTransform>
+                                <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,15">
                                     <Ellipse Fill="Black" Opacity="0.3" Margin="-3" RenderTransformOrigin="0.5,0.5">
                                         <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
@@ -485,7 +505,12 @@
                                     </TextBlock>
                                 </StackPanel>
 
-                                <DockPanel Grid.Row="2" Margin="0,0,0,15">
+                                <StackPanel Grid.Row="2" Margin="0,0,0,15">
+                                    <Button x:Name="btnToggleTags" Content="SHOW TAGS" Style="{DynamicResource BtnSecondary}" Padding="10,4" FontSize="11" Click="BtnToggleTags_Click" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                    <WrapPanel x:Name="wpLevelTags" Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                                <DockPanel Grid.Row="3" Margin="0,0,0,15">
                                     <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                         <RichTextBox x:Name="txtDescription" IsReadOnly="True" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FontSize="14">
@@ -498,7 +523,7 @@
                                     </Border>
                                 </DockPanel>
 
-                                <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                                <StackPanel Grid.Row="4" VerticalAlignment="Bottom">
                                     <Button x:Name="btnHeartToggle" Content="♥ HEART LEVEL" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnHeartToggle_Click"/>
                                     <Button x:Name="btnCopyHash" Content="COPY HASH" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnCopyHash_Click"/>
                                     <Button x:Name="btnShowContributors" Content="CONTRIBUTORS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnShowContributors_Click"/>
@@ -556,9 +581,8 @@
                             </Grid>
                         </ContentControl>
                     </Grid>
-                </Grid>
 
-                <DockPanel Grid.Row="2" Margin="0,15,0,5">
+                <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,15,0,5">
                     <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding Visibility, ElementName=progressBar}">
                         <ProgressBar x:Name="progressBar" Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0" Visibility="Hidden"/>
                     </Border>

@@ -497,6 +497,17 @@ namespace LbpArchiveToolkit.Services
                     IsMmPick = reader.IsDBNull(12) ? false : reader.GetBoolean(12)
                 };
 
+                var levelLabels = new List<string>();
+                if (!reader.IsDBNull(13) && reader.GetFieldType(13) == typeof(byte[]))
+                {
+                    levelLabels.AddRange(LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(13)));
+                }
+                if (!reader.IsDBNull(14) && reader.GetFieldType(14) == typeof(byte[]))
+                {
+                    levelLabels.AddRange(TagParser.ParseTagNames(reader.GetFieldValue<byte[]>(14)));
+                }
+                levelItem.Labels = levelLabels;
+
                 yield return levelItem;
 
                 if (needsCSharpFiltering)

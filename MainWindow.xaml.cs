@@ -78,6 +78,20 @@ namespace LbpArchiveToolkit
 
         #region Initialization & Lifecycle
 
+        private double GetDeterministicTilt(string str)
+        {
+            unchecked
+            {
+                uint hash = 2166136261;
+                foreach (char c in str)
+                {
+                    hash = (hash ^ c) * 16777619;
+                }
+                double val = (hash % 10000) / 10000.0;
+                return val * 6.0 - 3.0;
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -1303,6 +1317,20 @@ namespace LbpArchiveToolkit
 
         #region DataGrid & Details View
 
+        private void BtnToggleTags_Click(object sender, RoutedEventArgs e)
+        {
+            if (wpLevelTags.Visibility == Visibility.Visible)
+            {
+                wpLevelTags.Visibility = Visibility.Collapsed;
+                btnToggleTags.Content = "SHOW TAGS";
+            }
+            else
+            {
+                wpLevelTags.Visibility = Visibility.Visible;
+                btnToggleTags.Content = "HIDE TAGS";
+            }
+        }
+
         private async void DgResults_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _selectionCts?.Cancel();
@@ -1326,6 +1354,32 @@ namespace LbpArchiveToolkit
                 
                 string clearsText = _dbService.HasCompletionData ? $"  |  Clears: {selectedLevel.Clears}" : "";
                 txtCreator.Text = $"By: {selectedLevel.Creator}  |  Genre: {selectedLevel.Genre}  |  Plays: {selectedLevel.Plays}{clearsText}  |  ♥ {selectedLevel.Hearts}";
+
+                wpLevelTags.Children.Clear();
+                wpLevelTags.Visibility = Visibility.Visible;
+                btnToggleTags.Visibility = Visibility.Collapsed;
+
+                if (selectedLevel.Labels != null && selectedLevel.Labels.Count > 0)
+                {
+                    Style tagStyle = (Style)FindResource("DisplayTagStyle");
+                    foreach (var label in selectedLevel.Labels)
+                    {
+                        var tagControl = new ContentControl
+                        {
+                            Content = label,
+                            Style = tagStyle,
+                            LayoutTransform = new RotateTransform(GetDeterministicTilt(label))
+                        };
+                        wpLevelTags.Children.Add(tagControl);
+                    }
+
+                    if (selectedLevel.Game == "LBP1")
+                    {
+                        btnToggleTags.Visibility = Visibility.Visible;
+                        btnToggleTags.Content = "SHOW TAGS";
+                        wpLevelTags.Visibility = Visibility.Collapsed;
+                    }
+                }
 
                 SetDescriptionRichText(selectedLevel.Description);
 
@@ -1366,6 +1420,8 @@ namespace LbpArchiveToolkit
                 txtDescription.Document.Blocks.Clear();
                 txtLevelName.Text = "";
                 txtCreator.Text = "";
+                wpLevelTags.Children.Clear();
+                btnToggleTags.Visibility = Visibility.Collapsed;
             }
         }
 
