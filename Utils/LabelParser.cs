@@ -155,6 +155,7 @@ namespace LbpArchiveToolkit.Utils
                     case "LABEL_LowGravity": friendly = "Low Gravity"; break;
                     case "LABEL_JumpPads": friendly = "Bounce Pads"; break;
                     case "LABEL_GrapplingHook": friendly = "Grappling Hook"; break;
+                    case "LABEL_Puzzle": friendly = "Puzzler"; break; 
 
                     // LBP3 only labels
                     case "LABEL_SINGLE_PLAYER": friendly = "Single Player"; break;
