@@ -18,6 +18,77 @@ namespace LbpArchiveToolkit.Utils
             if (idx >= 0) return IsLbp2Label(LabelHashes[idx]);
             return false;
         }
+
+        public static string GetLabelCategory(string tag)
+        {
+            switch (tag)
+            {
+                case "LABEL_SinglePlayer":
+                case "LABEL_SINGLE_PLAYER":
+                case "LABEL_Multiplayer":
+                case "LABEL_CO_OP":
+                case "LABEL_Competitive":
+                case "LABEL_Tutorial":
+                case "LABEL_Challenging":
+                case "LABEL_Easy":
+                case "LABEL_Long":
+                case "LABEL_Quick":
+                case "LABEL_Scary":
+                case "LABEL_Funny":
+                case "LABEL_Artistic":
+                case "LABEL_Musical":
+                case "LABEL_Story":
+                case "LABEL_Cinematic":
+                case "LABEL_Seasonal":
+                case "LABEL_16_Bit":
+                case "LABEL_8_Bit":
+                case "LABEL_Homage":
+                case "LABEL_SACKBOY":
+                case "LABEL_SWOOP":
+                case "LABEL_TOGGLE":
+                case "LABEL_ODDSOCK":
+                case "LABEL_CREATED_CHARACTERS":
+                case "LABEL_Social":
+                case "LABEL_Hangout":
+                case "LABEL_Intricate":
+                    return "Experience";
+
+                case "LABEL_Platform":
+                case "LABEL_Versus":
+                case "LABEL_Fighter":
+                case "LABEL_Race":
+                case "LABEL_Shooter":
+                case "LABEL_Sports":
+                case "LABEL_Strategy":
+                case "LABEL_SurvivalChallenge":
+                case "LABEL_Puzzle":
+                case "LABEL_RPG":
+                case "LABEL_Movie":
+                case "LABEL_Arcade_Game":
+                case "LABEL_Board_Game":
+                case "LABEL_Card_Game":
+                case "LABEL_Party_Game":
+                case "LABEL_Mini_Game":
+                case "LABEL_Time_Trial":
+                case "LABEL_TOP_DOWN":
+                case "LABEL_1st_Person":
+                case "LABEL_3rd_Person":
+                case "LABEL_Gallery":
+                case "LABEL_Costume_Gallery":
+                case "LABEL_Music_Gallery":
+                case "LABEL_Sticker_Gallery":
+                case "LABEL_Prop_Hunt":
+                case "LABEL_Hide_And_Seek":
+                case "LABEL_Pinball":
+                case "LABEL_Defence":
+                case "LABEL_Driving":
+                    return "Type";
+
+                default:
+                    return "Content";
+            }
+        }
+
         // Master list of all 85 labels used by the LBP Database
         private static readonly string[] LabelTags = new string[] {
             "LABEL_SinglePlayer", "LABEL_RPG", "LABEL_Multiplayer", "LABEL_SINGLE_PLAYER", "LABEL_Musical",

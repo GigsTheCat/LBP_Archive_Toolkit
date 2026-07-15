@@ -46,6 +46,7 @@
             <Setter Property="Margin" Value="0,15,0,0"/>
         </Style>
         
+        <!-- Standard CheckBox (Used for normal list properties like 'Team Picked') -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -73,6 +74,70 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Compact Dynamic Game Label Sticker Style -->
+        <Style x:Key="TagCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="Background" Value="#3D325C"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6"
+                                Margin="1,1,2,2"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.4" Direction="315" Color="Black"/>
+                            </Border.Effect>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource FgPrimary}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource FgPrimary}"/>
+                                <Setter Property="Foreground" Value="#151020"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource LbpCyan}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
+                                <Setter Property="Foreground" Value="#002D3D"/>
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value><ScaleTransform ScaleX="1.04" ScaleY="1.04"/></Setter.Value>
+                                </Setter>
+                            </MultiTrigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#E2E8F0"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#151020"/>
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value><ScaleTransform ScaleX="1.04" ScaleY="1.04"/></Setter.Value>
+                                </Setter>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
@@ -85,7 +150,7 @@
                 </StackPanel>
             </Grid>
 
-            <ContentControl Style="{StaticResource PopitCard}" Margin="20,10,20,25">
+            <ContentControl Style="{DynamicResource PopitCard}" Margin="20,10,20,25">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -123,11 +188,31 @@
 
                             <!-- LBP2 & LBP3 LABELS -->
                             <TextBlock Text="LBP2 &amp; LBP3 LABELS" Style="{StaticResource SectionHeader}"/>
-                            <WrapPanel x:Name="wpLbp2Labels" Orientation="Horizontal" Margin="0,5,0,15"/>
+                            
+                            <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp2ExperienceLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            
+                            <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp2TypeLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            
+                            <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp2ContentLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
+
+                            <Rectangle Style="{StaticResource Separator}"/>
 
                             <!-- LBP3 ONLY LABELS -->
                             <TextBlock Text="LBP3 ONLY LABELS" Style="{StaticResource SectionHeader}"/>
-                            <WrapPanel x:Name="wpLbp3Labels" Orientation="Horizontal" Margin="0,5,0,15"/>
+                            
+                            <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp3ExperienceLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            
+                            <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp3TypeLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            
+                            <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp3ContentLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
+
+                            <Rectangle Style="{StaticResource Separator}"/>
 
                             <!-- LBP1 TAGS -->
                             <TextBlock Text="LBP1 TAGS" Style="{StaticResource SectionHeader}"/>
