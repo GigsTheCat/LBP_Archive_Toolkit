@@ -210,7 +210,10 @@
                             <WrapPanel x:Name="wpLbp3TypeLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
                             
                             <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp3ContentLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
+                            <WrapPanel x:Name="wpLbp3ContentLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+
+                            <TextBlock Text="Characters" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                            <WrapPanel x:Name="wpLbp3CharactersLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 

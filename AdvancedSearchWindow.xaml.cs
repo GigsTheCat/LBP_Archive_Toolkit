@@ -22,39 +22,43 @@ namespace LbpArchiveToolkit
             chkTeamPick.IsChecked = Criteria.IsTeamPick;
 
             Style tagStyle = (Style)FindResource("TagCheckBox");
+            var allTags = LabelParser.GetTags();
+            var allFriendly = LabelParser.GetFriendlyNames();
 
-            // LBP2 and LBP3 Labels
-            var labelTags = LabelParser.GetTags();
-            var friendlyNames = LabelParser.GetFriendlyNames();
-            for (int i = 0; i < labelTags.Count; i++)
+            void CreateCheckbox(string tag, string friendlyName, WrapPanel panel)
             {
-                string tag = labelTags[i];
-                string friendly = friendlyNames[i];
-
                 var cb = new CheckBox
                 {
-                    Content = friendly,
+                    Content = friendlyName,
                     Tag = tag, // Store the raw internal tag behind the scenes
                     Margin = new Thickness(2, 2, 2, 2), // Condensed layout margins
                     IsChecked = Criteria.RequiredLabels.Contains(tag),
                     Style = tagStyle,
                     LayoutTransform = new RotateTransform(GetDeterministicTilt(tag))
                 };
+                panel.Children.Add(cb);
+            }
 
-                bool isLbp2 = LabelParser.IsLbp2LabelByTag(tag);
+            // Dynamically categorize all labels optimally
+            for (int i = 0; i < allTags.Count; i++)
+            {
+                string tag = allTags[i];
+                string friendly = allFriendly[i];
                 string category = LabelParser.GetLabelCategory(tag);
+                bool isLbp2 = LabelParser.IsLbp2LabelByTag(tag);
 
                 if (isLbp2)
                 {
-                    if (category == "Experience") wpLbp2ExperienceLabels.Children.Add(cb);
-                    else if (category == "Type") wpLbp2TypeLabels.Children.Add(cb);
-                    else wpLbp2ContentLabels.Children.Add(cb);
+                    if (category == "Experience") CreateCheckbox(tag, friendly, wpLbp2ExperienceLabels);
+                    else if (category == "Type") CreateCheckbox(tag, friendly, wpLbp2TypeLabels);
+                    else CreateCheckbox(tag, friendly, wpLbp2ContentLabels);
                 }
                 else
                 {
-                    if (category == "Experience") wpLbp3ExperienceLabels.Children.Add(cb);
-                    else if (category == "Type") wpLbp3TypeLabels.Children.Add(cb);
-                    else wpLbp3ContentLabels.Children.Add(cb);
+                    if (category == "Character") CreateCheckbox(tag, friendly, wpLbp3CharactersLabels);
+                    else if (category == "Experience") CreateCheckbox(tag, friendly, wpLbp3ExperienceLabels);
+                    else if (category == "Type") CreateCheckbox(tag, friendly, wpLbp3TypeLabels);
+                    else CreateCheckbox(tag, friendly, wpLbp3ContentLabels);
                 }
             }
 
@@ -106,6 +110,7 @@ namespace LbpArchiveToolkit
             foreach (var child in wpLbp3ExperienceLabels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp3TypeLabels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp3ContentLabels.Children) if (child is CheckBox cb) cb.IsChecked = false;
+            foreach (var child in wpLbp3CharactersLabels.Children) if (child is CheckBox cb) cb.IsChecked = false;
             foreach (var child in wpLbp1Tags.Children) if (child is CheckBox cb) cb.IsChecked = false;
         }
 
@@ -151,6 +156,9 @@ namespace LbpArchiveToolkit
                 if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Tag.ToString()!);
 
             foreach (var child in wpLbp3ContentLabels.Children)
+                if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Tag.ToString()!);
+
+            foreach (var child in wpLbp3CharactersLabels.Children)
                 if (child is CheckBox cb && cb.IsChecked == true) Criteria.RequiredLabels.Add(cb.Tag.ToString()!);
 
             foreach (var child in wpLbp1Tags.Children)
