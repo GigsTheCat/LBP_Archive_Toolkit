@@ -6,6 +6,8 @@ namespace LbpArchiveToolkit.Utils
 {
     public static class SfoReader
     {
+        private static readonly byte[] MAGIC_PSF = new byte[] { 0x00, 0x50, 0x53, 0x46 }; // "\0PSF"
+
         public static SfoData GetLevelData(string sfoFilePath)
         {
             var result = new SfoData();
@@ -16,9 +18,8 @@ namespace LbpArchiveToolkit.Utils
                 using var fs = new FileStream(sfoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 using var br = new BinaryReader(fs);
                 {
-                    // Check Magic Header: "\0PSF"
                     byte[] magic = br.ReadBytes(4);
-                    if (!magic.SequenceEqual(new byte[] { 0x00, 0x50, 0x53, 0x46 }))
+                    if (!magic.SequenceEqual(MAGIC_PSF))
                         return result;
 
                     br.ReadUInt32(); // Version

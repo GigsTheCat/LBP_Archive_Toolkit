@@ -8,6 +8,55 @@ using LbpArchiveToolkit.Models;
 
 namespace LbpArchiveToolkit.Utils
 {
+    public static class LbpConstants
+    {
+        // Revisions
+        public const uint REV_DEPENDENCIES = 0x109;
+        public const uint REV_SLOT_GROUPS = 0x134;
+        public const uint REV_SLOT_AUTHOR_NAME = 0x13b;
+        public const uint REV_COMPRESSED_RESOURCES = 0x189;
+        public const uint REV_GUID_HASH_FLAGS_SWAP = 0x191;
+        public const uint REV_NETWORK_ONLINE_ID = 0x234;
+        public const uint REV_SLOT_DESCRIPTOR = 0x238;
+        public const uint REV_BRANCHES = 0x271;
+        public const uint REV_LBP1_MAX = 0x272;
+        public const uint REV_ARCADE = 0x273;
+        public const uint REV_SWITCHINPUT_VISIBILITY = 0x297;
+        public const uint REV_SWITCH_BEHAVIOR = 0x2c4;
+        public const uint REV_SLOT_COLLECTABUBBLES_REQUIRED = 0x2ea;
+        public const uint REV_SLOT_COLLECTABUBBLES_CONTAINED = 0x2f4;
+        public const uint REV_PLANET_DECORATIONS = 0x333;
+        public const uint REV_SLOT_LABELS = 0x33c;
+        public const uint REV_SLOT_SUBLEVEL = 0x352;
+        public const uint REV_PRODUCTION_BUILD = 0x3b6;
+        public const uint REV_SLOT_EXTRA_METADATA = 0x3d0;
+        public const uint REV_SLOT_CROSS_COMPATIBLE = 0x3e9;
+
+        // Leerdammer
+        public const ushort BRANCH_LD_ID = 0x4c44;
+        public const ushort REV_LD_RESOURCES = 0x02;
+
+        // Subversions (LBP3)
+        public const uint SUBREV_SLOT_GAME_MODE = 0x12;
+        public const uint SUBREV_SLOT_GAME_KIT = 0xd2;
+        public const uint SUBREV_SLOT_ENTRANCE_DATA = 0x11b;
+        public const uint SUBREV_ADVENTURE = 0x145;
+        public const uint SUBREV_SLOT_BADGE_SIZE = 0x153;
+        public const uint SUBREV_SLOT_TRAILER_PATH = 0x192;
+        public const uint SUBREV_SLOT_TRAILER_THUMBNAIL = 0x206;
+        public const uint SUBREV_SLOT_ENFORCE_MINMAX = 0x215;
+
+        // Default heads
+        public const uint HEAD_LBP2_BETA_FALLBACK = 0x3b6;
+        public const uint HEAD_LBP3_BASE = 0x010503e2;
+
+        // Resource Types
+        public const uint RES_TYPE_TEXTURE = 1;
+        public const uint RES_TYPE_LEVEL = 9;
+        public const uint RES_TYPE_ADVENTURE = 31;
+        public const uint RES_TYPE_PLAN = 38;
+    }
+
     public static class SltbProcessor
     {
         public static List<string> GetDependenciesFast(byte[] data)
@@ -40,7 +89,7 @@ namespace LbpArchiveToolkit.Utils
                 if (method == (byte)'b' || method == (byte)'e')
                 {
                     uint head = BinaryPrimitives.ReadUInt32BigEndian(workData.AsSpan(headOffset, 4));
-                    if (head >= 0x109)
+                    if (head >= LbpConstants.REV_DEPENDENCIES)
                     {
                         uint tableOffset = BinaryPrimitives.ReadUInt32BigEndian(workData.AsSpan(tableOffsetPos, 4));
                         if (tableOffset < workData.Length)
@@ -105,14 +154,14 @@ namespace LbpArchiveToolkit.Utils
 
             ushort branchId = 0;
             ushort branchRev = 0;
-            if (head >= 0x271)
+            if (head >= LbpConstants.REV_BRANCHES)
             {
                 branchId = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
                 branchRev = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
             }
 
             byte compFlags = 0;
-            bool hasCompFlags = head >= 0x297 || (head == 0x272 && branchId == 0x4c44 && branchRev >= 2);
+            bool hasCompFlags = head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && branchId == LbpConstants.BRANCH_LD_ID && branchRev >= LbpConstants.REV_LD_RESOURCES);
             if (hasCompFlags) compFlags = br.ReadByte();
 
             bool isCompressed = br.ReadByte() != 0;
@@ -224,20 +273,20 @@ namespace LbpArchiveToolkit.Utils
             uint head = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
             uint version = head & 0xFFFF;
             uint subversion = (head >> 16) & 0xFFFF;
-            int gameVersion = subversion != 0 ? 3 : (version >= 0x273 ? 2 : 1);
+            int gameVersion = subversion != 0 ? 3 : (version >= LbpConstants.REV_ARCADE ? 2 : 1);
 
             int depOffsetPos = -1;
             bool useCompressedInts = false;
 
-            if (head >= 0x109)
+            if (head >= LbpConstants.REV_DEPENDENCIES)
             {
                 depOffsetPos = (int)ms.Position;
                 ms.Position += 4; 
-                if (head >= 0x189)
+                if (head >= LbpConstants.REV_COMPRESSED_RESOURCES)
                 {
                     ushort bId = 0, bRev = 0;
-                    if (head >= 0x271) { bId = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); bRev = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); }
-                    if (head >= 0x297 || (head == 0x272 && bId == 0x4c44 && bRev >= 2)) { useCompressedInts = (br.ReadByte() & 1) != 0; }
+                    if (head >= LbpConstants.REV_BRANCHES) { bId = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); bRev = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); }
+                    if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && bId == LbpConstants.BRANCH_LD_ID && bRev >= LbpConstants.REV_LD_RESOURCES)) { useCompressedInts = (br.ReadByte() & 1) != 0; }
                     ms.Position += 1; 
                 }
             }
@@ -284,8 +333,8 @@ namespace LbpArchiveToolkit.Utils
             {
                 byte flags = br.ReadByte();
                 if (flags == 0) return;
-                if ((flags & (version < 0x191 ? (byte)1 : (byte)2)) != 0) ReadU32();
-                if ((flags & (version < 0x191 ? (byte)2 : (byte)1)) != 0)
+                if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)1 : (byte)2)) != 0) ReadU32();
+                if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1)) != 0)
                 {
                     if (isIcon) oldIconHash = br.ReadBytes(20);
                     else ms.Position += 20; 
@@ -293,7 +342,7 @@ namespace LbpArchiveToolkit.Utils
             }
 
             SkipResDescriptor();
-            if (subversion >= 0x145) SkipResDescriptor(); 
+            if (subversion >= LbpConstants.SUBREV_ADVENTURE) SkipResDescriptor(); 
 
             int iconDescStart = (int)ms.Position;
             SkipResDescriptor(true); 
@@ -301,7 +350,7 @@ namespace LbpArchiveToolkit.Utils
 
             ms.Position += 16; 
 
-            bool lengthPrefixed = version < 0x234;
+            bool lengthPrefixed = version < LbpConstants.REV_NETWORK_ONLINE_ID;
             if (lengthPrefixed) ReadI32();
             byte[] npData = br.ReadBytes(16);
             ms.Position += 1;
@@ -311,7 +360,7 @@ namespace LbpArchiveToolkit.Utils
             int len = Array.IndexOf(npData, (byte)0);
             string npHandle = Encoding.UTF8.GetString(npData, 0, len < 0 ? 16 : len);
 
-            if (version >= 0x13b) { int authorLen = ReadS32(); ms.Position += authorLen * 2; }
+            if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) { int authorLen = ReadS32(); ms.Position += authorLen * 2; }
             int transLen = ReadS32(); ms.Position += transLen;
 
             int stringsOffset = (int)ms.Position;
@@ -327,7 +376,7 @@ namespace LbpArchiveToolkit.Utils
             if (newIconHash != null && oldIconHash == null)
             {
                 patchedMs.Write(sltData, 0, iconDescStart);
-                patchedMs.WriteByte(version < 0x191 ? (byte)2 : (byte)1);
+                patchedMs.WriteByte(version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1);
                 patchedMs.Write(newIconHash, 0, 20);
                 patchedMs.Write(sltData, iconDescEnd, stringsOffset - iconDescEnd);
             }
@@ -389,9 +438,9 @@ namespace LbpArchiveToolkit.Utils
                 head = BinaryPrimitives.ReadUInt32BigEndian(rootLevelData[4..8]);
                 string resrcType = Encoding.ASCII.GetString(rootLevelData, 0, 3);
 
-                if (resrcType != "SMH" && head >= 0x271)
+                if (resrcType != "SMH" && head >= LbpConstants.REV_BRANCHES)
                 {
-                    int offset = head >= 0x109 ? 12 : 8;
+                    int offset = head >= LbpConstants.REV_DEPENDENCIES ? 12 : 8;
                     if (rootLevelData.Length >= offset + 4)
                     {
                         branchId = BinaryPrimitives.ReadUInt16BigEndian(rootLevelData[offset..(offset + 2)]);
@@ -407,13 +456,13 @@ namespace LbpArchiveToolkit.Utils
             using var w = new BinaryWriter(ms);
             w.Write(Encoding.ASCII.GetBytes("SLTb"));
             w.WriteUInt32BE(head);
-            if (head >= 0x109)
+            if (head >= LbpConstants.REV_DEPENDENCIES)
             {
                 w.WriteUInt32BE(0);
-                if (head >= 0x189)
+                if (head >= LbpConstants.REV_COMPRESSED_RESOURCES)
                 {
-                    if (head >= 0x271) { w.WriteUInt16BE(branchId); w.WriteUInt16BE(branchRev); }
-                    if (head >= 0x297 || (head == 0x272 && branchId == 0x4c44 && branchRev >= 2)) w.Write((byte)0);
+                    if (head >= LbpConstants.REV_BRANCHES) { w.WriteUInt16BE(branchId); w.WriteUInt16BE(branchRev); }
+                    if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && branchId == LbpConstants.BRANCH_LD_ID && branchRev >= LbpConstants.REV_LD_RESOURCES)) w.Write((byte)0);
                     w.Write((byte)0);
                 }
             }
@@ -422,9 +471,9 @@ namespace LbpArchiveToolkit.Utils
             var deps = new List<Tuple<string, uint>>();
             WriteSlotStruct(w, head & 0xFFFF, (head >> 16) & 0xFFFF, info, deps);
 
-            if ((head & 0xFFFF) >= 0x3b6) w.Write((byte)1);
+            if ((head & 0xFFFF) >= LbpConstants.REV_PRODUCTION_BUILD) w.Write((byte)1);
 
-            if (head >= 0x109)
+            if (head >= LbpConstants.REV_DEPENDENCIES)
             {
                 long depOffset = ms.Position;
                 long curr = ms.Position;
@@ -458,36 +507,36 @@ namespace LbpArchiveToolkit.Utils
             writer.WriteUInt32BE(0);
 
             bool isRootGuid = !string.IsNullOrEmpty(info.RootLevelHash) && info.RootLevelHash.Length <= 8;
-            WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? null : info.RootLevelHash, 9, isRootGuid);
-            if (subversion >= 0x145) WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? info.RootLevelHash : null, 31, isRootGuid);
+            WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? null : info.RootLevelHash, LbpConstants.RES_TYPE_LEVEL, isRootGuid);
+            if (subversion >= LbpConstants.SUBREV_ADVENTURE) WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? info.RootLevelHash : null, LbpConstants.RES_TYPE_ADVENTURE, isRootGuid);
             
             bool isIconGuid = !string.IsNullOrEmpty(info.IconHash) && info.IconHash.Length <= 8;
-            WriteResDescriptor(writer, version, deps, info.IconHash, 1, isIconGuid);
+            WriteResDescriptor(writer, version, deps, info.IconHash, LbpConstants.RES_TYPE_TEXTURE, isIconGuid);
 
             for (int i = 0; i < 4; i++) writer.WriteUInt32BE(0);
 
             WriteOnlineId(writer, version, info.NpHandle);
-            if (version >= 0x13b) WriteWStr(writer, info.NpHandle);
+            if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) WriteWStr(writer, info.NpHandle);
             WriteStr(writer, "");
             WriteWStr(writer, info.Name);
             WriteWStr(writer, info.Description);
 
             writer.WriteUInt32BE(0); writer.WriteUInt32BE(0);
-            if (version >= 0x134) { writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
+            if (version >= LbpConstants.REV_SLOT_GROUPS) { writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
             writer.Write((byte)(info.InitiallyLocked ? 1 : 0));
 
-            if (version > 0x237) { writer.Write((byte)(info.Shareable ? 1 : 0)); writer.WriteUInt32BE(info.BackgroundGuid); }
-            if (version > 0x333) WriteResDescriptor(writer, version, deps, null, 38, false);
-            if (version < 0x188) writer.Write((byte)0);
+            if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) { writer.Write((byte)(info.Shareable ? 1 : 0)); writer.WriteUInt32BE(info.BackgroundGuid); }
+            if (version > LbpConstants.REV_PLANET_DECORATIONS) WriteResDescriptor(writer, version, deps, null, LbpConstants.RES_TYPE_PLAN, false);
+            if (version < 0x188) writer.Write((byte)0); // Unknown removed field
             
-            if (version > 0x1de) writer.WriteUInt32BE(info.LevelType == 6 ? 6u : (info.LevelType == 7 ? 7u : 0u));
+            if (version > 0x1de) writer.WriteUInt32BE(info.LevelType == 6 ? 6u : (info.LevelType == 7 ? 7u : 0u)); // WORLD_TUTORIAL_LEVEL = 0x1de
             else writer.Write((byte)0);
 
             if (version > 0x1ad && version < 0x1b9) writer.Write((byte)0);
             if (version > 0x1b8 && version < 0x36c) writer.WriteUInt32BE(0);
-            if (version <= 0x2c3) return;
+            if (version < LbpConstants.REV_SWITCH_BEHAVIOR) return;
 
-            if (version >= 0x33c)
+            if (version >= LbpConstants.REV_SLOT_LABELS)
             {
                 var labelsToWrite = info.Labels;
                 if (info.GameVersion == 2)
@@ -499,30 +548,30 @@ namespace LbpArchiveToolkit.Utils
                 for (int i = 0; i < labelsToWrite.Count; i++) { writer.WriteUInt32BE(labelsToWrite[i]); writer.WriteUInt32BE((uint)i); }
             }
 
-            if (version >= 0x2ea)
+            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_REQUIRED)
             {
                 writer.WriteUInt32BE(3);
-                for (int i = 0; i < 3; i++) { WriteResDescriptor(writer, version, deps, null, 38, false); writer.WriteUInt32BE(0); }
+                for (int i = 0; i < 3; i++) { WriteResDescriptor(writer, version, deps, null, LbpConstants.RES_TYPE_PLAN, false); writer.WriteUInt32BE(0); }
             }
 
-            if (version >= 0x2f4) writer.WriteUInt32BE(0);
-            if (version >= 0x352) writer.Write((byte)(info.IsSubLevel ? 1 : 0));
-            if (version < 0x3d0) return;
+            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) writer.WriteUInt32BE(0);
+            if (version >= LbpConstants.REV_SLOT_SUBLEVEL) writer.Write((byte)(info.IsSubLevel ? 1 : 0));
+            if (version < LbpConstants.REV_SLOT_EXTRA_METADATA) return;
 
             writer.Write((byte)info.MinPlayers);
             writer.Write((byte)info.MaxPlayers);
-            if (subversion >= 0x215) writer.Write((byte)0);
-            if (version >= 0x3d0) writer.Write((byte)0);
-            if (version >= 0x3e9) writer.Write((byte)0);
+            if (subversion >= LbpConstants.SUBREV_SLOT_ENFORCE_MINMAX) writer.Write((byte)0);
+            if (version >= LbpConstants.REV_SLOT_EXTRA_METADATA) writer.Write((byte)0);
+            if (version >= LbpConstants.REV_SLOT_CROSS_COMPATIBLE) writer.Write((byte)0);
             if (version >= 0x3d1) writer.Write((byte)1);
             if (version >= 0x3d2) writer.Write((byte)0);
 
             if (info.GameVersion != 3) return;
-            if (subversion >= 0x12) writer.Write((byte)(info.LevelType == 6 ? 1 : (info.LevelType == 7 ? 2 : 0)));
-            if (subversion >= 0xd2) writer.Write((byte)0);
-            if (subversion >= 0x11b) { WriteWStr(writer, ""); writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
-            if (subversion >= 0x153) writer.Write((byte)1);
-            if (subversion >= 0x192) { WriteStr(writer, ""); if (subversion >= 0x206) WriteStr(writer, ""); }
+            if (subversion >= LbpConstants.SUBREV_SLOT_GAME_MODE) writer.Write((byte)(info.LevelType == 6 ? 1 : (info.LevelType == 7 ? 2 : 0)));
+            if (subversion >= LbpConstants.SUBREV_SLOT_GAME_KIT) writer.Write((byte)0);
+            if (subversion >= LbpConstants.SUBREV_SLOT_ENTRANCE_DATA) { WriteWStr(writer, ""); writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
+            if (subversion >= LbpConstants.SUBREV_SLOT_BADGE_SIZE) writer.Write((byte)1);
+            if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_PATH) { WriteStr(writer, ""); if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_THUMBNAIL) WriteStr(writer, ""); }
         }
 
         private static void WriteResDescriptor(BinaryWriter writer, uint revVersion, List<Tuple<string, uint>> deps, string? hashOrGuid, uint resrcType, bool isGuid = false)

@@ -7,6 +7,7 @@ namespace LbpArchiveToolkit.Utils
     public static class Far4Crypto
     {
         private static readonly uint[] TEA_KEY = new uint[] { 0x1B70CBD, 0x149607D6, 0x7F94DD5, 0x10DB8CA0 };
+        private const uint XXTEA_DELTA = 0x9e3779b9;
 
         public static void XxteaEncrypt(byte[] data, int end)
         {
@@ -24,7 +25,7 @@ namespace LbpArchiveToolkit.Utils
 
             for (int i = 0; i < rounds; i++)
             {
-                sum += 0x9e3779b9;
+                sum += XXTEA_DELTA;
                 uint e = sum >> 2;
                 for (int r = 0; r <= n; r++)
                 {
@@ -49,7 +50,7 @@ namespace LbpArchiveToolkit.Utils
 
             uint y = v[0];
             int rounds = 6 + 52 / (n + 1);
-            uint sum = unchecked((uint)(rounds * 0x9e3779b9));
+            uint sum = unchecked((uint)(rounds * XXTEA_DELTA));
 
             for (int i = 0; i < rounds; i++)
             {
@@ -60,7 +61,7 @@ namespace LbpArchiveToolkit.Utils
                     v[r] = unchecked(v[r] - ((((z >> 5) ^ (y << 2)) + ((y >> 3) ^ (z << 4))) ^ ((sum ^ y) + (TEA_KEY[(r ^ e) & 3] ^ z))));
                     y = v[r];
                 }
-                sum = unchecked(sum - 0x9e3779b9);
+                sum = unchecked(sum - XXTEA_DELTA);
             }
 
             if (BitConverter.IsLittleEndian) SwapEndianness(v);

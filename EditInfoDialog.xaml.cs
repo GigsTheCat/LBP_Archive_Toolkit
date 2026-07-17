@@ -49,7 +49,7 @@ namespace LbpArchiveToolkit
 
                 if (cropDialog.ShowDialog() == true)
                 {
-                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != cropDialog.CroppedImagePath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
                     {
                         try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.BtnChangeIcon_Click", ex); }
                     }

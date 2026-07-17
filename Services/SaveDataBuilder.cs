@@ -87,7 +87,7 @@ namespace LbpArchiveToolkit.Services
                 // Auto-detect the true game version based on the root level's revision
                 uint version = head & 0xFFFF;
                 uint subversion = (head >> 16) & 0xFFFF;
-                int actualGameVersion = subversion != 0 ? 3 : (version >= 0x273 ? 2 : 1);
+                int actualGameVersion = subversion != 0 ? 3 : (version >= LbpConstants.REV_ARCADE ? 2 : 1);
                 
                 // If the file itself says it belongs to a newer game than the DB thought, upgrade the slot version
                 if (actualGameVersion > slotInfo.GameVersion)
@@ -95,10 +95,10 @@ namespace LbpArchiveToolkit.Services
                     slotInfo.GameVersion = actualGameVersion;
                 }
             }
-            else head = (uint)(slotInfo.GameVersion == 3 ? 0x010503e2 : (slotInfo.GameVersion == 2 ? 0x3b6 : 0x272));
+            else head = (uint)(slotInfo.GameVersion == 3 ? LbpConstants.HEAD_LBP3_BASE : (slotInfo.GameVersion == 2 ? LbpConstants.HEAD_LBP2_BETA_FALLBACK : LbpConstants.REV_LBP1_MAX));
 
-            if (ConfigManager.ForceLbp3Backups) { slotInfo.GameVersion = 3; head = 0x010503e2; branchId = 0; branchRev = 0; }
-            else if (slotInfo.GameVersion == 2 && (head & 0xFFFF) < 0x3b6 && ConfigManager.Lbp2BetaToRetail) { head = 0x3b6; branchId = 0; branchRev = 0; }
+            if (ConfigManager.ForceLbp3Backups) { slotInfo.GameVersion = 3; head = LbpConstants.HEAD_LBP3_BASE; branchId = 0; branchRev = 0; }
+            else if (slotInfo.GameVersion == 2 && (head & 0xFFFF) < LbpConstants.HEAD_LBP2_BETA_FALLBACK && ConfigManager.Lbp2BetaToRetail) { head = LbpConstants.HEAD_LBP2_BETA_FALLBACK; branchId = 0; branchRev = 0; }
 
             byte[] sltBytes = SltbProcessor.MakeSlotList(head, branchId, branchRev, slotInfo);
             byte[] sltHash = SHA1.HashData(sltBytes);

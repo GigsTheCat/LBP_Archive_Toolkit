@@ -33,17 +33,33 @@ namespace LbpArchiveToolkit.Utils
             return EncodeToPng(source);
         }
 
+        private const uint MAGIC_PNG = 0x89504E47;
+        private const uint MAGIC_JPEG_MASK = 0xFFFF0000;
+        private const uint MAGIC_JPEG = 0xFFD80000;
+        private const uint MAGIC_DDS = 0x44445320; // 'DDS '
+        
+        private const uint FOURCC_DXT1 = 0x31545844; // 'DXT1'
+        private const uint FOURCC_DXT3 = 0x33545844; // 'DXT3'
+        private const uint FOURCC_DXT5 = 0x35545844; // 'DXT5'
+
+        private const byte FMT_B8 = 0x81;
+        private const byte FMT_A8R8G8B8 = 0x85;
+        private const byte FMT_DXT1 = 0x86;
+        private const byte FMT_DXT3 = 0x87;
+        private const byte FMT_DXT5 = 0x88;
+        private const byte FMT_X8R8G8B8 = 0x89;
+
         public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData)
         {
             if (resourceData == null || resourceData.Length < 4) return null;
 
             uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData[..4]);
-            if (magic == 0x89504E47 || (magic & 0xFFFF0000) == 0xFFD80000)
+            if (magic == MAGIC_PNG || (magic & MAGIC_JPEG_MASK) == MAGIC_JPEG)
             {
                 return CenterWpfImageToBitmap(resourceData);
             }
             if (resourceData.Length < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
-            if (magic == 0x44445320)
+            if (magic == MAGIC_DDS)
             {
                 return DecodeDdsToBitmapCentered(resourceData, resourceData.Length);
             }
@@ -169,7 +185,7 @@ namespace LbpArchiveToolkit.Utils
                     }
 
                     // Restore 16-bit blocks back to Little-Endian for the GPU (using Vector512 / Vector256)
-                    if (format == 0x86 || format == 0x87 || format == 0x88)
+                    if (format == FMT_DXT1 || format == FMT_DXT3 || format == FMT_DXT5)
                     {
                         var span16 = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ushort>(finalData.AsSpan(0, (int)totalDecompSize));
                         ref ushort spanRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span16);
@@ -240,16 +256,16 @@ namespace LbpArchiveToolkit.Utils
             byte format = 0;
             if ((pfFlags & 0x4) != 0) // DDPF_FOURCC
             {
-                if (fourCC == 0x31545844) format = 0x86; // DXT1
-                else if (fourCC == 0x33545844) format = 0x87; // DXT3
-                else if (fourCC == 0x35545844) format = 0x88; // DXT5
-                else format = 0x86;
+                if (fourCC == FOURCC_DXT1) format = FMT_DXT1; // DXT1
+                else if (fourCC == FOURCC_DXT3) format = FMT_DXT3; // DXT3
+                else if (fourCC == FOURCC_DXT5) format = FMT_DXT5; // DXT5
+                else format = FMT_DXT1;
             }
             else
             {
-                if (bitCount == 32) format = 0x89;
-                else if (bitCount == 8) format = 0x81;
-                else format = 0x89;
+                if (bitCount == 32) format = FMT_X8R8G8B8;
+                else if (bitCount == 8) format = FMT_B8;
+                else format = FMT_X8R8G8B8;
             }
 
             if (width == 0 || height == 0) return null;
@@ -285,7 +301,7 @@ namespace LbpArchiveToolkit.Utils
                 return Array.Empty<byte>();
             }
 
-            if (format == 0x85)
+            if (format == FMT_A8R8G8B8)
             {
                 int max = Math.Min(dataLength, (int)(totalPixels * 4));
                 ref byte srcRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan(dataOffset));
@@ -328,7 +344,7 @@ namespace LbpArchiveToolkit.Utils
                 
                 return bgra;
             }
-            else if (format == 0x89)
+            else if (format == FMT_X8R8G8B8)
             {
                 int max = Math.Min(dataLength, (int)(totalPixels * 4));
                 System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
@@ -337,7 +353,7 @@ namespace LbpArchiveToolkit.Utils
                     (uint)max);
                 return bgra;
             }
-            else if (format == 0x81)
+            else if (format == FMT_B8)
             {
                 int max = Math.Min(dataLength, (int)totalPixels);
                 ref byte srcRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan()), dataOffset);
@@ -378,7 +394,7 @@ namespace LbpArchiveToolkit.Utils
             int blocksX = (width + 3) / 4;
             int blocksY = (height + 3) / 4;
 
-            if (format == 0x86) // DXT1
+            if (format == FMT_DXT1) // DXT1
             {
                 Parallel.For(0, blocksY, by =>
                 {
@@ -394,7 +410,7 @@ namespace LbpArchiveToolkit.Utils
                     }
                 });
             }
-            else if (format == 0x87) // DXT3
+            else if (format == FMT_DXT3) // DXT3
             {
                 Parallel.For(0, blocksY, by =>
                 {
@@ -410,7 +426,7 @@ namespace LbpArchiveToolkit.Utils
                     }
                 });
             }
-            else if (format == 0x88) // DXT5
+            else if (format == FMT_DXT5) // DXT5
             {
                 Parallel.For(0, blocksY, by =>
                 {
@@ -613,10 +629,10 @@ namespace LbpArchiveToolkit.Utils
             int blockWidth = 4;
             int blockHeight = 4;
 
-            if (format == 0x81) { bytesPerBlock = 1; blockWidth = 1; blockHeight = 1; }
-            else if (format == 0x85 || format == 0x89) { bytesPerBlock = 4; blockWidth = 1; blockHeight = 1; }
-            else if (format == 0x86) { bytesPerBlock = 8; blockWidth = 4; blockHeight = 4; }
-            else if (format == 0x87 || format == 0x88) { bytesPerBlock = 16; blockWidth = 4; blockHeight = 4; }
+            if (format == FMT_B8) { bytesPerBlock = 1; blockWidth = 1; blockHeight = 1; }
+            else if (format == FMT_A8R8G8B8 || format == FMT_X8R8G8B8) { bytesPerBlock = 4; blockWidth = 1; blockHeight = 1; }
+            else if (format == FMT_DXT1) { bytesPerBlock = 8; blockWidth = 4; blockHeight = 4; }
+            else if (format == FMT_DXT3 || format == FMT_DXT5) { bytesPerBlock = 16; blockWidth = 4; blockHeight = 4; }
             else return data;
 
             int totalUnswizzledSize = 0;
