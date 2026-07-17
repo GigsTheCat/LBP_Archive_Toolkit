@@ -342,75 +342,80 @@ namespace LbpArchiveToolkit.Services
             var nameCache = new Dictionary<string, string>();
 
             using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            
+            byte[] sharedBlobBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(256);
+            try
             {
-
-                long id = reader.GetInt64(0);
-
-                if (needsCSharpFiltering)
+                while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
-                    long l0 = 0, l1 = 0;
-                    if (reqL0 != 0 || reqL1 != 0)
-                    {
-                        byte[]? labelsBlob = reader.IsDBNull(13) ? null : reader.GetFieldValue<byte[]>(13);
-                        if (labelsBlob != null)
-                        {
-                            int len = labelsBlob.Length;
-                            if (len >= 8)
-                            {
-                                l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(labelsBlob.AsSpan(len - 8));
-                                int remaining = len - 8;
-                                if (remaining > 0)
-                                {
-                                    Span<byte> temp = stackalloc byte[8];
-                                    labelsBlob.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
-                                    l1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                                }
-                            }
-                            else if (len > 0)
-                            {
-                                Span<byte> temp = stackalloc byte[8];
-                                labelsBlob.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
-                                l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                            }
-                        }
-                        if ((l0 & reqL0) != reqL0 || (l1 & reqL1) != reqL1)
-                        {
-                            continue;
-                        }
-                    }
+                    long id = reader.GetInt64(0);
 
-                    long t0 = 0, t1 = 0;
-                    if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
+                    if (needsCSharpFiltering)
                     {
-                        byte[]? tagsBlob = reader.IsDBNull(14) ? null : reader.GetFieldValue<byte[]>(14);
-                        if (tagsBlob != null)
+                        long l0 = 0, l1 = 0;
+                        if (reqL0 != 0 || reqL1 != 0)
                         {
-                            int len = tagsBlob.Length;
-                            if (len >= 8)
+                            if (!reader.IsDBNull(13))
                             {
-                                t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(tagsBlob.AsSpan(len - 8));
-                                int remaining = len - 8;
-                                if (remaining > 0)
+                                long bytesRead = reader.GetBytes(13, 0, sharedBlobBuffer, 0, 256);
+                                int len = (int)bytesRead;
+                                if (len >= 8)
+                                {
+                                    l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(sharedBlobBuffer.AsSpan(len - 8, 8));
+                                    int remaining = len - 8;
+                                    if (remaining > 0)
+                                    {
+                                        Span<byte> temp = stackalloc byte[8];
+                                        sharedBlobBuffer.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
+                                        l1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                                    }
+                                }
+                                else if (len > 0)
                                 {
                                     Span<byte> temp = stackalloc byte[8];
-                                    tagsBlob.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
-                                    t1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                                    sharedBlobBuffer.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
+                                    l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
                                 }
                             }
-                            else if (len > 0)
+                            
+                            if ((l0 & reqL0) != reqL0 || (l1 & reqL1) != reqL1)
                             {
-                                Span<byte> temp = stackalloc byte[8];
-                                tagsBlob.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
-                                t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                                continue;
                             }
                         }
-                        if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
+
+                        long t0 = 0, t1 = 0;
+                        if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
                         {
-                            continue;
+                            if (!reader.IsDBNull(14))
+                            {
+                                long bytesRead = reader.GetBytes(14, 0, sharedBlobBuffer, 0, 256);
+                                int len = (int)bytesRead;
+                                if (len >= 8)
+                                {
+                                    t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(sharedBlobBuffer.AsSpan(len - 8, 8));
+                                    int remaining = len - 8;
+                                    if (remaining > 0)
+                                    {
+                                        Span<byte> temp = stackalloc byte[8];
+                                        sharedBlobBuffer.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
+                                        t1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                                    }
+                                }
+                                else if (len > 0)
+                                {
+                                    Span<byte> temp = stackalloc byte[8];
+                                    sharedBlobBuffer.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
+                                    t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                                }
+                            }
+                            
+                            if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
+                            {
+                                continue;
+                            }
                         }
                     }
-                }
 
                 bool isSaved = savedLevels.Contains(id);
                 bool isHearted = heartedLevels.Contains(id);
@@ -519,6 +524,11 @@ namespace LbpArchiveToolkit.Services
                     parsedLimit--;
                     if (parsedLimit <= 0) break;
                 }
+            }
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(sharedBlobBuffer);
             }
         }
 
@@ -867,34 +877,18 @@ namespace LbpArchiveToolkit.Services
                     while (readerInfo.Read()) columns.Add(readerInfo.GetString(1));
                 }
 
-                using (var cmdFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_fts'", conn))
+                using (var cmdTables = new SqliteCommand("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('slot_fts', 'slot_tags_fts', 'level_contributors', 'level_contributors_fts', 'object_contributors', 'object_contributors_fts')", conn))
+                using (var reader = cmdTables.ExecuteReader())
                 {
-                    _hasFtsTable = Convert.ToInt32(cmdFts.ExecuteScalar()) > 0;
-                }
+                    var tables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    while (reader.Read()) tables.Add(reader.GetString(0));
 
-                using (var cmdTagsFts = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='slot_tags_fts'", conn))
-                {
-                    _hasTagsFtsTable = Convert.ToInt32(cmdTagsFts.ExecuteScalar()) > 0;
-                }
-
-                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors'", conn))
-                {
-                    _hasContribsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-                }
-
-                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='level_contributors_fts'", conn))
-                {
-                    _hasContribFtsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-                }
-
-                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='object_contributors'", conn))
-                {
-                    _hasObjectContribsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-                }
-
-                using (var cmd = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='object_contributors_fts'", conn))
-                {
-                    _hasObjectContribFtsTable = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                    _hasFtsTable = tables.Contains("slot_fts");
+                    _hasTagsFtsTable = tables.Contains("slot_tags_fts");
+                    _hasContribsTable = tables.Contains("level_contributors");
+                    _hasContribFtsTable = tables.Contains("level_contributors_fts");
+                    _hasObjectContribsTable = tables.Contains("object_contributors");
+                    _hasObjectContribFtsTable = tables.Contains("object_contributors_fts");
                 }
 
                 _colGame = GetDbColumn(columns, "gameVersion", "game");

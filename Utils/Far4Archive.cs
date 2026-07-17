@@ -138,22 +138,8 @@ namespace LbpArchiveToolkit.Utils
 
             byte[] hashinateKey = new byte[] { 0x2A, 0xFD, 0xA3, 0xCA, 0x86, 0x02, 0x19, 0xB3, 0xE6, 0x8A, 0xFF, 0xCC, 0x82, 0xC7, 0x6B, 0x8A, 0xFE, 0x0A, 0xD8, 0x13, 0x5F, 0x60, 0x47, 0x5B, 0xDF, 0x5D, 0x37, 0xBC, 0x57, 0x1C, 0xB5, 0xE7, 0x96, 0x75, 0xD5, 0x28, 0xA2, 0xFA, 0x90, 0xED, 0xDF, 0xA3, 0x45, 0xB4, 0x1F, 0xF9, 0x1F, 0x25, 0xE7, 0x42, 0x45, 0x3B, 0x2B, 0xB5, 0x3E, 0x16, 0xC9, 0x58, 0x19, 0x7B, 0xE7, 0x18, 0xC0, 0x80 };
             int finalLength = (int)arc.Length;
-            byte[] mac;
-
-            using (var incrementalHash = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hashinateKey))
-            {
-                int hashChunkSize = 0x100000;
-                int offset = buffer.Offset;
-                int remaining = finalLength;
-                while (remaining > 0)
-                {
-                    int toHash = Math.Min(remaining, hashChunkSize);
-                    incrementalHash.AppendData(buffer.Array!, offset, toHash);
-                    offset += toHash;
-                    remaining -= toHash;
-                }
-                mac = incrementalHash.GetHashAndReset();
-            }
+            
+            byte[] mac = HMACSHA1.HashData(hashinateKey, new ReadOnlySpan<byte>(buffer.Array!, buffer.Offset, finalLength));
 
             arc.Position = hashinateOffset;
             arc.Write(mac, 0, mac.Length);

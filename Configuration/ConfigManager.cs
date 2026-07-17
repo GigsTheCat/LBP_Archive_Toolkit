@@ -108,8 +108,8 @@ namespace LbpArchiveToolkit.Configuration
 
             try
             {
-                string json = File.ReadAllText(pathToLoad);
-                var data = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.ConfigData);
+                using var fs = new FileStream(pathToLoad, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var data = JsonSerializer.Deserialize(fs, ConfigJsonContext.Default.ConfigData);
 
                 if (data != null)
                 {
@@ -140,44 +140,43 @@ namespace LbpArchiveToolkit.Configuration
             }
         }
 
-        private static string GetConfigJson()
-        {
-            var data = new ConfigData
-            {
-                DatabasePath = DatabasePath,
-                BackupDirectory = BackupDirectory,
-                DownloadServer = DownloadServer,
-                LocalArchivePath = LocalArchivePath,
-                Theme = Theme,
-                GameRegion = GameRegion,
-                MaxParallelDownloads = MaxParallelDownloads,
-                ForceLbp3Backups = ForceLbp3Backups,
-                Lbp2BetaToRetail = Lbp2BetaToRetail,
-                UseMemoryMappedIO = UseMemoryMappedIO,
-                LoadDbIntoRam = LoadDbIntoRam,
-                WindowWidth = WindowWidth,
-                WindowHeight = WindowHeight,
-                WindowLeft = WindowLeft,
-                WindowTop = WindowTop,
-                IsMaximized = IsMaximized,
-                LastUpdateCheck = LastUpdateCheck,
-                LastSearch = LastSearch
-            };
-
-            var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = ConfigJsonContext.Default };
-            return JsonSerializer.Serialize(data, options);
-        }
-
         public static void SaveConfig()
         {
             try
             {
+                var data = new ConfigData
+                {
+                    DatabasePath = DatabasePath,
+                    BackupDirectory = BackupDirectory,
+                    DownloadServer = DownloadServer,
+                    LocalArchivePath = LocalArchivePath,
+                    Theme = Theme,
+                    GameRegion = GameRegion,
+                    MaxParallelDownloads = MaxParallelDownloads,
+                    ForceLbp3Backups = ForceLbp3Backups,
+                    Lbp2BetaToRetail = Lbp2BetaToRetail,
+                    UseMemoryMappedIO = UseMemoryMappedIO,
+                    LoadDbIntoRam = LoadDbIntoRam,
+                    WindowWidth = WindowWidth,
+                    WindowHeight = WindowHeight,
+                    WindowLeft = WindowLeft,
+                    WindowTop = WindowTop,
+                    IsMaximized = IsMaximized,
+                    LastUpdateCheck = LastUpdateCheck,
+                    LastSearch = LastSearch
+                };
+
                 lock (_saveLock)
                 {
-                    string json = GetConfigJson();
                     Directory.CreateDirectory(AppDataFolder);
                     string tempPath = ConfigPath + ".tmp";
-                    File.WriteAllText(tempPath, json);
+                    
+                    using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = ConfigJsonContext.Default };
+                        JsonSerializer.Serialize(fs, data, options);
+                    }
+                    
                     File.Move(tempPath, ConfigPath, overwrite: true);
                 }
             }

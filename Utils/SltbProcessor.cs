@@ -143,15 +143,25 @@ namespace LbpArchiveToolkit.Utils
                 }
                 else
                 {
-                    byte[] deflatedData = br.ReadBytes(info.comp);
-                    using var msIn = new MemoryStream(deflatedData);
-                    using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
-                    int bytesRead = 0;
-                    while (bytesRead < info.decomp)
+                    byte[] deflatedData = System.Buffers.ArrayPool<byte>.Shared.Rent(info.comp);
+                    try
                     {
-                        int r = zlib.Read(decompressedPayload, currentPos + bytesRead, info.decomp - bytesRead);
-                        if (r == 0) break;
-                        bytesRead += r;
+                        int compBytesRead = br.Read(deflatedData, 0, info.comp);
+                        if (compBytesRead != info.comp) throw new EndOfStreamException();
+
+                        using var msIn = new MemoryStream(deflatedData, 0, info.comp);
+                        using var zlib = new ZLibStream(msIn, CompressionMode.Decompress);
+                        int bytesRead = 0;
+                        while (bytesRead < info.decomp)
+                        {
+                            int r = zlib.Read(decompressedPayload, currentPos + bytesRead, info.decomp - bytesRead);
+                            if (r == 0) break;
+                            bytesRead += r;
+                        }
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<byte>.Shared.Return(deflatedData);
                     }
                 }
                 currentPos += info.decomp;
@@ -187,8 +197,10 @@ namespace LbpArchiveToolkit.Utils
             return outMs.ToArray();
         }
 
-        public static byte[] ReplaceHash(byte[] source, byte[] oldHash, byte[] newHash)
+         public static byte[] ReplaceHash(byte[] source, byte[] oldHash, byte[] newHash)
         {
+            if (source.AsSpan().IndexOf(oldHash) == -1) return source; // NO-OP Check
+
             byte[] result = new byte[source.Length];
             Array.Copy(source, result, source.Length);
 

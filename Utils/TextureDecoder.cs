@@ -342,8 +342,32 @@ namespace LbpArchiveToolkit.Utils
                 int max = Math.Min(dataLength, (int)totalPixels);
                 ref byte srcRef = ref System.Runtime.CompilerServices.Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data.AsSpan()), dataOffset);
                 ref uint dstRef = ref System.Runtime.CompilerServices.Unsafe.As<byte, uint>(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bgra.AsSpan()));
-                
-                for (int i = 0; i < max; i++)
+                int i = 0;
+
+                if (System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated && max >= 32)
+                {
+                    var alphaMask = System.Runtime.Intrinsics.Vector256.Create(0xFF000000);
+                    for (; i <= max - 32; i += 32)
+                    {
+                        var srcVec = System.Runtime.Intrinsics.Vector256.LoadUnsafe(ref srcRef, (nuint)i);
+                        
+                        var (lower, upper) = System.Runtime.Intrinsics.Vector256.Widen(srcVec);
+                        var (ll, lu) = System.Runtime.Intrinsics.Vector256.Widen(lower);
+                        var (ul, uu) = System.Runtime.Intrinsics.Vector256.Widen(upper);
+                        
+                        var v0 = ll | (ll << 8) | (ll << 16) | alphaMask;
+                        var v1 = lu | (lu << 8) | (lu << 16) | alphaMask;
+                        var v2 = ul | (ul << 8) | (ul << 16) | alphaMask;
+                        var v3 = uu | (uu << 8) | (uu << 16) | alphaMask;
+                        
+                        v0.StoreUnsafe(ref dstRef, (nuint)i);
+                        v1.StoreUnsafe(ref dstRef, (nuint)(i + 8));
+                        v2.StoreUnsafe(ref dstRef, (nuint)(i + 16));
+                        v3.StoreUnsafe(ref dstRef, (nuint)(i + 24));
+                    }
+                }
+
+                for (; i < max; i++)
                 {
                     uint val = System.Runtime.CompilerServices.Unsafe.Add(ref srcRef, i);
                     System.Runtime.CompilerServices.Unsafe.Add(ref dstRef, i) = val | (val << 8) | (val << 16) | 0xFF000000;
