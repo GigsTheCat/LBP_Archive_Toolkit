@@ -20,7 +20,9 @@ namespace LbpArchiveToolkit.Services
                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
                 var response = await httpClient.GetStringAsync(url);
                 var json = JsonNode.Parse(response);
+                
                 string? tag = json?["tag_name"]?.ToString();
+                string? body = json?["body"]?.ToString(); // Extract the release notes
 
                 if (!string.IsNullOrEmpty(tag))
                 {
@@ -32,7 +34,20 @@ namespace LbpArchiveToolkit.Services
                         {
                             if (!ownerWindow.IsVisible) return;
 
-                            bool update = CustomDialog.Show(ownerWindow, "A new version of LBP Archive Toolkit is available.\n\nWould you like to download it now?", "Update Available", isYesNo: true);
+                            // Format the update message to include the patch notes
+                            string message = $"A new version ({tag}) of LBP Archive Toolkit is available.\n\n";
+                            
+                            if (!string.IsNullOrWhiteSpace(body))
+                            {
+                                // Strip \r\n to standard \n for WPF consistency, and append the notes
+                                string patchNotes = body.Replace("\r\n", "\n").Trim();
+                                message += $"Patch Notes:\n{patchNotes}\n\n";
+                            }
+                            
+                            message += "Would you like to download it now?";
+
+                            // The CustomDialog already has a ScrollViewer, so long patch notes will scroll naturally
+                            bool update = CustomDialog.Show(ownerWindow, message, "Update Available", isYesNo: true);
                             if (update)
                             {
                                 Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
