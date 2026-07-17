@@ -3,10 +3,10 @@ name: Build and Release WPF App
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version tag (e.g., v1.0.0)'
-        required: true
-        default: 'v1.0.0'
+      patch_notes:
+        description: 'Patch notes for this release (Markdown supported)'
+        required: false
+        type: string
 
 jobs:
   build-and-release:
@@ -24,24 +24,43 @@ jobs:
         dotnet-version: '11.0.x'
         dotnet-quality: 'preview'
 
+    - name: Extract Version from csproj
+      id: get_version
+      shell: pwsh
+      run: |
+        # Read the csproj file as XML and extract the Version property
+        $xml = [xml](Get-Content ./LbpArchiveToolkit.csproj)
+        $version = $xml.Project.PropertyGroup.Version
+        
+        if (-not $version) { 
+            Write-Error "Version tag not found in LbpArchiveToolkit.csproj"
+            exit 1 
+        }
+        
+        Write-Host "Found version: $version"
+        
+        # Save variables to the GitHub Environment for later steps to use
+        Write-Output "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Write-Output "TAG_NAME=v$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
     - name: Build and Publish the App
       shell: pwsh
       run: |
-        $rawVersion = "${{ github.event.inputs.version }}"
-        $cleanVersion = $rawVersion.TrimStart('v', 'V')
-        dotnet publish -c Release -r win-x64 -o ./AppOutput /p:Version=$cleanVersion
+        # Use the extracted version for the publish command
+        dotnet publish -c Release -r win-x64 -o ./AppOutput /p:Version=${{ env.APP_VERSION }}
 
     - name: Zip the Output
       shell: pwsh
-      run: Compress-Archive -Path ./AppOutput/* -DestinationPath "./LbpArchiveToolkit-${{ github.event.inputs.version }}.zip"
+      run: Compress-Archive -Path ./AppOutput/* -DestinationPath "./LbpArchiveToolkit-${{ env.TAG_NAME }}.zip"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v3
       with:
-        tag_name: ${{ github.event.inputs.version }}
-        name: Release ${{ github.event.inputs.version }}
+        tag_name: ${{ env.TAG_NAME }}
+        name: Release ${{ env.TAG_NAME }}
+        body: ${{ github.event.inputs.patch_notes }}
         draft: false
         prerelease: false
-        files: "./LbpArchiveToolkit-${{ github.event.inputs.version }}.zip"
+        files: "./LbpArchiveToolkit-${{ env.TAG_NAME }}.zip"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
