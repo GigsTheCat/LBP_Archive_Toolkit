@@ -1319,15 +1319,17 @@ namespace LbpArchiveToolkit
 
         private void BtnToggleTags_Click(object sender, RoutedEventArgs e)
         {
-            if (wpLevelTags.Visibility == Visibility.Visible)
+            bool isShowing = btnToggleTags.Content.ToString() == "HIDE TAGS";
+            isShowing = !isShowing;
+            
+            btnToggleTags.Content = isShowing ? "HIDE TAGS" : "SHOW TAGS";
+            
+            foreach (UIElement child in wpLevelTags.Children)
             {
-                wpLevelTags.Visibility = Visibility.Collapsed;
-                btnToggleTags.Content = "SHOW TAGS";
-            }
-            else
-            {
-                wpLevelTags.Visibility = Visibility.Visible;
-                btnToggleTags.Content = "HIDE TAGS";
+                if (child is FrameworkElement fe && fe.Tag as string == "LBP1Tag")
+                {
+                    fe.Visibility = isShowing ? Visibility.Visible : Visibility.Collapsed;
+                }
             }
         }
 
@@ -1359,29 +1361,46 @@ namespace LbpArchiveToolkit
                 wpLevelTags.Visibility = Visibility.Visible;
                 btnToggleTags.Visibility = Visibility.Collapsed;
 
-                if (selectedLevel.Labels != null && selectedLevel.Labels.Count > 0)
+                bool hasLabels = selectedLevel.Labels != null && selectedLevel.Labels.Count > 0;
+                bool hasTags = selectedLevel.Tags != null && selectedLevel.Tags.Count > 0;
+
+                if (hasLabels || hasTags)
                 {
                     Style tagStyle = (Style)FindResource("DisplayTagStyle");
                     
-                    // Sort the combined labels and tags alphabetically
-                    var sortedLabels = selectedLevel.Labels.OrderBy(l => l).ToList();
-                    
-                    foreach (var label in sortedLabels)
+                    if (hasLabels)
                     {
-                        var tagControl = new ContentControl
+                        var sortedLabels = selectedLevel.Labels!.OrderBy(l => l).ToList();
+                        foreach (var label in sortedLabels)
                         {
-                            Content = label,
-                            Style = tagStyle,
-                            LayoutTransform = new RotateTransform(GetDeterministicTilt(label))
-                        };
-                        wpLevelTags.Children.Add(tagControl);
+                            var tagControl = new ContentControl
+                            {
+                                Content = label,
+                                Style = tagStyle,
+                                LayoutTransform = new RotateTransform(GetDeterministicTilt(label))
+                            };
+                            wpLevelTags.Children.Add(tagControl);
+                        }
                     }
 
-                    if (selectedLevel.Game == "LBP1")
+                    if (hasTags)
                     {
+                        var sortedTags = selectedLevel.Tags!.OrderBy(t => t).ToList();
+                        foreach (var tag in sortedTags)
+                        {
+                            var tagControl = new ContentControl
+                            {
+                                Content = tag,
+                                Style = tagStyle,
+                                LayoutTransform = new RotateTransform(GetDeterministicTilt(tag)),
+                                Tag = "LBP1Tag",
+                                Visibility = Visibility.Collapsed
+                            };
+                            wpLevelTags.Children.Add(tagControl);
+                        }
+
                         btnToggleTags.Visibility = Visibility.Visible;
                         btnToggleTags.Content = "SHOW TAGS";
-                        wpLevelTags.Visibility = Visibility.Collapsed;
                     }
                 }
 

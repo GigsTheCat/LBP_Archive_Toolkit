@@ -212,7 +212,7 @@ namespace LbpArchiveToolkit.Utils
             uint head = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
             uint version = head & 0xFFFF;
             uint subversion = (head >> 16) & 0xFFFF;
-            int gameVersion = version >= 0x3d0 ? 3 : (version >= 0x273 ? 2 : 1);
+            int gameVersion = subversion != 0 ? 3 : (version >= 0x273 ? 2 : 1);
 
             int depOffsetPos = -1;
             bool useCompressedInts = false;

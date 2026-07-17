@@ -26,6 +26,7 @@ namespace LbpArchiveToolkit.Models
         public string? IconHash { get; set; }
         public string? Description { get; set; }
         public List<string>? Labels { get; set; }
+        public List<string>? Tags { get; set; }
         public bool IsMmPick { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;

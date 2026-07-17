@@ -502,11 +502,15 @@ namespace LbpArchiveToolkit.Services
                 {
                     levelLabels.AddRange(LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(13)));
                 }
+                
+                var levelTags = new List<string>();
                 if (!reader.IsDBNull(14) && reader.GetFieldType(14) == typeof(byte[]))
                 {
-                    levelLabels.AddRange(TagParser.ParseTagNames(reader.GetFieldValue<byte[]>(14)));
+                    levelTags.AddRange(TagParser.ParseTagNames(reader.GetFieldValue<byte[]>(14)));
                 }
+                
                 levelItem.Labels = levelLabels;
+                levelItem.Tags = levelTags;
 
                 yield return levelItem;
 

@@ -80,7 +80,21 @@ namespace LbpArchiveToolkit.Services
             bool isRootGuid = rootHashStr.Length <= 8;
             uint head = 0; ushort branchId = 0; ushort branchRev = 0;
 
-            if (!isRootGuid && resources.ContainsKey(rootHashStr)) SltbProcessor.ParseResrcRevision(resources[rootHashStr], out head, out branchId, out branchRev);
+            if (!isRootGuid && resources.ContainsKey(rootHashStr))
+            {
+                SltbProcessor.ParseResrcRevision(resources[rootHashStr], out head, out branchId, out branchRev);
+                
+                // Auto-detect the true game version based on the root level's revision
+                uint version = head & 0xFFFF;
+                uint subversion = (head >> 16) & 0xFFFF;
+                int actualGameVersion = subversion != 0 ? 3 : (version >= 0x273 ? 2 : 1);
+                
+                // If the file itself says it belongs to a newer game than the DB thought, upgrade the slot version
+                if (actualGameVersion > slotInfo.GameVersion)
+                {
+                    slotInfo.GameVersion = actualGameVersion;
+                }
+            }
             else head = (uint)(slotInfo.GameVersion == 3 ? 0x010503e2 : (slotInfo.GameVersion == 2 ? 0x3b6 : 0x272));
 
             if (ConfigManager.ForceLbp3Backups) { slotInfo.GameVersion = 3; head = 0x010503e2; branchId = 0; branchRev = 0; }
