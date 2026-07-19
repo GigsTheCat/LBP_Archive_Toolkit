@@ -52,8 +52,11 @@ jobs:
         if ([string]::IsNullOrWhiteSpace($env:RAW_NOTES)) {
             $formatted = ""
         } else {
+            # Replace literal "\n" or "|" with actual newlines
+            $raw = $env:RAW_NOTES -replace "\\n", "`n" -replace "\|", "`n"
+            
             # Split by newlines, ignore empty lines, and prepend "- " to each
-            $lines = $env:RAW_NOTES -split "`r?`n"
+            $lines = $raw -split "`r?`n"
             $formatted = $lines | Where-Object { $_.Trim() -ne "" } | ForEach-Object { "- $($_.Trim())" }
             $formatted = $formatted -join "`n"
         }
