@@ -10,6 +10,7 @@ namespace LbpArchiveToolkit.ViewModels
         #region Commands
         public ICommand SearchCommand { get; private set; } = null!;
         public ICommand CancelSearchCommand { get; private set; } = null!;
+        public ICommand SurpriseMeCommand { get; private set; } = null!;
         public ICommand BackCommand { get; private set; } = null!;
         public ICommand ForwardCommand { get; private set; } = null!;
         public ICommand OpenAdvancedSearchCommand { get; private set; } = null!;
@@ -41,6 +42,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             SearchCommand = new RelayCommand(_ => _ = SearchAsync());
             CancelSearchCommand = new RelayCommand(_ => { _searchCts?.Cancel(); StatusText = "Cancelling search..."; });
+            SurpriseMeCommand = new RelayCommand(_ => _ = SurpriseMeAsync());
             BackCommand = new RelayCommand(_ => NavigateBack(), _ => _searchHistory.Count > 0);
             ForwardCommand = new RelayCommand(_ => NavigateForward(), _ => _forwardHistory.Count > 0);
             

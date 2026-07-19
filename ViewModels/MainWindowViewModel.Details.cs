@@ -113,7 +113,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     try
                     {
-                        var results = await _dbService.SearchUsersAsync(creator, true, "1", CancellationToken.None);
+                        var results = await _dbService.SearchUsersAsync(creator, true, "1", false, CancellationToken.None);
                         user = results.FirstOrDefault(u => u.NpHandle.Equals(creator, StringComparison.OrdinalIgnoreCase));
                     }
                     catch { }

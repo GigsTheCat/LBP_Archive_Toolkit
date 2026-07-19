@@ -93,6 +93,7 @@ namespace LbpArchiveToolkit.ViewModels
                     OnPropertyChanged(nameof(UserViewVisibility));
                     OnPropertyChanged(nameof(SearchDescVisibility));
                     OnPropertyChanged(nameof(AdvancedButtonVisibility));
+                    OnPropertyChanged(nameof(SurpriseButtonVisibility));
                     
                     if (!_isApplyingState && !string.IsNullOrWhiteSpace(SearchText))
                         SearchCommand.Execute(null);
@@ -127,11 +128,13 @@ namespace LbpArchiveToolkit.ViewModels
                 SetProperty(ref _isSearching, value);
                 OnPropertyChanged(nameof(IsNotSearching));
                 OnPropertyChanged(nameof(SearchButtonVisibility));
+                OnPropertyChanged(nameof(SurpriseButtonVisibility));
                 OnPropertyChanged(nameof(CancelButtonVisibility));
             }
         }
         public bool IsNotSearching => !IsSearching;
         public Visibility SearchButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility SurpriseButtonVisibility => (IsSearching || SearchTypeIndex == 2 || SearchTypeIndex == 3) ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;
 
         private Visibility _isProgressVisible = Visibility.Hidden;

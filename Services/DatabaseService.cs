@@ -157,7 +157,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, [EnumeratorCancellation] CancellationToken token = default)
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -298,35 +298,42 @@ namespace LbpArchiveToolkit.Services
             BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, useFtsForTags);
 
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
+            bool needsCSharpFiltering = !useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0);
+            int parsedLimit = int.MaxValue;
 
-            if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+            if (randomSingle)
             {
-                if (isAllLimit)
+                queryBuilder.Append(" ORDER BY RANDOM()");
+                if (!needsCSharpFiltering) queryBuilder.Append(" LIMIT 1");
+            }
+            else
+            {
+                if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
                 {
-                    queryBuilder.Append(" ORDER BY f.rank");
+                    if (isAllLimit)
+                    {
+                        queryBuilder.Append(" ORDER BY f.rank");
+                    }
+                    else if (_colHeart != "NULL")
+                    {
+                        queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
+                    }
+                    else
+                    {
+                        queryBuilder.Append(" ORDER BY f.rank");
+                    }
                 }
                 else if (_colHeart != "NULL")
                 {
                     queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
                 }
-                else
-                {
-                    queryBuilder.Append(" ORDER BY f.rank");
-                }
-            }
-            else if (_colHeart != "NULL")
-            {
-                queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
-            }
 
-            bool needsCSharpFiltering = !useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0);
-            int parsedLimit = int.MaxValue;
-
-            if (!isAllLimit && int.TryParse(limitFilter, out parsedLimit))
-            {
-                if (!needsCSharpFiltering)
+                if (!isAllLimit && int.TryParse(limitFilter, out parsedLimit))
                 {
-                    queryBuilder.Append($" LIMIT {parsedLimit}");
+                    if (!needsCSharpFiltering)
+                    {
+                        queryBuilder.Append($" LIMIT {parsedLimit}");
+                    }
                 }
             }
 
@@ -517,9 +524,14 @@ namespace LbpArchiveToolkit.Services
                 levelItem.Labels = levelLabels;
                 levelItem.Tags = levelTags;
 
-                yield return levelItem;
+                 yield return levelItem;
 
-                if (needsCSharpFiltering)
+                if (randomSingle)
+                {
+                    break; 
+                }
+
+                if (needsCSharpFiltering && !randomSingle)
                 {
                     parsedLimit--;
                     if (parsedLimit <= 0) break;
@@ -532,7 +544,7 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter, CancellationToken token = default)
+        public async Task<List<UserItem>> SearchUsersAsync(string keyword, bool exact, string? limitFilter, bool randomSingle = false, CancellationToken token = default)
         {
             return await Task.Run(async () =>
             {
@@ -577,11 +589,18 @@ namespace LbpArchiveToolkit.Services
                     }
                 }
 
-                queryBuilder.Append(" ORDER BY heartCount DESC");
-
-                if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
+                if (randomSingle)
                 {
-                    queryBuilder.Append($" LIMIT {limit}");
+                    queryBuilder.Append(" ORDER BY RANDOM() LIMIT 1");
+                }
+                else
+                {
+                    queryBuilder.Append(" ORDER BY heartCount DESC");
+
+                    if (limitFilter != "All" && int.TryParse(limitFilter, out int limit))
+                    {
+                        queryBuilder.Append($" LIMIT {limit}");
+                    }
                 }
 
                 using var cmd = new SqliteCommand(queryBuilder.ToString(), conn);

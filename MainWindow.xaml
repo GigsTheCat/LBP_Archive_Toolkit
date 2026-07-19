@@ -234,8 +234,9 @@
                                     <Button x:Name="btnForward" Content="→" Width="40" Height="40" FontSize="18" Style="{DynamicResource BtnNav}" Command="{Binding ForwardCommand}"/>
                                 </StackPanel>
                                 
-                                <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="{Binding CancelButtonVisibility}" Command="{Binding CancelSearchCommand}"/>
-                                <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding SearchButtonVisibility}" Command="{Binding SearchCommand}"/>
+                                <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="160" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="{Binding CancelButtonVisibility}" Command="{Binding CancelSearchCommand}"/>
+                                <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="10,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding SearchButtonVisibility}" Command="{Binding SearchCommand}"/>
+                                <Button x:Name="btnSurprise" Content="🎲" DockPanel.Dock="Right" Width="40" Height="40" Margin="15,0,0,0" Padding="0" FontSize="20" Style="{DynamicResource BtnSecondary}" ToolTip="Surprise Me! (Random)" Visibility="{Binding SurpriseButtonVisibility}" Command="{Binding SurpriseMeCommand}"/>
                                 
                                 <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
                                     <TextBox x:Name="txtSearch" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15">

@@ -14,5 +14,6 @@ namespace LbpArchiveToolkit.Models
         public bool SearchDesc { get; set; }
         public LevelItem? SelectedItem { get; set; }
         public UserItem? SelectedUser { get; set; }
+        public bool IsSurpriseMe { get; set; }
     }
 }

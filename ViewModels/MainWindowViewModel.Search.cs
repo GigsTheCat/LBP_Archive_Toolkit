@@ -79,9 +79,9 @@ namespace LbpArchiveToolkit.ViewModels
                         }
                     };
                 }
-                else
+                 else
                 {
-                    await PerformUserSearchAsync(keyword, ExactMatch, limitFilter, searchToken, "Found");
+                    await PerformUserSearchAsync(keyword, ExactMatch, limitFilter, searchToken, "Found", false);
                     if (UserResultsList.Count > 0) SelectedUser = UserResultsList[0];
 
                     _currentSearch = new SearchState
@@ -118,6 +118,114 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
+        private async Task SurpriseMeAsync()
+        {
+            if (SearchTypeIndex == 2 || SearchTypeIndex == 3) return;
+
+            IsSearching = true;
+            StatusText = SearchTypeIndex == 1 ? "Finding a random creator..." : "Finding a random level...";
+            IsProgressVisible = Visibility.Visible;
+            IsProgressIndeterminate = true;
+
+            var current = _currentSearch;
+            if (current != null)
+            {
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
+                    current.SelectedItem = SelectedLevel;
+                else
+                    current.SelectedUser = SelectedUser;
+
+                PushToHistory(_searchHistory, current);
+            }
+
+            ResultsList.Clear();
+            UserResultsList = new List<UserItem>();
+            _forwardHistory.Clear();
+            CommandManager.InvalidateRequerySuggested();
+
+            _searchCts?.Cancel();
+            _searchCts = new CancellationTokenSource();
+            var searchToken = _searchCts.Token;
+
+            string keyword = SearchText?.Trim() ?? "";
+            string? limitFilter = LimitIndex == 4 ? "All" : (LimitIndex == 3 ? "1000" : (LimitIndex == 2 ? "500" : (LimitIndex == 1 ? "200" : "100")));
+            string? genreFilter = SelectedGenre;
+
+            try
+            {
+                if (SearchTypeIndex == 0)
+                {
+                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
+                    view.SortDescriptions.Clear();
+
+                    var progressReporter = new Progress<string>(status => StatusText = status);
+
+                    await Task.Run(async () =>
+                    {
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, false, false, true, searchToken).ConfigureAwait(false))
+                        {
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                ResultsList.Add(lvl);
+                                SelectedLevel = lvl;
+                            });
+                        }
+                    });
+
+                    if (ResultsList.Count == 0)
+                        StatusText = "No levels matched the random search criteria.";
+                    else
+                        StatusText = "Surprise! Found a random level.";
+
+                    _currentSearch = new SearchState
+                    {
+                        SearchText = keyword, SearchTypeIndex = SearchTypeIndex, GameIndex = GameIndex,
+                        Genre = genreFilter ?? "All Genres", LimitIndex = LimitIndex, Exact = ExactMatch,
+                        SearchDesc = SearchDesc,
+                        SelectedItem = SelectedLevel,
+                        IsSurpriseMe = true,
+                        AdvancedCriteria = new AdvancedSearchCriteria
+                        {
+                            MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
+                            IsTeamPick = _advancedCriteria.IsTeamPick,
+                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
+                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                        }
+                    };
+                }
+                else if (SearchTypeIndex == 1)
+                {
+                    await PerformUserSearchAsync(keyword, ExactMatch, limitFilter, searchToken, "Found", true);
+                    if (UserResultsList.Count > 0) SelectedUser = UserResultsList[0];
+
+                    if (UserResultsList.Count == 0)
+                        StatusText = "No creators matched the random search criteria.";
+                    else
+                        StatusText = "Surprise! Found a random creator.";
+
+                    _currentSearch = new SearchState
+                    {
+                        SearchText = keyword, SearchTypeIndex = 1, LimitIndex = LimitIndex, Exact = ExactMatch,
+                        SelectedUser = SelectedUser,
+                        IsSurpriseMe = true,
+                        AdvancedCriteria = new AdvancedSearchCriteria()
+                    };
+                }
+            }
+            catch (OperationCanceledException) { StatusText = "Search cancelled."; }
+            catch (Exception ex)
+            {
+                _viewService.Alert($"Database Error: {ex.Message}", "Error");
+                StatusText = "Search failed.";
+            }
+            finally
+            {
+                IsSearching = false;
+                IsProgressVisible = Visibility.Hidden;
+                IsProgressIndeterminate = false;
+            }
+        }
+
         private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions, bool searchObjects)
         {
             var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
@@ -135,7 +243,7 @@ namespace LbpArchiveToolkit.ViewModels
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
-                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, token).ConfigureAwait(false))
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, false, token).ConfigureAwait(false))
                 {
                     buffer.Add(lvl);
                     count++;
@@ -165,9 +273,9 @@ namespace LbpArchiveToolkit.ViewModels
             StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels." : $"{statusPrefix} {count} levels for '{keyword}'.";
         }
 
-        private async Task PerformUserSearchAsync(string keyword, bool exact, string? limitFilter, CancellationToken token, string statusPrefix)
+        private async Task PerformUserSearchAsync(string keyword, bool exact, string? limitFilter, CancellationToken token, string statusPrefix, bool randomSingle = false)
         {
-            var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter, token);
+            var results = await _dbService.SearchUsersAsync(keyword, exact, limitFilter, randomSingle, token);
             IsProgressIndeterminate = false;
             ProgressMaximum = results.Count;
             ProgressValue = results.Count;
@@ -260,7 +368,7 @@ namespace LbpArchiveToolkit.ViewModels
             finally { _isApplyingState = false; }
 
             bool hasAdv = state.AdvancedCriteria.MinHearts > 0 || state.AdvancedCriteria.MinPlays > 0 || state.AdvancedCriteria.IsTeamPick || state.AdvancedCriteria.RequiredLabels.Count > 0 || state.AdvancedCriteria.RequiredTags.Count > 0;
-            if (string.IsNullOrWhiteSpace(state.SearchText) && state.LimitIndex == 4 && !hasAdv)
+            if (string.IsNullOrWhiteSpace(state.SearchText) && state.LimitIndex == 4 && !hasAdv && !state.IsSurpriseMe)
             {
                 StatusText = "Previous search was too broad and will not be restored.";
                 _currentSearch = null;
@@ -282,7 +390,21 @@ namespace LbpArchiveToolkit.ViewModels
             try
             {
                 string? limitFilter = LimitIndex == 4 ? "All" : (LimitIndex == 3 ? "1000" : (LimitIndex == 2 ? "500" : (LimitIndex == 1 ? "200" : "100")));
-                if (IsLevelSearch)
+                
+                if (state.IsSurpriseMe && state.SelectedItem != null && state.SearchTypeIndex == 0)
+                {
+                    ResultsList.Add(state.SelectedItem);
+                    UpdateLevelSavedString(state.SelectedItem);
+                    SelectedLevel = state.SelectedItem;
+                    StatusText = "Restored random level.";
+                }
+                else if (state.IsSurpriseMe && state.SelectedUser != null && state.SearchTypeIndex == 1)
+                {
+                    UserResultsList = new List<UserItem> { state.SelectedUser };
+                    SelectedUser = state.SelectedUser;
+                    StatusText = "Restored random creator.";
+                }
+                else if (IsLevelSearch)
                 {
                     await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, state.Genre, limitFilter, state.AdvancedCriteria, _searchCts.Token, "Restored", state.SearchTypeIndex == 2, state.SearchTypeIndex == 3);
                     var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
@@ -291,7 +413,7 @@ namespace LbpArchiveToolkit.ViewModels
                 }
                 else
                 {
-                    await PerformUserSearchAsync(state.SearchText, state.Exact, limitFilter, _searchCts.Token, "Restored");
+                    await PerformUserSearchAsync(state.SearchText, state.Exact, limitFilter, _searchCts.Token, "Restored", false);
                     var view = System.Windows.Data.CollectionViewSource.GetDefaultView(UserResultsList);
                     var viewFirst = view.Cast<UserItem>().FirstOrDefault();
                     SelectedUser = state.SelectedUser != null ? UserResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle) ?? viewFirst : viewFirst;
