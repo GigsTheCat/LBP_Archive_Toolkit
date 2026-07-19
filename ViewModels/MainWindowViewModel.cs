@@ -14,6 +14,28 @@ using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
+    public class BulkObservableCollection<T> : System.Collections.ObjectModel.ObservableCollection<T>
+    {
+        private bool _suppressNotification;
+
+        protected override void OnCollectionChanged(System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (!_suppressNotification)
+                base.OnCollectionChanged(e);
+        }
+
+        public void AddRange(IEnumerable<T> items)
+        {
+            if (items == null) return;
+            
+            _suppressNotification = true;
+            foreach (var item in items) Add(item);
+            _suppressNotification = false;
+            
+            OnCollectionChanged(new System.Collections.Specialized.NotifyCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction.Reset));
+        }
+    }
+
     public class TagItem : ViewModelBase
     {
         public string Text { get; set; } = "";
@@ -45,7 +67,7 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly Stack<SearchState> _forwardHistory = new();
         private SearchState? _currentSearch = null;
 
-        public ObservableCollection<LevelItem> ResultsList { get; } = new();
+        public BulkObservableCollection<LevelItem> ResultsList { get; } = new();
 
         private List<UserItem> _userResultsList = new();
         public List<UserItem> UserResultsList { get => _userResultsList; set => SetProperty(ref _userResultsList, value); }

@@ -146,7 +146,7 @@ namespace LbpArchiveToolkit.ViewModels
                         buffer.Clear();
                         await Application.Current.Dispatcher.InvokeAsync(() =>
                         {
-                            foreach (var item in chunk) ResultsList.Add(item);
+                            ResultsList.AddRange(chunk);
                             StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels..." : $"{statusPrefix} {count} levels for '{keyword}'...";
                         }, System.Windows.Threading.DispatcherPriority.Background);
                         sw.Restart();
@@ -155,7 +155,7 @@ namespace LbpArchiveToolkit.ViewModels
                 if (buffer.Count > 0)
                 {
                     var chunk = buffer.ToList();
-                    await Application.Current.Dispatcher.InvokeAsync(() => { foreach (var item in chunk) ResultsList.Add(item); });
+                    await Application.Current.Dispatcher.InvokeAsync(() => { ResultsList.AddRange(chunk); });
                 }
             });
 

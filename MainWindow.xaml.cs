@@ -64,6 +64,8 @@ namespace LbpArchiveToolkit
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await _viewModel.LoadDataAsync();
+            
+            _ = Services.UpdateService.CheckForUpdatesAsync(this, SharedHttpClient);
         }
 
         protected override void OnClosing(CancelEventArgs e)

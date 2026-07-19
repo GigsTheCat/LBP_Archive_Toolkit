@@ -18,7 +18,14 @@ namespace LbpArchiveToolkit.Services
             {
                 ConfigManager.LastUpdateCheck = DateTime.Now;
                 string url = "https://api.github.com/repos/GigsTheCat/LBP_Archive_Toolkit/releases/latest";
-                var response = await httpClient.GetStringAsync(url);
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd("LbpArchiveToolkit/1.0");
+
+                using var responseMessage = await httpClient.SendAsync(request);
+                responseMessage.EnsureSuccessStatusCode();
+
+                string response = await responseMessage.Content.ReadAsStringAsync();
                 var json = JsonNode.Parse(response);
                 
                 string? tag = json?["tag_name"]?.ToString();
