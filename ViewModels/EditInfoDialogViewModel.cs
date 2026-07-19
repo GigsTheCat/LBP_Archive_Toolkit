@@ -11,6 +11,7 @@ namespace LbpArchiveToolkit.ViewModels
     public class EditInfoDialogViewModel : ViewModelBase
     {
         private readonly Window _ownerWindow;
+        private readonly string? _originalIconPath;
 
         private string _levelName = "";
         public string LevelName
@@ -54,14 +55,18 @@ namespace LbpArchiveToolkit.ViewModels
 
         // Commands
         public ICommand ChangeIconCommand { get; }
+        public ICommand EditIconCommand { get; }
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
+
+        public Visibility EditIconVisibility => File.Exists(NewIconPath ?? _originalIconPath) ? Visibility.Visible : Visibility.Collapsed;
 
         public Action<bool>? RequestClose { get; set; }
 
         public EditInfoDialogViewModel(Window ownerWindow, string currentName, string currentDesc, string? currentIconPath)
         {
             _ownerWindow = ownerWindow;
+            _originalIconPath = currentIconPath;
             LevelName = currentName;
             Description = currentDesc;
 
@@ -78,8 +83,40 @@ namespace LbpArchiveToolkit.ViewModels
             }
 
             ChangeIconCommand = new RelayCommand(_ => ExecuteChangeIcon());
+            EditIconCommand = new RelayCommand(_ => ExecuteEditIcon());
             SaveCommand = new RelayCommand(_ => RequestClose?.Invoke(true));
             CancelCommand = new RelayCommand(_ => RequestClose?.Invoke(false));
+        }
+
+        private void ExecuteEditIcon()
+        {
+            string? pathToEdit = NewIconPath ?? _originalIconPath;
+            if (string.IsNullOrEmpty(pathToEdit) || !File.Exists(pathToEdit)) return;
+
+            var cropDialog = new ImageCropDialog(pathToEdit)
+            {
+                Owner = _ownerWindow
+            };
+
+            if (cropDialog.ShowDialog() == true)
+            {
+                if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != cropDialog.CroppedImagePath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialogViewModel.ExecuteEditIcon", ex); }
+                }
+
+                NewIconPath = cropDialog.CroppedImagePath;
+                try
+                {
+                    IconImage = TextureDecoder.LoadBitmapImage(NewIconPath!);
+                }
+                catch
+                {
+                    CustomDialog.Show(_ownerWindow, "Failed to load the cropped image preview.", "Error");
+                    NewIconPath = null;
+                }
+                OnPropertyChanged(nameof(EditIconVisibility));
+            }
         }
 
         private void ExecuteChangeIcon()
@@ -114,6 +151,7 @@ namespace LbpArchiveToolkit.ViewModels
                         CustomDialog.Show(_ownerWindow, "Failed to load the cropped image preview.", "Error");
                         NewIconPath = null;
                     }
+                    OnPropertyChanged(nameof(EditIconVisibility));
                 }
             }
         }

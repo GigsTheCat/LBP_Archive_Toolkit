@@ -119,7 +119,14 @@
                                     <Ellipse x:Name="mmPickRosette" Visibility="{Binding MmPickVisibility}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
                                     <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding MmPickVisibility}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
 
-                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconStroke}" StrokeThickness="5" Fill="{Binding IconFill}"/>
+                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconStroke}" StrokeThickness="5" Fill="{Binding IconFill}">
+                                        <Ellipse.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconFill}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconFill}" />
+                                            </ContextMenu>
+                                        </Ellipse.ContextMenu>
+                                    </Ellipse>
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
                                     <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">

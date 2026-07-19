@@ -135,7 +135,14 @@
                                         <Rectangle.RenderTransform><TranslateTransform Y="8"/></Rectangle.RenderTransform>
                                         <Rectangle.Effect><BlurEffect Radius="12"/></Rectangle.Effect>
                                     </Rectangle>
-                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconRectFill}" RadiusX="8" RadiusY="8"/>
+                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconRectFill}" RadiusX="8" RadiusY="8">
+                                        <Rectangle.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconRectFill}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconRectFill}" />
+                                            </ContextMenu>
+                                        </Rectangle.ContextMenu>
+                                    </Rectangle>
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
                                     <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">

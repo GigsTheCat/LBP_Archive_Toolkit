@@ -6,6 +6,68 @@
     <Application.Resources>
              <ResourceDictionary>
                 <!-- Global Shared Styles -->
+
+                <!-- CONTEXT MENU & TOP MENU THEME -->
+                <Style TargetType="ContextMenu">
+                    <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ContextMenu">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="4" Opacity="0.4" Direction="270" Color="Black"/>
+                                    </Border.Effect>
+                                    <ItemsPresenter Margin="4"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <Style TargetType="MenuItem">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}" Margin="2">
+                                    <Grid>
+                                        <ContentPresenter x:Name="HeaderHost" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                                        <Popup x:Name="Popup" AllowsTransparency="True" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" Focusable="False">
+                                            <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="1" CornerRadius="8" Margin="0,5,0,0">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="10" ShadowDepth="4" Opacity="0.4" Direction="270" Color="Black"/>
+                                                </Border.Effect>
+                                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" Margin="2"/>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="Role" Value="TopLevelHeader">
+                                        <Setter Property="Padding" Value="12,6"/>
+                                        <Setter TargetName="Popup" Property="Placement" Value="Bottom"/>
+                                    </Trigger>
+                                    <Trigger Property="Role" Value="SubmenuItem">
+                                        <Setter Property="Padding" Value="15,6"/>
+                                    </Trigger>
+                                    <Trigger Property="Role" Value="TopLevelItem">
+                                        <Setter Property="Padding" Value="12,6"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <Style x:Key="TitleBarBtn" TargetType="Button">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>

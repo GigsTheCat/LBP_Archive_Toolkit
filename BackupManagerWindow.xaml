@@ -118,7 +118,14 @@
                                         <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                     </Ellipse>
-                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconFill}"/>
+                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconFill}">
+                                        <Ellipse.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconFill}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconFill}" />
+                                            </ContextMenu>
+                                        </Ellipse.ContextMenu>
+                                    </Ellipse>
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                 </Grid>
 

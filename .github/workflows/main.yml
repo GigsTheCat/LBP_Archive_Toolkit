@@ -43,6 +43,27 @@ jobs:
         Write-Output "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
         Write-Output "TAG_NAME=v$version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+    - name: Format Patch Notes
+      shell: pwsh
+      env:
+        RAW_NOTES: ${{ inputs.patch_notes }}
+      run: |
+        # Check if the notes are empty
+        if ([string]::IsNullOrWhiteSpace($env:RAW_NOTES)) {
+            $formatted = ""
+        } else {
+            # Split by newlines, ignore empty lines, and prepend "- " to each
+            $lines = $env:RAW_NOTES -split "`r?`n"
+            $formatted = $lines | Where-Object { $_.Trim() -ne "" } | ForEach-Object { "- $($_.Trim())" }
+            $formatted = $formatted -join "`n"
+        }
+        
+        # Save the multiline string to the GitHub Environment
+        $eof = "EOF_$([guid]::NewGuid().ToString('N'))"
+        Add-Content -Path $env:GITHUB_ENV -Value "FORMATTED_PATCH_NOTES<<$eof"
+        Add-Content -Path $env:GITHUB_ENV -Value $formatted
+        Add-Content -Path $env:GITHUB_ENV -Value $eof
+
     - name: Build and Publish the App
       shell: pwsh
       run: |
@@ -58,7 +79,7 @@ jobs:
       with:
         tag_name: ${{ env.TAG_NAME }}
         name: Release ${{ env.TAG_NAME }}
-        body: ${{ github.event.inputs.patch_notes }}
+        body: ${{ env.FORMATTED_PATCH_NOTES }}
         draft: false
         prerelease: false
         files: "./LbpArchiveToolkit-${{ env.TAG_NAME }}.zip"
