@@ -43,7 +43,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
 
             ResultsList.Clear();
-            UserResultsList.Clear();
+            UserResultsList = new List<UserItem>();
             _forwardHistory.Clear();
             CommandManager.InvalidateRequerySuggested();
 
@@ -172,7 +172,7 @@ namespace LbpArchiveToolkit.ViewModels
             ProgressMaximum = results.Count;
             ProgressValue = results.Count;
 
-            foreach (var item in results) UserResultsList.Add(item);
+            UserResultsList = results;
             StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {results.Count} creators." : $"{statusPrefix} {results.Count} creators matching '{keyword}'.";
         }
 
@@ -274,7 +274,7 @@ namespace LbpArchiveToolkit.ViewModels
             IsProgressIndeterminate = true;
 
             ResultsList.Clear();
-            UserResultsList.Clear();
+            UserResultsList = new List<UserItem>();
 
             _searchCts?.Cancel();
             _searchCts = new CancellationTokenSource();

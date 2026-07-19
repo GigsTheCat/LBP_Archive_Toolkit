@@ -46,7 +46,10 @@ namespace LbpArchiveToolkit.ViewModels
         private SearchState? _currentSearch = null;
 
         public ObservableCollection<LevelItem> ResultsList { get; } = new();
-        public ObservableCollection<UserItem> UserResultsList { get; } = new();
+
+        private List<UserItem> _userResultsList = new();
+        public List<UserItem> UserResultsList { get => _userResultsList; set => SetProperty(ref _userResultsList, value); }
+
         public ObservableCollection<string> Genres { get; } = new() { "All Genres" };
         public ObservableCollection<TagItem> LevelTags { get; } = new();
 
