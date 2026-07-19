@@ -11,8 +11,6 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        
-        
         <Style x:Key="BtnCancel" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
@@ -24,9 +22,6 @@
     </Window.Resources>
 
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
-
-      
-
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
                 <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
@@ -44,24 +39,33 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Margin="0,0,0,20" MinHeight="40">
-                        <TextBlock x:Name="txtStatus" Text="Preparing extraction..." 
+                        <TextBlock x:Name="txtStatus" Text="{Binding StatusText}" 
                                    Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold"
                                    TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,4"/>
 
-                        <TextBlock x:Name="txtSubStatus" Text="Initializing..." 
-                                   Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="Normal"
-                                   TextWrapping="Wrap" TextAlignment="Center"/>
+                        <TextBlock x:Name="txtSubStatus" Text="{Binding SubStatusText}" 
+                                   FontSize="11" FontWeight="Normal" TextWrapping="Wrap" TextAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsErrorState}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource LbpOrange}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
 
                     <Border Grid.Row="1" Background="{DynamicResource BgCardDarker}" CornerRadius="9" Height="18" Margin="0,0,0,25" ClipToBounds="True">
-                        <ProgressBar x:Name="pbProgress" Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0"/>
+                        <ProgressBar x:Name="pbProgress" Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}" Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0"/>
                     </Border>
 
-                    <Button x:Name="btnCancel" Grid.Row="2" Content="CANCEL" Width="120"
-                            HorizontalAlignment="Center" Style="{DynamicResource BtnCancel}" Click="BtnCancel_Click"/>
+                    <Button x:Name="btnCancel" Grid.Row="2" Content="{Binding CancelButtonText}" IsEnabled="{Binding CanCancel}" Command="{Binding CancelCommand}" Width="120"
+                            HorizontalAlignment="Center" Style="{DynamicResource BtnCancel}"/>
                 </Grid>
             </ContentControl>
         </DockPanel>
-   
     </Border>
 </Window>

@@ -153,16 +153,21 @@
                         <TextBlock Grid.Column="0" Text="SYSTEM LOG VIEWER" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" VerticalAlignment="Center"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Select Log File:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <ComboBox x:Name="cmbLogType" Width="180" Height="32" SelectedIndex="0" SelectionChanged="CmbLogType_SelectionChanged">
-                                <ComboBoxItem Content="Debug Log" Tag="debug_log.txt"/>
-                                <ComboBoxItem Content="Crash Log" Tag="crash_log.txt"/>
+                            
+                            <!-- BINDING: ComboBox selected index mapped to ViewModel -->
+                            <ComboBox x:Name="cmbLogType" Width="180" Height="32" SelectedIndex="{Binding SelectedLogIndex}">
+                                <ComboBoxItem Content="Debug Log"/>
+                                <ComboBoxItem Content="Crash Log"/>
                             </ComboBox>
                         </StackPanel>
                     </Grid>
 
                     <!-- Large Text Container -->
                     <ContentControl Grid.Row="1" Style="{DynamicResource PopitCard}" Padding="10" Margin="0,0,0,20">
+                        <!-- BINDING: Text Box reads from ViewModel and triggers code-behind auto-scroll on change -->
                         <TextBox x:Name="txtLogDisplay" 
+                                 Text="{Binding LogText, Mode=OneWay}"
+                                 TextChanged="TxtLogDisplay_TextChanged"
                                  IsReadOnly="True" 
                                  Background="Transparent" 
                                  Foreground="{DynamicResource FgPrimary}" 
@@ -181,10 +186,12 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="OPEN LOGS FOLDER" Style="{StaticResource BtnSecondary}" Width="160" Click="BtnOpenFolder_Click"/>
+                        <!-- BINDINGS: Converted Click handlers to Commands -->
+                        <Button Grid.Column="0" Content="OPEN LOGS FOLDER" Style="{StaticResource BtnSecondary}" Width="160" Command="{Binding OpenFolderCommand}"/>
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Content="COPY LOG" Style="{StaticResource BtnPrimary}" Width="110" Margin="0,0,12,0" Click="BtnCopy_Click"/>
-                            <Button Content="ERASE LOG" Style="{StaticResource BtnErase}" Width="110" Margin="0,0,12,0" Click="BtnErase_Click"/>
+                            <Button Content="COPY LOG" Style="{StaticResource BtnPrimary}" Width="110" Margin="0,0,12,0" Command="{Binding CopyCommand}"/>
+                            <Button Content="ERASE LOG" Style="{StaticResource BtnErase}" Width="110" Margin="0,0,12,0" Command="{Binding EraseCommand}"/>
+                            <!-- Close is left as a Click because Window closing is strictly a UI View responsibility -->
                             <Button Content="CLOSE" Style="{StaticResource BtnSecondary}" Width="100" Click="BtnClose_Click"/>
                         </StackPanel>
                     </Grid>

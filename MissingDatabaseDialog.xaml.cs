@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using LbpArchiveToolkit.ViewModels;
 
 namespace LbpArchiveToolkit
 {
@@ -9,6 +9,13 @@ namespace LbpArchiveToolkit
         public MissingDatabaseDialog()
         {
             InitializeComponent();
+            var viewService = (IViewService)Application.Current.MainWindow;
+            var vm = new MissingDatabaseDialogViewModel(viewService);
+            
+            vm.RequestClose += (result) => { DialogResult = result; Close(); };
+            vm.RequestHide += () => this.Opacity = 0;
+            
+            DataContext = vm;
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -17,26 +24,6 @@ namespace LbpArchiveToolkit
             {
                 DragMove();
             }
-        }
-
-        private void BtnSettings_Click(object sender, RoutedEventArgs e)
-        {
-            DialogResult = true; // Signals parent to open the Settings window
-        }
-
-        private void BtnDownload_Click(object sender, RoutedEventArgs e)
-        {
-            this.Opacity = 0;
-
-            var downloadsWin = new DownloadsWindow { Owner = this.Owner ?? this };
-            downloadsWin.ShowDialog();
-
-            DialogResult = true; // Closes dialog completely and signals parent to open Settings
-        }
-
-        private void BtnClose_Click(object sender, RoutedEventArgs e)
-        {
-            DialogResult = false;
         }
     }
 }

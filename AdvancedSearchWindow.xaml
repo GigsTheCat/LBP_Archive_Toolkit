@@ -138,10 +138,36 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Reusable ItemsControl Style for binding collections of Tag Checkboxes -->
+        <Style x:Key="TagItemsControl" TargetType="ItemsControl">
+            <Setter Property="Margin" Value="10,0,0,10"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding DisplayName}" 
+                                  IsChecked="{Binding IsSelected}" 
+                                  Margin="2"
+                                  Style="{DynamicResource TagCheckBox}">
+                            <CheckBox.LayoutTransform>
+                                <RotateTransform Angle="{Binding TiltAngle}"/>
+                            </CheckBox.LayoutTransform>
+                        </CheckBox>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
-
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
                 <TextBlock Text="Advanced Search Filters" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
@@ -176,13 +202,13 @@
                                 </Grid.ColumnDefinitions>
                                 
                                 <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="txtMinHearts" Grid.Column="1" Text="0" Width="80" HorizontalAlignment="Left"/>
+                                <TextBox Grid.Column="1" Text="{Binding MinHearts, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
                                 
                                 <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
-                                <TextBox x:Name="txtMinPlays" Grid.Column="3" Text="0" Width="80" HorizontalAlignment="Left"/>
+                                <TextBox Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
                             </Grid>
                             
-                            <CheckBox x:Name="chkTeamPick" Content="Team Picked Levels Only" Margin="0,15,0,0"/>
+                            <CheckBox Content="Team Picked Levels Only" IsChecked="{Binding IsTeamPick}" Margin="0,15,0,0"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
@@ -190,13 +216,13 @@
                             <TextBlock Text="LBP2 &amp; LBP3 LABELS" Style="{StaticResource SectionHeader}"/>
                             
                             <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp2ExperienceLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Lbp2ExperienceLabels}" Style="{StaticResource TagItemsControl}"/>
                             
                             <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp2TypeLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Lbp2TypeLabels}" Style="{StaticResource TagItemsControl}"/>
                             
                             <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp2ContentLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
+                            <ItemsControl ItemsSource="{Binding Lbp2ContentLabels}" Margin="10,0,0,15" Style="{StaticResource TagItemsControl}"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
@@ -204,31 +230,31 @@
                             <TextBlock Text="LBP3 ONLY LABELS" Style="{StaticResource SectionHeader}"/>
                             
                             <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp3ExperienceLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Lbp3ExperienceLabels}" Style="{StaticResource TagItemsControl}"/>
                             
                             <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp3TypeLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Lbp3TypeLabels}" Style="{StaticResource TagItemsControl}"/>
                             
                             <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp3ContentLabels" Orientation="Horizontal" Margin="10,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding Lbp3ContentLabels}" Style="{StaticResource TagItemsControl}"/>
 
                             <TextBlock Text="Characters" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
-                            <WrapPanel x:Name="wpLbp3CharactersLabels" Orientation="Horizontal" Margin="10,0,0,15"/>
+                            <ItemsControl ItemsSource="{Binding Lbp3CharacterLabels}" Margin="10,0,0,15" Style="{StaticResource TagItemsControl}"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
                             <!-- LBP1 TAGS -->
                             <TextBlock Text="LBP1 TAGS" Style="{StaticResource SectionHeader}"/>
-                            <WrapPanel x:Name="wpLbp1Tags" Orientation="Horizontal" Margin="0,5,0,15"/>
+                            <ItemsControl ItemsSource="{Binding Lbp1Tags}" Margin="0,5,0,15" Style="{StaticResource TagItemsControl}"/>
                             
                         </StackPanel>
                     </ScrollViewer>
 
                     <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="CLEAR ALL" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="100" Click="BtnClear_Click"/>
-                            <Button Content="APPLY FILTERS" Style="{StaticResource BtnPrimary}" Margin="0,0,15,0" MinWidth="120" Click="BtnApply_Click"/>
-                            <Button Content="APPLY &amp; SEARCH" Style="{StaticResource BtnPrimary}" MinWidth="140" Click="BtnApplyAndSearch_Click"/>
+                            <Button Content="CLEAR ALL" Command="{Binding ClearCommand}" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="100"/>
+                            <Button Content="APPLY FILTERS" Command="{Binding ApplyCommand}" Style="{StaticResource BtnPrimary}" Margin="0,0,15,0" MinWidth="120"/>
+                            <Button Content="APPLY &amp; SEARCH" Command="{Binding ApplyAndSearchCommand}" Style="{StaticResource BtnPrimary}" MinWidth="140"/>
                         </StackPanel>
                     </Border>
                 </Grid>

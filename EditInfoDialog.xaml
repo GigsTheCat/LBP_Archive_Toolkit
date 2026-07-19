@@ -58,34 +58,34 @@
 
             <DockPanel Grid.Row="2" Margin="0,0,0,20">
                 <Border DockPanel.Dock="Left" Width="100" Height="55" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="6" Margin="0,0,15,0" ClipToBounds="True" Background="{DynamicResource BgCardDarker}">
-                    <Image x:Name="imgIcon" Stretch="UniformToFill"/>
+                    <!-- Direct Binding to IconImage via ViewModel -->
+                    <Image Source="{Binding IconImage}" Stretch="UniformToFill"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="LEVEL ICON" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <Button Content="CHANGE ICON..." Style="{DynamicResource BtnActionBlue}" HorizontalAlignment="Left" Padding="15,6" FontSize="11" Click="BtnChangeIcon_Click"/>
+                    <Button Content="CHANGE ICON..." Command="{Binding ChangeIconCommand}" Style="{DynamicResource BtnActionBlue}" HorizontalAlignment="Left" Padding="15,6" FontSize="11"/>
                 </StackPanel>
             </DockPanel>
 
             <StackPanel Grid.Row="3" Margin="0,0,0,15">
                 <DockPanel Margin="0,0,0,5">
                     <TextBlock Text="LEVEL NAME" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                    <TextBlock x:Name="txtTitleCount" Text="0 / 100" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+                    <TextBlock Text="{Binding TitleCountText}" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
                 </DockPanel>
-                <TextBox x:Name="txtTitle" MaxLength="100" TextChanged="TxtTitle_TextChanged"/>
+                <TextBox Text="{Binding LevelName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
              </StackPanel>
 
             <StackPanel Grid.Row="4" Margin="0,0,0,25">
                 <DockPanel Margin="0,0,0,5">
                     <TextBlock Text="DESCRIPTION" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                    <TextBlock x:Name="txtDescCount" Text="0 / 1000" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+                    <TextBlock Text="{Binding DescCountText}" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
                 </DockPanel>
-                 <!-- VerticalContentAlignment="Top" keeps the text starting at the top in a multiline box -->
-                <TextBox x:Name="txtDescription" TextWrapping="Wrap" AcceptsReturn="True" Height="100" VerticalContentAlignment="Top" MaxLength="1000" TextChanged="TxtDescription_TextChanged"/>
+                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="100" VerticalContentAlignment="Top" MaxLength="1000"/>
              </StackPanel>
 
             <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="CANCEL" Style="{DynamicResource BtnSecondary}" Click="BtnCancel_Click"/>
-                <Button Content="SAVE" Style="{DynamicResource BtnPrimary}" Click="BtnSave_Click"/>
+                <Button Content="CANCEL" Command="{Binding CancelCommand}" Style="{DynamicResource BtnSecondary}"/>
+                <Button Content="SAVE" Command="{Binding SaveCommand}" Style="{DynamicResource BtnPrimary}"/>
             </StackPanel>
         </Grid>
     </ContentControl>

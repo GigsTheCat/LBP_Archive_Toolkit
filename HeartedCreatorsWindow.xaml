@@ -44,7 +44,7 @@
             </Style.Triggers>
         </Style>
 
-      </Window.Resources>
+    </Window.Resources>
 
     <Border Background="{DynamicResource BgPrimary}">
         <Border.Style>
@@ -94,10 +94,10 @@
 
                         <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                             <DataGrid x:Name="lvHearted" 
+                                      ItemsSource="{Binding HeartedList}" SelectedItem="{Binding SelectedUser}"
                                       Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
-                                      SelectionChanged="LvHearted_SelectionChanged">
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="CREATOR" Width="*" Binding="{Binding NpHandle}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
@@ -135,10 +135,10 @@
                                         <Rectangle.RenderTransform><TranslateTransform Y="8"/></Rectangle.RenderTransform>
                                         <Rectangle.Effect><BlurEffect Radius="12"/></Rectangle.Effect>
                                     </Rectangle>
-                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}" RadiusX="8" RadiusY="8"/>
-                                    <TextBlock x:Name="txtIconStatus" Text="Select a creator&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconRectFill}" RadiusX="8" RadiusY="8"/>
+                                    <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Visible">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -146,26 +146,26 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtUserNpHandle" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
-                                    <TextBlock x:Name="txtUserStats" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="txtUserNpHandle" Text="{Binding UserNpHandle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <TextBlock x:Name="txtUserStats" Text="{Binding UserStats}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <DockPanel Grid.Row="2" Margin="0,0,0,20">
                                     <TextBlock DockPanel.Dock="Top" Text="CREATOR SUMMARY" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                            <TextBlock x:Name="txtUserSummary" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtUserSummary" Text="{Binding UserSummary}" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                         </ScrollViewer>
                                     </Border>
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3">
-                                    <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                                    <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" IsEnabled="False" Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" Click="BtnRemove_Click"/>
-                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
-                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserContributions_Click" Visibility="Collapsed"/>
-                                    <Button x:Name="btnViewUserObjects" Content="VIEW OBJECTS BY" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserObjects_Click" Visibility="Collapsed"/>
-                                    <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" IsEnabled="False" Style="{DynamicResource BtnExtract}" Click="BtnDownloadAllLevels_Click"/>
+                                    <TextBlock x:Name="txtStatus" Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                    <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" Command="{Binding RemoveCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
+                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserLevelsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
+                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserContributionsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding ViewContributionsVisibility}"/>
+                                    <Button x:Name="btnViewUserObjects" Content="VIEW OBJECTS BY" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserObjectsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding ViewObjectsVisibility}"/>
+                                    <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" Command="{Binding DownloadAllLevelsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
                                 </StackPanel>
                             </Grid>
                         </ContentControl>

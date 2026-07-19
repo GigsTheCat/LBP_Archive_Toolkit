@@ -35,13 +35,16 @@
             <ContentControl Style="{DynamicResource PopitCard}" Margin="20,5,20,25" Padding="20">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                     <TextBlock Text="LBP Archive Toolkit" Foreground="{DynamicResource LbpOrange}" FontSize="26" FontWeight="Black" TextAlignment="Center" Margin="0,0,0,5"/>
-                    <TextBlock x:Name="txtVersion" Text="Version 1.0" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="14" TextAlignment="Center" Margin="0,0,0,20"/>
+                    
+                    <!-- BINDING APPLIED HERE -->
+                    <TextBlock x:Name="txtVersion" Text="{Binding VersionText}" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="14" TextAlignment="Center" Margin="0,0,0,20"/>
                     
                     <TextBlock Foreground="{DynamicResource FgPrimary}" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,30">
                         <Run Text="Created by GigsTheCat" FontSize="15"/>
                     </TextBlock>
                     
-                    <Button Content="CLOSE" Style="{DynamicResource BtnActionBlue}" Width="120" HorizontalAlignment="Center" Click="BtnClose_Click"/>
+                    <!-- COMMAND BINDING APPLIED HERE -->
+                    <Button Content="CLOSE" Style="{DynamicResource BtnActionBlue}" Width="120" HorizontalAlignment="Center" Command="{Binding CloseCommand}"/>
                 </StackPanel>
             </ContentControl>
         </DockPanel>

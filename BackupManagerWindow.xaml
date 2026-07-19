@@ -12,7 +12,6 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>        
-        
         <Style x:Key="BtnDelete" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
@@ -62,104 +61,109 @@
         <Grid>
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
 
-        <DockPanel>
-            <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Content="─" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
-                    <Button Content="◻" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
-                    <Button Content="✕" Style="{DynamicResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
-                </StackPanel>
-            </Grid>
-
-            <Grid Margin="20,20,20,25">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Text="LOCAL BACKUPS" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,15"/>
-
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="15"/>
-                        <ColumnDefinition Width="380"/> 
-                    </Grid.ColumnDefinitions>
-
-                    <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
-                        <DataGrid x:Name="lvBackups" 
-                                  Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
-                                  Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                  HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
-                                  SelectionChanged="LvBackups_SelectionChanged">
-                            
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="GAME" Width="100" Binding="{Binding Game}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                                <DataGridTextColumn Header="DATE BACKED UP" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </ContentControl>
-
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
-
-                    <ContentControl Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/> 
-                                <RowDefinition Height="Auto"/> 
-                                <RowDefinition Height="*"/>    
-                                <RowDefinition Height="Auto"/> 
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,15">
-                                <Ellipse Fill="Black" Opacity="0.3" Margin="-3" RenderTransformOrigin="0.5,0.5">
-                                    <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
-                                    <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
-                                </Ellipse>
-                                <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
-                                <TextBlock x:Name="txtIconStatus" Text="Select a backup&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                            </Grid>
-
-                            <TextBlock x:Name="txtLevelTitle" Grid.Row="1" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
-
-                            <DockPanel Grid.Row="2" Margin="0,0,0,20">
-                                <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpCyan}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
-                                <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <TextBlock x:Name="txtDescription" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                    </ScrollViewer>
-                                </Border>
-                            </DockPanel>
-
-                            <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-     <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
-    <Grid Margin="0">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="10"/> <!-- Spacing gap -->
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="10"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        
-        <Button x:Name="btnEdit" Grid.Column="0" Content="EDIT INFO" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Click="BtnEdit_Click"/>
-        <Button x:Name="btnMove" Grid.Column="2" Content="MOVE" IsEnabled="False" Style="{DynamicResource BtnActionBlue}" Click="BtnMove_Click"/>
-        <Button x:Name="btnDelete" Grid.Column="4" Content="DELETE" IsEnabled="False" Style="{DynamicResource BtnDelete}" Click="BtnDelete_Click"/>
-    </Grid>
-</StackPanel>
-                        </Grid>
-                    </ContentControl>
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Content="─" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
+                        <Button Content="◻" Style="{DynamicResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
+                        <Button Content="✕" Style="{DynamicResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
+                    </StackPanel>
                 </Grid>
 
-                <DockPanel Grid.Row="2" Margin="0,15,0,5">
-                    <Button x:Name="btnChangeDir" Content="CHANGE FOLDER..." DockPanel.Dock="Right" Style="{DynamicResource BtnSecondary}" Padding="15,6" FontSize="11" Click="BtnChangeDir_Click"/>
-                    <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </DockPanel>
-            </Grid>
-        </DockPanel>
-     </Grid>
+                <Grid Margin="20,20,20,25">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="LOCAL BACKUPS" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,15"/>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="380"/> 
+                        </Grid.ColumnDefinitions>
+
+                        <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
+                            <DataGrid x:Name="lvBackups" 
+                                      ItemsSource="{Binding BackupList}" SelectedItem="{Binding SelectedBackup}"
+                                      Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
+                                      Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
+                                
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="GAME" Width="100" Binding="{Binding Game}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="DATE BACKED UP" Width="180" Binding="{Binding DateSaved}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </ContentControl>
+
+                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
+
+                        <ContentControl Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/> 
+                                    <RowDefinition Height="Auto"/> 
+                                    <RowDefinition Height="*"/>    
+                                    <RowDefinition Height="Auto"/> 
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Width="180" Height="180" Margin="0,0,0,15">
+                                    <Ellipse Fill="Black" Opacity="0.3" Margin="-3" RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
+                                        <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
+                                    </Ellipse>
+                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconFill}"/>
+                                    <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="1" Text="{Binding LevelTitle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
+
+                                <DockPanel Grid.Row="2" Margin="0,0,0,20">
+                                    <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpCyan}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
+                                    <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <TextBlock Text="{Binding LevelDescription}" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </DockPanel>
+
+                                <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                                    <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
+                                    <Grid Margin="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/> <!-- Spacing gap -->
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Button Grid.Column="0" Content="EDIT INFO" Style="{DynamicResource BtnActionBlue}" 
+                                                Command="{Binding EditCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
+                                        
+                                        <Button Grid.Column="2" Content="MOVE" Style="{DynamicResource BtnActionBlue}" 
+                                                Command="{Binding MoveCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
+                                        
+                                        <Button Grid.Column="4" Content="DELETE" Style="{DynamicResource BtnDelete}" 
+                                                Command="{Binding DeleteCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
+                        </ContentControl>
+                    </Grid>
+
+                    <DockPanel Grid.Row="2" Margin="0,15,0,5">
+                        <Button Content="CHANGE FOLDER..." DockPanel.Dock="Right" Style="{DynamicResource BtnSecondary}" Padding="15,6" FontSize="11" Command="{Binding ChangeDirCommand}"/>
+                        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Grid>
+            </DockPanel>
+        </Grid>
     </Border>
 </Window>

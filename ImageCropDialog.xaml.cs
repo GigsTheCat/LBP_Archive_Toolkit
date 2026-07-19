@@ -1,8 +1,10 @@
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using LbpArchiveToolkit.ViewModels;
 
 namespace LbpArchiveToolkit
 {
@@ -10,6 +12,7 @@ namespace LbpArchiveToolkit
     {
         public string? CroppedImagePath { get; private set; }
 
+        private readonly ImageCropDialogViewModel _viewModel;
         private Point _startPoint;
         private double _originX;
         private double _originY;
@@ -19,6 +22,12 @@ namespace LbpArchiveToolkit
         public ImageCropDialog(string imagePath)
         {
             InitializeComponent();
+            _viewModel = new ImageCropDialogViewModel();
+            
+            _viewModel.RequestCancel += () => { DialogResult = false; Close(); };
+            _viewModel.RequestApply += BtnApply_Execute;
+            
+            DataContext = _viewModel;
             LoadImage(imagePath);
         }
 
@@ -28,29 +37,23 @@ namespace LbpArchiveToolkit
             try
             {
                 var bmp = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(imagePath);
-                imgSource.Source = bmp;
+                _viewModel.ImageSource = bmp;
 
                 double imgW = bmp.PixelWidth;
                 double imgH = bmp.PixelHeight;
 
-                // Force physical pixel mapping to bypass WPF's internal DPI logic
                 imgSource.Width = imgW;
                 imgSource.Height = imgH;
 
-                // Establish the baseline scale required to fill the viewport boundary
                 double minScale = Math.Max(320.0 / imgW, 176.0 / imgH);
 
-                // Temporarily open the slider bounds wide to prevent clamping bugs
                 sliderZoom.Minimum = 0.001;
                 sliderZoom.Maximum = 10000.0;
-
                 sliderZoom.Value = minScale;
 
-                // Now apply correct limits based on the scale
                 sliderZoom.Minimum = minScale * 0.5;
                 sliderZoom.Maximum = Math.Max(minScale * 6.0, 4.0);
 
-                // Exactly center the image in the 480x360 workspace based on the starting scale
                 double scaledW = imgW * minScale;
                 double scaledH = imgH * minScale;
 
@@ -74,14 +77,12 @@ namespace LbpArchiveToolkit
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed && !_isDragging)
-            {
                 DragMove();
-            }
         }
 
         private void GridWorkspace_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (imgSource.Source == null) return;
+            if (_viewModel.ImageSource == null) return;
             gridWorkspace.CaptureMouse();
             _startPoint = e.GetPosition(gridWorkspace);
             _originX = translateTransform.X;
@@ -94,11 +95,8 @@ namespace LbpArchiveToolkit
         {
             if (!_isDragging) return;
             Point currentPoint = e.GetPosition(gridWorkspace);
-            double offsetX = currentPoint.X - _startPoint.X;
-            double offsetY = currentPoint.Y - _startPoint.Y;
-
-            translateTransform.X = _originX + offsetX;
-            translateTransform.Y = _originY + offsetY;
+            translateTransform.X = _originX + (currentPoint.X - _startPoint.X);
+            translateTransform.Y = _originY + (currentPoint.Y - _startPoint.Y);
         }
 
         private void GridWorkspace_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -112,9 +110,7 @@ namespace LbpArchiveToolkit
 
         private void GridWorkspace_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (imgSource.Source == null) return;
-
-            // Zoom dynamically based on 10% of current scale for smooth scrolling
+            if (_viewModel.ImageSource == null) return;
             double zoomStep = sliderZoom.Value * 0.1;
             double currentScale = sliderZoom.Value;
 
@@ -132,62 +128,40 @@ namespace LbpArchiveToolkit
 
             double oldScale = scaleTransform.ScaleX;
             double newScale = e.NewValue;
-
             if (oldScale == 0) return;
 
             double ratio = newScale / oldScale;
-
-            // Lock the zoom anchor to the center of the Canvas workspace
             double cx = 240.0;
             double cy = 180.0;
 
-            double dx = cx - translateTransform.X;
-            double dy = cy - translateTransform.Y;
-
-            // Adjust X/Y translations dynamically so the image scales uniformly from the center
-            translateTransform.X = cx - (dx * ratio);
-            translateTransform.Y = cy - (dy * ratio);
+            translateTransform.X = cx - ((cx - translateTransform.X) * ratio);
+            translateTransform.Y = cy - ((cy - translateTransform.Y) * ratio);
 
             scaleTransform.ScaleX = newScale;
             scaleTransform.ScaleY = newScale;
         }
 
-        private void BtnCancel_Click(object sender, RoutedEventArgs e)
-        {
-            DialogResult = false;
-            Close();
-        }
-
-        private void BtnApply_Click(object sender, RoutedEventArgs e)
+        private void BtnApply_Execute()
         {
             try
             {
                 DpiScale dpi = VisualTreeHelper.GetDpi(canvasWorkspace);
-
                 int rtbW = (int)Math.Round(480 * dpi.DpiScaleX);
                 int rtbH = (int)Math.Round(360 * dpi.DpiScaleY);
 
                 RenderTargetBitmap rtb = new RenderTargetBitmap(rtbW, rtbH, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-
                 canvasWorkspace.Measure(new Size(480, 360));
                 canvasWorkspace.Arrange(new Rect(new Size(480, 360)));
                 rtb.Render(canvasWorkspace);
 
-                int cropX = (int)Math.Round(80 * dpi.DpiScaleX);
-                int cropY = (int)Math.Round(92 * dpi.DpiScaleY);
-                int cropW = (int)Math.Round(320 * dpi.DpiScaleX);
-                int cropH = (int)Math.Round(176 * dpi.DpiScaleY);
-
-                // Ensure crop boundaries remain within rendered limits
-                cropX = Math.Max(0, Math.Min(cropX, rtbW - 1));
-                cropY = Math.Max(0, Math.Min(cropY, rtbH - 1));
-                cropW = Math.Max(1, Math.Min(cropW, rtbW - cropX));
-                cropH = Math.Max(1, Math.Min(cropH, rtbH - cropY));
+                int cropX = Math.Max(0, Math.Min((int)Math.Round(80 * dpi.DpiScaleX), rtbW - 1));
+                int cropY = Math.Max(0, Math.Min((int)Math.Round(92 * dpi.DpiScaleY), rtbH - 1));
+                int cropW = Math.Max(1, Math.Min((int)Math.Round(320 * dpi.DpiScaleX), rtbW - cropX));
+                int cropH = Math.Max(1, Math.Min((int)Math.Round(176 * dpi.DpiScaleY), rtbH - cropY));
 
                 CroppedBitmap cropped = new CroppedBitmap(rtb, new Int32Rect(cropX, cropY, cropW, cropH));
-
-                // Standardize output back to exactly 320x176 pixels
                 BitmapSource finalBitmap = cropped;
+
                 if (dpi.DpiScaleX != 1.0 || dpi.DpiScaleY != 1.0)
                 {
                     var scale = new ScaleTransform(1.0 / dpi.DpiScaleX, 1.0 / dpi.DpiScaleY);

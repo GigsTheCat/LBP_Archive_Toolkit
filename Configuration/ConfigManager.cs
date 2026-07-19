@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using LbpArchiveToolkit.Models;
 
 namespace LbpArchiveToolkit.Configuration
 {
@@ -24,7 +28,8 @@ namespace LbpArchiveToolkit.Configuration
         public static bool LoadDbIntoRam { get; set; } = false;
 
         public static List<string> LegacySavedLevels { get; set; } = [];
-        public static MainWindow.SearchState? LastSearch { get; set; }
+        
+        public static SearchState? LastSearch { get; set; }
 
         public static double WindowWidth { get; set; } = 1250;
         public static double WindowHeight { get; set; } = 720;
@@ -55,6 +60,10 @@ namespace LbpArchiveToolkit.Configuration
         /// A direct 1:1 schema used to map JSON files to the static manager state safely.
         /// </summary>
         [JsonSerializable(typeof(ConfigData))]
+        [JsonSerializable(typeof(SearchState))]
+        [JsonSerializable(typeof(LevelItem))]
+        [JsonSerializable(typeof(UserItem))]
+        [JsonSerializable(typeof(AdvancedSearchCriteria))]
         internal partial class ConfigJsonContext : JsonSerializerContext { }
 
         internal class ConfigData
@@ -77,17 +86,14 @@ namespace LbpArchiveToolkit.Configuration
             public bool IsMaximized { get; set; }
             public DateTime LastUpdateCheck { get; set; }
             public List<string>? SavedLevels { get; set; }
-            public MainWindow.SearchState? LastSearch { get; set; }
+            
+            public SearchState? LastSearch { get; set; }
         }
 
         #endregion
 
         #region Public API
 
-        /// <summary>
-        /// Reads the configuration file from disk. Will automatically migrate legacy config files 
-        /// found in the app directory to the user's secure AppData folder.
-        /// </summary>
         public static void LoadConfig()
         {
             if (!File.Exists(ConfigPath) && File.Exists(LegacyConfigPath))
@@ -163,6 +169,7 @@ namespace LbpArchiveToolkit.Configuration
                     WindowTop = WindowTop,
                     IsMaximized = IsMaximized,
                     LastUpdateCheck = LastUpdateCheck,
+                    SavedLevels = LegacySavedLevels,
                     LastSearch = LastSearch
                 };
 
@@ -186,9 +193,6 @@ namespace LbpArchiveToolkit.Configuration
             }
         }
 
-        /// <summary>
-        /// Commits the current static state out to the configuration JSON file in AppData asynchronously.
-        /// </summary>
         public static Task SaveConfigAsync()
         {
             return Task.Run(SaveConfig);

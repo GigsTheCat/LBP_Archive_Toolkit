@@ -12,7 +12,6 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        
         <Style x:Key="BtnRemove" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Style.Triggers>
@@ -33,7 +32,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
     </Window.Resources>
 
     <Border Background="{DynamicResource BgPrimary}">
@@ -84,10 +82,10 @@
 
                         <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                             <DataGrid x:Name="lvHearted" 
+                                      ItemsSource="{Binding HeartedList}" SelectedItem="{Binding SelectedLevel}"
                                       Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
-                                      SelectionChanged="LvHearted_SelectionChanged">
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
@@ -115,16 +113,16 @@
                                     </Ellipse>
                                     
                                     <!-- Ribbon Background Elements for MM Pick -->
-                                    <Path x:Name="mmPickTails" Visibility="Hidden" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
+                                    <Path x:Name="mmPickTails" Visibility="{Binding MmPickVisibility}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
                                         <Path.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.5" Direction="270"/></Path.Effect>
                                     </Path>
-                                    <Ellipse x:Name="mmPickRosette" Visibility="Hidden" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
-                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="Hidden" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
+                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding MmPickVisibility}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
+                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding MmPickVisibility}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
 
-                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
-                                    <TextBlock x:Name="txtIconStatus" Text="Select a level&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconStroke}" StrokeThickness="5" Fill="{Binding IconFill}"/>
+                                    <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Visible">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -132,23 +130,29 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtLevelTitle" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
-                                    <TextBlock x:Name="txtCreator" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="txtLevelTitle" Text="{Binding LevelTitle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <TextBlock x:Name="txtCreator" Text="{Binding LevelCreator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <DockPanel Grid.Row="2" Margin="0,0,0,20">
                                     <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                            <TextBlock x:Name="txtDescription" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtDescription" Text="{Binding LevelDescription}" Foreground="{DynamicResource FgPrimary}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                         </ScrollViewer>
                                     </Border>
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3">
-                                    <TextBlock x:Name="txtStatus" Text="Ready." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                                    <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" IsEnabled="False" Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" Click="BtnRemove_Click"/>
-                                    <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" IsEnabled="False" Style="{DynamicResource BtnExtract}" Click="BtnExtract_Click"/>
+                                    <TextBlock x:Name="txtStatus" Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                    
+                                    <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" 
+                                            Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" 
+                                            Command="{Binding RemoveCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
+                                            
+                                    <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" 
+                                            Style="{DynamicResource BtnExtract}" 
+                                            Command="{Binding ExtractCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
                                 </StackPanel>
                             </Grid>
                         </ContentControl>

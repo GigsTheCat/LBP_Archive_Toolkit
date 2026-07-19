@@ -128,147 +128,141 @@
         </Style>
     </Window.Resources>
 
+
     <Border CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BorderSubtle}" Background="{DynamicResource BgPrimary}">
-
-       <Grid>
+        <Grid>
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
-        <DockPanel>
-            <!-- Title Bar -->
-            <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- Main Card Window -->
-            <ContentControl Style="{DynamicResource PopitCard}" Margin="20,10,20,25">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> 
-                        <RowDefinition Height="*"/>    
-                        <RowDefinition Height="Auto"/> 
-                    </Grid.RowDefinitions>
-
-                    <!-- HEADER -->
-                    <Border Grid.Row="0" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,0,0,1" Padding="25,20,25,15">
-                        <TextBlock Text="CONFIG EDITOR" Foreground="{DynamicResource LbpOrange}" FontWeight="Black" FontSize="20"/>
-                    </Border>
-
-                    <!-- BODY -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="25,0,25,25">
-                            
-                            <!-- DIRECTORIES SECTION -->
-                            <TextBlock Text="PATHS &amp; DIRECTORIES" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="130"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Database Path:" Style="{StaticResource LabelText}"/>
-                                <TextBox x:Name="txtDbPath" Grid.Row="0" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="0" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseDb_Click"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Backup Directory:" Style="{StaticResource LabelText}"/>
-                                <TextBox x:Name="txtBackupDir" Grid.Row="1" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="1" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseBackup_Click"/>
-
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Local Archive Path:" Style="{StaticResource LabelText}"/>
-                                <TextBox x:Name="txtLocalArchive" Grid.Row="2" Grid.Column="1" Margin="0,6,10,6"/>
-                                <Button Grid.Row="2" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Click="BtnBrowseLocalArchive_Click"/>
-                            </Grid>
-
-                            <Rectangle Style="{StaticResource Separator}"/>
-
-                            <!-- NETWORK SECTION -->
-                            <TextBlock Text="NETWORK &amp; DOWNLOADS" Style="{StaticResource SectionHeader}"/>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="160"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Download Server:" Style="{StaticResource LabelText}"/>
-                                <ComboBox x:Name="cmbServer" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6">
-                                    <ComboBoxItem Content="zaprit"/>
-                                    <ComboBoxItem Content="bonsai"/>
-                                    <ComboBoxItem Content="archive"/>
-                                    <ComboBoxItem Content="local"/>
-                                </ComboBox>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Parallel Downloads:" Style="{StaticResource LabelText}"/>
-                                <TextBox x:Name="txtThreads" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="80" Margin="0,6,0,6"/>
-                            </Grid>
-                            
-                            <!-- APPEARANCE SECTION -->
-                            <Rectangle Style="{StaticResource Separator}"/>
-
-                            <TextBlock Text="APPEARANCE" Style="{StaticResource SectionHeader}"/>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="160"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="App Theme:" Style="{StaticResource LabelText}"/>
-                                <ComboBox x:Name="cmbTheme" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6" SelectionChanged="CmbTheme_SelectionChanged">
-                                    <!-- Items are populated dynamically from ThemeManager -->
-                                </ComboBox>
-                            </Grid>
-
-                            <!-- BEHAVIOR SECTION -->
-                            <TextBlock Text="ADVANCED BEHAVIOR" Style="{StaticResource SectionHeader}"/>
-                            <StackPanel>
-                                <DockPanel Margin="0,0,0,10">
-                                    <TextBlock Text="Backup Game Region:" Style="{StaticResource LabelText}" Width="160"/>
-                                    <ComboBox x:Name="cmbRegion" HorizontalAlignment="Left" Width="200">
-                                        <ComboBoxItem Content="US (NTSC-U)"/>
-                                        <ComboBoxItem Content="EU (PAL)"/>
-                                        <ComboBoxItem Content="JP (NTSC-J)"/>
-                                    </ComboBox>
-                                </DockPanel>
-                                <CheckBox x:Name="chkForceLbp3" Content="Force LBP3 Backups (Useful if playing on retail LBP3)"/>
-                                <CheckBox x:Name="chkLbp2Beta" Content="LBP2 Beta to Retail (Enable if importing corrupt errors)"/>
-                                <CheckBox x:Name="chkUseMmap" Content="Use mmap for database (faster search, uses slightly more RAM)"/>
-                                <CheckBox x:Name="chkLoadDbIntoRam" Content="Load entire DB into RAM (Extreme speed, requires ~5GB+ free RAM)"/>
-                            </StackPanel>
-
-                            <Rectangle Style="{StaticResource Separator}"/>
-
-                            <!-- DATA MANAGEMENT SECTION -->
-                            <TextBlock Text="DATA MANAGEMENT" Style="{StaticResource SectionHeader}"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Forget Saved Levels" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Margin="0,0,10,0" Click="BtnForgetLevels_Click"/>
-                                <Button Content="Reset to Default" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Click="BtnResetDefaults_Click"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
-
-                    <!-- FOOTER -->
-                    <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="CANCEL" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,0,15,0" MinWidth="120" Click="BtnCancel_Click"/>
-                            <Button Content="SAVE SETTINGS" Style="{DynamicResource BubbleButton}" Background="{DynamicResource LbpEmerald}" Foreground="#003D2A" MinWidth="150" Click="BtnSave_Click"/>
-                        </StackPanel>
-                    </Border>
+            <DockPanel>
+                <!-- Title Bar -->
+                <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
+                    </StackPanel>
                 </Grid>
-            </ContentControl>
-        </DockPanel>
-   </Grid>
+
+                <!-- Main Card Window -->
+                <ContentControl Style="{DynamicResource PopitCard}" Margin="20,10,20,25">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> 
+                            <RowDefinition Height="*"/>    
+                            <RowDefinition Height="Auto"/> 
+                        </Grid.RowDefinitions>
+
+                        <!-- HEADER -->
+                        <Border Grid.Row="0" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,0,0,1" Padding="25,20,25,15">
+                            <TextBlock Text="CONFIG EDITOR" Foreground="{DynamicResource LbpOrange}" FontWeight="Black" FontSize="20"/>
+                        </Border>
+
+                        <!-- BODY -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="25,0,25,25">
+                                
+                                <!-- DIRECTORIES SECTION -->
+                                <TextBlock Text="PATHS &amp; DIRECTORIES" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Database Path:" Style="{StaticResource LabelText}"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,10,6"/>
+                                    <Button Grid.Row="0" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Command="{Binding BrowseDbCommand}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Backup Directory:" Style="{StaticResource LabelText}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BackupDirectory, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,10,6"/>
+                                    <Button Grid.Row="1" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Command="{Binding BrowseBackupCommand}"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Local Archive Path:" Style="{StaticResource LabelText}"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LocalArchivePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,10,6"/>
+                                    <Button Grid.Row="2" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Command="{Binding BrowseLocalArchiveCommand}"/>
+                                </Grid>
+
+                                <Rectangle Style="{StaticResource Separator}"/>
+
+                                <!-- NETWORK SECTION -->
+                                <TextBlock Text="NETWORK &amp; DOWNLOADS" Style="{StaticResource SectionHeader}"/>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Download Server:" Style="{StaticResource LabelText}"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6" SelectedValue="{Binding DownloadServer}" SelectedValuePath="Content">
+                                        <ComboBoxItem Content="zaprit"/>
+                                        <ComboBoxItem Content="bonsai"/>
+                                        <ComboBoxItem Content="archive"/>
+                                        <ComboBoxItem Content="local"/>
+                                    </ComboBox>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Parallel Downloads:" Style="{StaticResource LabelText}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MaxParallelDownloads, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Width="80" Margin="0,6,0,6"/>
+                                </Grid>
+                                
+                                <Rectangle Style="{StaticResource Separator}"/>
+
+                                <!-- APPEARANCE SECTION -->
+                                <TextBlock Text="APPEARANCE" Style="{StaticResource SectionHeader}"/>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="App Theme:" Style="{StaticResource LabelText}"/>
+                                    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="200" Margin="0,6,0,6" ItemsSource="{Binding AvailableThemes}" DisplayMemberPath="Value" SelectedItem="{Binding SelectedTheme}" />
+                                </Grid>
+
+                                <!-- BEHAVIOR SECTION -->
+                                <TextBlock Text="ADVANCED BEHAVIOR" Style="{StaticResource SectionHeader}"/>
+                                <StackPanel>
+                                    <DockPanel Margin="0,0,0,10">
+                                        <TextBlock Text="Backup Game Region:" Style="{StaticResource LabelText}" Width="160"/>
+                                        <ComboBox HorizontalAlignment="Left" Width="200" ItemsSource="{Binding AvailableRegions}" SelectedItem="{Binding SelectedRegion}" />
+                                    </DockPanel>
+                                    <CheckBox Content="Force LBP3 Backups (Useful if playing on retail LBP3)" IsChecked="{Binding ForceLbp3Backups}"/>
+                                    <CheckBox Content="LBP2 Beta to Retail (Enable if importing corrupt errors)" IsChecked="{Binding Lbp2BetaToRetail}"/>
+                                    <CheckBox Content="Use mmap for database (faster search, uses slightly more RAM)" IsChecked="{Binding UseMemoryMappedIO}"/>
+                                    <CheckBox Content="{Binding RamUsageText}" IsChecked="{Binding LoadDbIntoRam}"/>
+                                </StackPanel>
+
+                                <Rectangle Style="{StaticResource Separator}"/>
+
+                                <!-- DATA MANAGEMENT SECTION -->
+                                <TextBlock Text="DATA MANAGEMENT" Style="{StaticResource SectionHeader}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Forget Saved Levels" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Margin="0,0,10,0" Command="{Binding ForgetLevelsCommand}"/>
+                                    <Button Content="Reset to Default" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,8" Command="{Binding ResetDefaultsCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- FOOTER -->
+                        <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="CANCEL" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,0,15,0" MinWidth="120" Command="{Binding CancelCommand}"/>
+                                <Button Content="SAVE SETTINGS" Style="{DynamicResource BubbleButton}" Background="{DynamicResource LbpEmerald}" Foreground="#003D2A" MinWidth="150" Command="{Binding SaveCommand}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ContentControl>
+            </DockPanel>
+        </Grid>
     </Border>
 </Window>

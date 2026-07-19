@@ -1,81 +1,41 @@
-using System.IO;
+using System;
 using System.Windows;
 using System.Windows.Input;
+using LbpArchiveToolkit.ViewModels;
 
 namespace LbpArchiveToolkit
 {
     public partial class EditInfoDialog : Window
     {
-        public string LevelName => txtTitle.Text;
-        public string Description => txtDescription.Text;
-        public string? NewIconPath { get; private set; }
+        private readonly EditInfoDialogViewModel _viewModel;
+
+        // Passed through from ViewModel so the instantiating class 
+        // doesn't have to be refactored too!
+        public string LevelName => _viewModel.LevelName;
+        public string Description => _viewModel.Description;
+        public string? NewIconPath => _viewModel.NewIconPath;
 
         public EditInfoDialog(string currentName, string currentDesc, string? currentIconPath)
         {
             InitializeComponent();
-            txtTitle.Text = currentName;
-            txtDescription.Text = currentDesc;
-            UpdateTitleCount();
-            UpdateDescCount();
+            
+            _viewModel = new EditInfoDialogViewModel(this, currentName, currentDesc, currentIconPath);
 
-            if (File.Exists(currentIconPath))
+            // Reacts to commands setting the dialog's close request
+            _viewModel.RequestClose += (result) =>
             {
-                try
-                {
-                    imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(currentIconPath);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.Log("EditInfoDialog.Constructor", ex);
-                }
-            }
-        }
-
-        private void BtnChangeIcon_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-                Title = "Select New Icon"
+                DialogResult = result;
+                Close();
             };
 
-            if (dlg.ShowDialog() == true)
-            {
-                // Intercept selection and pipe it to our custom interactive cropper
-                var cropDialog = new ImageCropDialog(dlg.FileName)
-                {
-                    Owner = this
-                };
-
-                if (cropDialog.ShowDialog() == true)
-                {
-                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != cropDialog.CroppedImagePath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.BtnChangeIcon_Click", ex); }
-                    }
-
-                    NewIconPath = cropDialog.CroppedImagePath;
-                    try
-                    {
-                        imgIcon.Source = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(NewIconPath!);
-                    }
-                    catch
-                    {
-                        CustomDialog.Show(this, "Failed to load the cropped image preview.", "Error");
-                        NewIconPath = null;
-                    }
-                }
-            }
+            DataContext = _viewModel;
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            if (DialogResult != true && !string.IsNullOrEmpty(NewIconPath))
+            if (DialogResult != true)
             {
-                if (NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
-                {
-                    try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialog.OnClosed", ex); }
-                }
+                _viewModel.CleanupOnCancel();
             }
             base.OnClosed(e);
         }
@@ -84,14 +44,5 @@ namespace LbpArchiveToolkit
         {
             if (e.ButtonState == MouseButtonState.Pressed) DragMove();
         }
-
-        private void BtnSave_Click(object sender, RoutedEventArgs e) => DialogResult = true;
-        private void BtnCancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
-
-        private void TxtTitle_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateTitleCount();
-        private void TxtDescription_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateDescCount();
-
-        private void UpdateTitleCount() => txtTitleCount?.Text = $"{txtTitle.Text.Length} / 100";
-        private void UpdateDescCount() => txtDescCount?.Text = $"{txtDescription.Text.Length} / 1000";
     }
 }

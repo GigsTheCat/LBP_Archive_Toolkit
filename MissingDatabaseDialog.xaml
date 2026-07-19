@@ -8,9 +8,6 @@
         FontFamily="Segoe UI" Topmost="False">
     
     <Window.Resources>
-        
-
-        
         <Style x:Key="BubbleButton" TargetType="Button">
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -34,7 +31,6 @@
             </Setter>
         </Style>
 
-        <!-- Base sizing for the dialog's buttons to make them big and chunky -->
         <Style x:Key="DialogButtonBase" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="24,12"/>
@@ -73,11 +69,9 @@
     </Window.Resources>
 
     <Border BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="16" Margin="25" Padding="25" Background="{DynamicResource BgCard}">
-
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="6" Opacity="0.4" Direction="270" Color="Black"/>
         </Border.Effect>
-        
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -91,13 +85,12 @@
             </DockPanel>
 
             <Rectangle Grid.Row="1" Fill="{DynamicResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
-
             <TextBlock Grid.Row="2" Text="Could not find dry.db" Foreground="{DynamicResource FgPrimary}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24" Margin="0,0,0,30"/>
 
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="SETTINGS" Style="{DynamicResource BtnSettings}" Click="BtnSettings_Click"/>
-                <Button Content="DOWNLOAD" Style="{DynamicResource BtnDownload}" Click="BtnDownload_Click"/>
-                <Button Content="CLOSE" Style="{DynamicResource BtnClose}" Click="BtnClose_Click"/>
+                <Button Content="SETTINGS" Style="{DynamicResource BtnSettings}" Command="{Binding SettingsCommand}"/>
+                <Button Content="DOWNLOAD" Style="{DynamicResource BtnDownload}" Command="{Binding DownloadCommand}"/>
+                <Button Content="CLOSE" Style="{DynamicResource BtnClose}" Command="{Binding CloseCommand}"/>
             </StackPanel>
         </Grid>
     </Border>

@@ -49,7 +49,7 @@
                                 <TextBlock Text="Basic Database (2.5 GB)" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="16"/>
                                 <TextBlock Text="Standard level data. No advanced search indices." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Click="BtnDownloadBasicDb_Click"/>
+                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Command="{Binding DownloadBasicDbCommand}"/>
                         </Grid>
                     </Border>
 
@@ -64,7 +64,7 @@
                                 <TextBlock Text="Fast Database (5.5 GB)" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="16"/>
                                 <TextBlock Text="Includes FTS5 (faster searching) + Level Contributors." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Click="BtnDownloadFastDb_Click"/>
+                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Command="{Binding DownloadFastDbCommand}"/>
                         </Grid>
                     </Border>
 
@@ -79,7 +79,7 @@
                                 <TextBlock Text="Full Fast Database (15 GB)" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="16"/>
                                 <TextBlock Text="Includes FTS5 + Level &amp; Object Contributors. All features available." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Click="BtnDownloadFullFastDb_Click"/>
+                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Command="{Binding DownloadFullFastDbCommand}"/>
                         </Grid>
                     </Border>
 

@@ -4,7 +4,7 @@
         Title="LBP Archive Toolkit" 
         Height="960" Width="1520" 
         MinHeight="720" MinWidth="1250"
-        WindowStartupLocation="CenterScreen" Loaded="Window_Loaded"
+        WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI"
         WindowStyle="None" BorderThickness="0"
         AllowsTransparency="True" Background="Transparent">
@@ -229,7 +229,6 @@
         </Style>
     </Window.Resources>
 
-    <!-- ROUNDED APP WRAPPER -->
     <Border Background="{DynamicResource BgPrimary}">
         <Border.Style>
             <Style TargetType="Border">
@@ -247,123 +246,118 @@
             </Style>
         </Border.Style>
 
-        <!-- WRAP EVERYTHING IN THIS GRID -->
         <Grid>
             <ContentControl Template="{DynamicResource AnimatedBgTemplate}" IsHitTestVisible="False"/>
 
             <DockPanel>
-            <!-- Custom Title Bar -->
-            <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Content="─" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
-                    <Button Content="◻" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
-                    <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- Menu -->
-            <Menu DockPanel.Dock="Top" Background="Transparent" Padding="10,4">
-                <MenuItem Header="Options">
-                    <MenuItem Header="Settings..." Click="MenuSettings_Click"/>
-                </MenuItem>
-                <MenuItem Header="Lists">
-                    <MenuItem Header="Backup Manager..." Click="MenuBackupManager_Click"/>
-                    <MenuItem Header="Hearted Levels..." Click="MenuHeartedLevels_Click"/>
-                    <MenuItem Header="Hearted Creators..." Click="MenuHeartedCreators_Click"/>
-                </MenuItem>
-                <MenuItem Header="Info">
-                    <MenuItem Header="Downloads..." Click="MenuDownloads_Click"/>
-                    <MenuItem Header="Log Viewer" Click="MenuLogViewer_Click"/>
-                    <MenuItem Header="About" Click="MenuAbout_Click"/>
-                </MenuItem>
-            </Menu>
-
-            <Grid Margin="20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/> 
-                    <RowDefinition Height="*"/>    
-                    <RowDefinition Height="Auto"/> 
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>     
-                    <ColumnDefinition Width="15"/>    
-                    <ColumnDefinition Width="340"/>   
-                </Grid.ColumnDefinitions>
-
-                <ContentControl Grid.Row="0" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,15">
-                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,15,0">
-                                <Button x:Name="btnBack" Content="←" Width="40" Height="40" Margin="0,0,8,0" FontSize="18" Style="{DynamicResource BtnNav}" IsEnabled="False" Click="BtnBack_Click"/>
-                                <Button x:Name="btnForward" Content="→" Width="40" Height="40" FontSize="18" Style="{DynamicResource BtnNav}" IsEnabled="False" Click="BtnForward_Click"/>
-                            </StackPanel>
-                            
-                            <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="Collapsed" Click="BtnCancelSearch_Click"/>
-                            <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Click="BtnSearch_Click"/>
-                            
-                            <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
-                                <TextBox x:Name="txtSearch" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15" KeyDown="TxtSearch_KeyDown">
-                                    <TextBox.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Command="Cut" Header="Cut" />
-                                            <MenuItem Command="Copy" Header="Copy" />
-                                            <MenuItem Command="Paste" Header="Paste" />
-                                        </ContextMenu>
-                                    </TextBox.ContextMenu>
-                                </TextBox>
-                            </Border>
-                        </DockPanel>
-
-                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Search Type:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="cmbSearchType" SelectedIndex="0" Width="125" SelectionChanged="CmbSearchType_SelectionChanged" Margin="0,0,8,5">
-                                <ComboBoxItem Content="Levels"/>
-                                <ComboBoxItem Content="Creators"/>
-                                <ComboBoxItem x:Name="cbiContributions" Content="Contributions"/>
-                                <ComboBoxItem x:Name="cbiObjects" Content="Objects By"/>
-                            </ComboBox>
-
-                            <!-- Level Filters Panel -->
-                            <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbGame" SelectedIndex="0" Width="110" Margin="0,0,8,5">
-                                    <ComboBoxItem Content="All Games"/>
-                                    <ComboBoxItem Content="LBP 1"/>
-                                    <ComboBoxItem Content="LBP 2"/>
-                                    <ComboBoxItem Content="LBP 3"/>
-                                </ComboBox>
-
-                                <TextBlock Text="Genre:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbGenre" SelectedIndex="0" Width="150" Margin="0,0,8,5">
-                                    <ComboBoxItem Content="All Genres"/>
-                                </ComboBox>
-                            </StackPanel>
-
-                            <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="cmbLimit" SelectedIndex="2" Width="75" Margin="0,0,15,5">
-                                <ComboBoxItem Content="100"/>
-                                <ComboBoxItem Content="200"/>
-                                <ComboBoxItem Content="500"/>
-                                <ComboBoxItem Content="1000"/>
-                                <ComboBoxItem Content="All"/>
-                            </ComboBox>
-
-                            <CheckBox x:Name="chkExact" Content="Exact Phrase" Margin="0,0,15,5"/>
-                            <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" Margin="0,0,15,5"/>
-                            <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Click="BtnAdvanced_Click"/>
-                        </WrapPanel>
+                <Grid DockPanel.Dock="Top" Height="32" Background="Transparent">
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0" IsHitTestVisible="False"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Content="─" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Minimize_Click"/>
+                        <Button Content="◻" Style="{StaticResource TitleBarBtn}" Click="TitleBar_Maximize_Click"/>
+                        <Button Content="✕" Style="{StaticResource TitleBarCloseBtn}" Click="TitleBar_Close_Click"/>
                     </StackPanel>
-                </ContentControl>
+                </Grid>
 
-                <ContentControl Grid.Row="1" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
+                <Menu DockPanel.Dock="Top" Background="Transparent" Padding="10,4">
+                    <MenuItem Header="Options">
+                        <MenuItem Header="Settings..." Command="{Binding OpenSettingsCommand}"/>
+                    </MenuItem>
+                    <MenuItem Header="Lists">
+                        <MenuItem Header="Backup Manager..." Command="{Binding OpenBackupManagerCommand}"/>
+                        <MenuItem Header="Hearted Levels..." Command="{Binding OpenHeartedLevelsCommand}"/>
+                        <MenuItem Header="Hearted Creators..." Command="{Binding OpenHeartedCreatorsCommand}"/>
+                    </MenuItem>
+                    <MenuItem Header="Info">
+                        <MenuItem Header="Downloads..." Command="{Binding OpenDownloadsCommand}"/>
+                        <MenuItem Header="Log Viewer" Command="{Binding OpenLogViewerCommand}"/>
+                        <MenuItem Header="About" Command="{Binding OpenAboutCommand}"/>
+                    </MenuItem>
+                </Menu>
+
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> 
+                        <RowDefinition Height="*"/>    
+                        <RowDefinition Height="Auto"/> 
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>     
+                        <ColumnDefinition Width="15"/>    
+                        <ColumnDefinition Width="340"/>   
+                    </Grid.ColumnDefinitions>
+
+                    <ContentControl Grid.Row="0" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="20" Margin="0,0,0,20">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,15">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,15,0">
+                                    <Button x:Name="btnBack" Content="←" Width="40" Height="40" Margin="0,0,8,0" FontSize="18" Style="{DynamicResource BtnNav}" Command="{Binding BackCommand}"/>
+                                    <Button x:Name="btnForward" Content="→" Width="40" Height="40" FontSize="18" Style="{DynamicResource BtnNav}" Command="{Binding ForwardCommand}"/>
+                                </StackPanel>
+                                
+                                <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="{Binding CancelButtonVisibility}" Command="{Binding CancelSearchCommand}"/>
+                                <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding SearchButtonVisibility}" Command="{Binding SearchCommand}"/>
+                                
+                                <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
+                                    <TextBox x:Name="txtSearch" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15">
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                                        </TextBox.InputBindings>
+                                        <TextBox.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Command="Cut" Header="Cut" />
+                                                <MenuItem Command="Copy" Header="Copy" />
+                                                <MenuItem Command="Paste" Header="Paste" />
+                                            </ContextMenu>
+                                        </TextBox.ContextMenu>
+                                    </TextBox>
+                                </Border>
+                            </DockPanel>
+
+                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Search Type:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbSearchType" SelectedIndex="{Binding SearchTypeIndex}" Width="125" Margin="0,0,8,5">
+                                    <ComboBoxItem Content="Levels"/>
+                                    <ComboBoxItem Content="Creators"/>
+                                    <ComboBoxItem x:Name="cbiContributions" Content="Contributions" Visibility="{Binding HasContributorsVisibility}"/>
+                                    <ComboBoxItem x:Name="cbiObjects" Content="Objects By" Visibility="{Binding HasObjectContributorsVisibility}"/>
+                                </ComboBox>
+
+                                <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LevelViewVisibility}">
+                                    <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cmbGame" SelectedIndex="{Binding GameIndex}" Width="110" Margin="0,0,8,5">
+                                        <ComboBoxItem Content="All Games"/>
+                                        <ComboBoxItem Content="LBP 1"/>
+                                        <ComboBoxItem Content="LBP 2"/>
+                                        <ComboBoxItem Content="LBP 3"/>
+                                    </ComboBox>
+
+                                    <TextBlock Text="Genre:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cmbGenre" ItemsSource="{Binding Genres}" SelectedItem="{Binding SelectedGenre}" Width="150" Margin="0,0,8,5" />
+                                </StackPanel>
+
+                                <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbLimit" SelectedIndex="{Binding LimitIndex}" Width="75" Margin="0,0,15,5">
+                                    <ComboBoxItem Content="100"/>
+                                    <ComboBoxItem Content="200"/>
+                                    <ComboBoxItem Content="500"/>
+                                    <ComboBoxItem Content="1000"/>
+                                    <ComboBoxItem Content="All"/>
+                                </ComboBox>
+
+                                <CheckBox x:Name="chkExact" Content="Exact Phrase" IsChecked="{Binding ExactMatch}" Margin="0,0,15,5"/>
+                                <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" IsChecked="{Binding SearchDesc}" Margin="0,0,15,5" Visibility="{Binding SearchDescVisibility}"/>
+                                <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Visibility="{Binding AdvancedButtonVisibility}" Command="{Binding OpenAdvancedSearchCommand}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </ContentControl>
+
+                    <ContentControl Grid.Row="1" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <Grid>
-                            <!-- Levels DataGrid -->
-                            <DataGrid x:Name="dgResults" 
-                                      Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
+                            <DataGrid x:Name="dgResults" ItemsSource="{Binding ResultsList}" SelectedItem="{Binding SelectedLevel}"
+                                      Visibility="{Binding LevelViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
-                                      SelectionChanged="DgResults_SelectionChanged" Visibility="Visible">
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="SAVED" Width="70" Binding="{Binding Saved}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
@@ -372,13 +366,13 @@
                                     <DataGridTemplateColumn Header="CREATOR" Width="140" SortMemberPath="Creator">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
+                                                <TextBlock Text="{Binding Creator}" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
                                                     <TextBlock.ContextMenu>
                                                         <ContextMenu Opened="CreatorContextMenu_Opened">
-                                                            <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
-                                                            <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Click="SearchContributionsContext_Click"/>
-                                                            <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Click="SearchObjectsContext_Click"/>
-                                                            <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Click="HeartCreatorContext_Click"/>
+                                                            <MenuItem Header="Search Creator" Command="{Binding PlacementTarget.Tag.SearchCreatorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
+                                                            <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Command="{Binding PlacementTarget.Tag.ViewUserContributionsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
+                                                            <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Command="{Binding PlacementTarget.Tag.ViewUserObjectsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
+                                                            <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Command="{Binding PlacementTarget.Tag.HeartUserCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
                                                 </TextBlock>
@@ -388,10 +382,10 @@
                                     <DataGridTemplateColumn Header="LEVEL NAME" Width="*" SortMemberPath="LevelName">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding LevelName}" Style="{StaticResource DataGridTextCenterStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
+                                                <TextBlock Text="{Binding LevelName}" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource DataGridTextCenterStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
                                                     <TextBlock.ContextMenu>
                                                         <ContextMenu>
-                                                            <MenuItem Header="Copy Level Name" Click="CopyLevelNameContext_Click"/>
+                                                            <MenuItem Header="Copy Level Name" Command="{Binding PlacementTarget.Tag.CopyLevelNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
                                                 </TextBlock>
@@ -399,8 +393,8 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                            <DataGridTextColumn x:Name="colClears" Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                            <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
+                                    <DataGridTextColumn x:Name="colClears" Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>
@@ -417,13 +411,10 @@
                                 </DataGrid.Columns>
                             </DataGrid>
 
-                            <!-- Creators DataGrid -->
-                            <DataGrid x:Name="dgUsers" 
-                                      Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
+                            <DataGrid x:Name="dgUsers" ItemsSource="{Binding UserResultsList}" SelectedItem="{Binding SelectedUser}"
+                                      Visibility="{Binding UserViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
-                                      SelectionChanged="DgUsers_SelectionChanged" Visibility="Collapsed">
-
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="CREATOR" Width="*" Binding="{Binding NpHandle}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="TOTAL LEVELS" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
@@ -448,11 +439,11 @@
                         </Grid>
                     </ContentControl>
 
-                <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
+                    <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
 
-                <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
-                        <!-- Levels Details Pane -->
-                        <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Visible">
+                    <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
+                        <!-- Level Details -->
+                        <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding LevelViewVisibility}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -468,17 +459,16 @@
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                     </Ellipse>
                                     
-                                    <!-- Ribbon Background Elements for MM Pick -->
-                                    <Path x:Name="mmPickTails" Visibility="Hidden" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
+                                    <Path x:Name="mmPickTails" Visibility="{Binding MmPickVisibility}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
                                         <Path.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.5" Direction="270"/></Path.Effect>
                                     </Path>
-                                    <Ellipse x:Name="mmPickRosette" Visibility="Hidden" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
-                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="Hidden" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
+                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding MmPickVisibility}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
+                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding MmPickVisibility}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
 
-                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}"/>
-                                    <TextBlock x:Name="txtIconStatus" Text="Select a level&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconEllipseStroke}" StrokeThickness="5" Fill="{Binding IconEllipseFill}"/>
+                                    <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
 
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Hidden">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding LevelHeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -486,28 +476,43 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,10">
-                                    <TextBlock x:Name="txtLevelName" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="18" TextWrapping="Wrap" TextAlignment="Center">
+                                    <TextBlock Tag="{Binding}" Text="{Binding SelectedLevel.LevelName}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="18" TextWrapping="Wrap" TextAlignment="Center">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Level Name" Click="CopyLevelNameContext_Click"/>
+                                                <MenuItem Header="Copy Level Name" Command="{Binding PlacementTarget.Tag.CopyLevelNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
-                                    <TextBlock x:Name="txtCreator" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
+                                    <TextBlock Tag="{Binding}" Text="{Binding LevelCreatorAndStatsText}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu Opened="CreatorContextMenu_Opened">
-                                                <MenuItem Header="Search Creator" Click="SearchCreatorContext_Click"/>
-                                                <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Click="SearchContributionsContext_Click"/>
-                                                <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Click="SearchObjectsContext_Click"/>
-                                                <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Click="HeartCreatorContext_Click"/>
+                                                <MenuItem Header="Search Creator" Command="{Binding PlacementTarget.Tag.SearchCreatorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Command="{Binding PlacementTarget.Tag.ViewUserContributionsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Command="{Binding PlacementTarget.Tag.ViewUserObjectsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                <MenuItem x:Name="MenuHeartCreator" Header="Heart Creator" Command="{Binding PlacementTarget.Tag.HeartUserCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                                    <Button x:Name="btnToggleTags" Content="SHOW TAGS" Style="{DynamicResource BtnSecondary}" Padding="10,4" FontSize="11" Click="BtnToggleTags_Click" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                                    <WrapPanel x:Name="wpLevelTags" Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                    <Button x:Name="btnToggleTags" Content="{Binding ToggleTagsButtonText}" Command="{Binding ToggleTagsCommand}" Visibility="{Binding ToggleTagsButtonVisibility}" Style="{DynamicResource BtnSecondary}" Padding="10,4" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                    <ItemsControl ItemsSource="{Binding LevelTags}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ContentControl Content="{Binding Text}" Visibility="{Binding Visibility}" Style="{DynamicResource DisplayTagStyle}">
+                                                    <ContentControl.LayoutTransform>
+                                                        <RotateTransform Angle="{Binding TiltAngle}"/>
+                                                    </ContentControl.LayoutTransform>
+                                                </ContentControl>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
 
                                 <DockPanel Grid.Row="3" Margin="0,0,0,15">
@@ -524,16 +529,16 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="4" VerticalAlignment="Bottom">
-                                    <Button x:Name="btnHeartToggle" Content="♥ HEART LEVEL" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnHeartToggle_Click"/>
-                                    <Button x:Name="btnCopyHash" Content="COPY HASH" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnCopyHash_Click"/>
-                                    <Button x:Name="btnShowContributors" Content="CONTRIBUTORS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnShowContributors_Click"/>
-                                    <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnExtract_Click"/>
+                                    <Button Content="{Binding HeartLevelButtonText}" Command="{Binding HeartLevelCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" />
+                                    <Button x:Name="btnCopyHash" Content="COPY HASH" Command="{Binding CopyHashCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="CONTRIBUTORS" Command="{Binding ShowContributorsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="EXTRACT &amp; BACKUP" Command="{Binding ExtractSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgResults}" Style="{DynamicResource BtnExtract}" />
                                 </StackPanel>
                             </Grid>
                         </ContentControl>
 
-                        <!-- Creators Details Pane -->
-                        <ContentControl x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="Collapsed">
+                        <!-- User Details -->
+                        <ContentControl x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding UserViewVisibility}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -547,10 +552,10 @@
                                         <Rectangle.RenderTransform><TranslateTransform Y="8"/></Rectangle.RenderTransform>
                                         <Rectangle.Effect><BlurEffect Radius="12"/></Rectangle.Effect>
                                     </Rectangle>
-                                    <Rectangle x:Name="userIconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{DynamicResource BgPrimary}" RadiusX="8" RadiusY="8"/>
-                                    <TextBlock x:Name="txtUserIconStatus" Text="Select a creator&#x0a;to view details" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                    <Rectangle x:Name="userIconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding UserIconRectFill}" RadiusX="8" RadiusY="8"/>
+                                    <TextBlock x:Name="txtUserIconStatus" Text="{Binding UserIconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="userIconHeartOverlay" Text="♥" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15" Visibility="Hidden">
+                                    <TextBlock x:Name="userIconHeartOverlay" Text="♥" Visibility="{Binding UserHeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -558,50 +563,47 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtUserNpHandle" Text="" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
-                                    <TextBlock x:Name="txtUserStats" Text="" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding SelectedUser.NpHandle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding UserStatsText}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <DockPanel Grid.Row="2" Margin="0,0,0,15">
                                     <TextBlock DockPanel.Dock="Top" Text="CREATOR SUMMARY" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                            <TextBlock x:Name="txtUserSummary" Text="" Foreground="{DynamicResource FgPrimary}" FontSize="14" TextWrapping="Wrap" LineHeight="20"/>
+                                            <TextBlock Text="{Binding UserSummaryText}" Foreground="{DynamicResource FgPrimary}" FontSize="14" TextWrapping="Wrap" LineHeight="20"/>
                                         </ScrollViewer>
                                     </Border>
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-                                    <Button x:Name="btnUserHeartToggle" Content="♥ HEART CREATOR" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" IsEnabled="False" Click="BtnUserHeartToggle_Click"/>
-                                    <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserLevels_Click"/>
-                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserContributions_Click" Visibility="Collapsed"/>
-                                    <Button x:Name="btnViewUserObjects" Content="VIEW OBJECTS BY" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" IsEnabled="False" Click="BtnViewUserObjects_Click" Visibility="Collapsed"/>
-                                    <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" IsEnabled="False" Click="BtnDownloadAllLevels_Click"/>
+                                    <Button Content="{Binding UserHeartButtonText}" Command="{Binding HeartUserCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" />
+                                    <Button Content="VIEW CREATOR'S LEVELS" Command="{Binding ViewUserLevelsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="VIEW CONTRIBUTIONS" Command="{Binding ViewUserContributionsCommand}" Visibility="{Binding HasContributorsVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="VIEW OBJECTS BY" Command="{Binding ViewUserObjectsCommand}" Visibility="{Binding HasObjectContributorsVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="DOWNLOAD ALL LEVELS" Command="{Binding BatchDownloadCommand}" Style="{DynamicResource BtnExtract}" />
                                 </StackPanel>
                             </Grid>
                         </ContentControl>
                     </Grid>
 
-                <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,15,0,5">
-                    <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding Visibility, ElementName=progressBar}">
-                        <ProgressBar x:Name="progressBar" Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0" Visibility="Hidden"/>
-                    </Border>
-                    <TextBlock x:Name="txtStatus" Text="Ready. Enter a keyword or set filters to begin." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </DockPanel>
-            </Grid>
-        </DockPanel>
-        
-        <!-- Context-Aware Toast Notification -->
-        <Popup x:Name="notificationToastPopup" AllowsTransparency="True" Placement="Top" HorizontalOffset="0" VerticalOffset="-8" IsHitTestVisible="False">
-            <Border x:Name="notificationToastBorder" Background="{DynamicResource LbpEmerald}" Padding="16,10" CornerRadius="16" Opacity="0" Margin="10">
-                <Border.Effect>
-                    <!-- A margin of 10 is needed around the border inside the popup to prevent the shadow from being clipped -->
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="3" Opacity="0.5" Direction="270" Color="Black"/>
-                </Border.Effect>
-                <TextBlock x:Name="txtNotification" Text="Copied!" Foreground="#003D2A" FontWeight="Bold" FontSize="14" TextAlignment="Center"/>
-            </Border>
-        </Popup>
-
-     </Grid>
+                    <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,15,0,5">
+                        <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding IsProgressVisible}">
+                            <ProgressBar Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0" IsIndeterminate="{Binding IsProgressIndeterminate}" Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}"/>
+                        </Border>
+                        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Grid>
+            </DockPanel>
+            
+            <Popup x:Name="notificationToastPopup" AllowsTransparency="True" Placement="Top" HorizontalOffset="0" VerticalOffset="-8" IsHitTestVisible="False">
+                <Border x:Name="notificationToastBorder" Background="{DynamicResource LbpEmerald}" Padding="16,10" CornerRadius="16" Opacity="0" Margin="10">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="3" Opacity="0.5" Direction="270" Color="Black"/>
+                    </Border.Effect>
+                    <TextBlock x:Name="txtNotification" Text="Copied!" Foreground="#003D2A" FontWeight="Bold" FontSize="14" TextAlignment="Center"/>
+                </Border>
+            </Popup>
+        </Grid>
     </Border>
 </Window>

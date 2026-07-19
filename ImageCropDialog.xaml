@@ -35,23 +35,20 @@
     <ContentControl Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Title Header -->
-                <RowDefinition Height="Auto"/> <!-- Separator -->
-                <RowDefinition Height="*"/>    <!-- Workspace Area -->
-                <RowDefinition Height="Auto"/> <!-- Slider Zoom Controls -->
-                <RowDefinition Height="Auto"/> <!-- Action Buttons -->
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> 
+                <RowDefinition Height="*"/>    
+                <RowDefinition Height="Auto"/> 
+                <RowDefinition Height="Auto"/> 
             </Grid.RowDefinitions>
 
-            <!-- 1. Header Area -->
             <StackPanel Grid.Row="0" Margin="0,0,0,12">
                 <TextBlock Text="CROP LEVEL ICON" Foreground="{DynamicResource LbpOrange}" FontSize="22" FontWeight="Black"/>
                 <TextBlock Text="Drag the image to pan. Scroll or use the slider to zoom." Foreground="{DynamicResource FgSecondary}" FontSize="12" Margin="0,2,0,0"/>
             </StackPanel>
 
-            <!-- 2. Separator Line -->
             <Rectangle Grid.Row="1" Fill="{DynamicResource BorderSubtle}" Height="2" RadiusX="1" RadiusY="1" Margin="0,0,0,20"/>
 
-            <!-- 3. Workspace Cropper Box -->
             <Border Grid.Row="2" Width="484" Height="364" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="8" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Border.Background>
                     <DrawingBrush Viewport="0,0,16,16" ViewportUnits="Absolute" TileMode="Tile">
@@ -79,9 +76,8 @@
                       MouseMove="GridWorkspace_MouseMove" 
                       MouseWheel="GridWorkspace_MouseWheel">
                     
-                    <!-- This container holds the image and is rendered to RenderTargetBitmap -->
                     <Canvas x:Name="canvasWorkspace" Width="480" Height="360" Background="Transparent" ClipToBounds="True">
-                        <Image x:Name="imgSource" Stretch="Fill" RenderTransformOrigin="0,0">
+                        <Image x:Name="imgSource" Source="{Binding ImageSource}" Stretch="Fill" RenderTransformOrigin="0,0">
                             <Image.RenderTransform>
                                 <TransformGroup>
                                     <ScaleTransform x:Name="scaleTransform" ScaleX="1.0" ScaleY="1.0"/>
@@ -91,7 +87,6 @@
                         </Image>
                     </Canvas>
                     
-                    <!-- Semi-transparent overlay with a clear 320x176 center cutout -->
                     <Path Fill="#B0000000" IsHitTestVisible="False">
                         <Path.Data>
                             <CombinedGeometry GeometryCombineMode="Exclude">
@@ -105,27 +100,16 @@
                         </Path.Data>
                     </Path>
 
-                    <!-- Guide borders showing the crop boundary box -->
-<!-- Guide borders showing the crop boundary box -->
-<Border Width="320" Height="176" BorderBrush="{DynamicResource LbpOrange}" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-    
-    <!-- Circular guide for in-game badge preview -->
-    <Ellipse Width="176" Height="176" 
-             Stroke="{DynamicResource LbpCyan}" 
-             StrokeThickness="3" 
-             StrokeDashArray="3 3" 
-             HorizontalAlignment="Center" 
-             VerticalAlignment="Center">
-        <Ellipse.Effect>
-            <!-- Adds a harsh black outline/glow behind the dashes so they pop on bright backgrounds -->
-            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="1.0" Color="Black" />
-        </Ellipse.Effect>
-    </Ellipse>
-             
-</Border>                </Grid>
+                    <Border Width="320" Height="176" BorderBrush="{DynamicResource LbpOrange}" BorderThickness="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <Ellipse Width="176" Height="176" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeDashArray="3 3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Ellipse.Effect>
+                                <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="1.0" Color="Black" />
+                            </Ellipse.Effect>
+                        </Ellipse>
+                    </Border>                
+                </Grid>
             </Border>
 
-            <!-- 4. Zoom Slider Control -->
             <Grid Grid.Row="3" Margin="0,15,0,20" HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -135,16 +119,13 @@
                 
                 <TextBlock Grid.Column="0" Text="-" Foreground="{DynamicResource FgSecondary}" FontSize="18" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <Slider x:Name="sliderZoom" Grid.Column="1" Minimum="0.1" Maximum="4.0" Value="1.0" 
-                        TickFrequency="0.01" IsSnapToTickEnabled="False"
-                        VerticalAlignment="Center"
-                        ValueChanged="SliderZoom_ValueChanged"/>
+                        TickFrequency="0.01" IsSnapToTickEnabled="False" VerticalAlignment="Center" ValueChanged="SliderZoom_ValueChanged"/>
                 <TextBlock Grid.Column="2" Text="+" Foreground="{DynamicResource FgSecondary}" FontSize="18" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
             </Grid>
 
-            <!-- 5. Action Footer Buttons -->
             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="CANCEL" Style="{StaticResource BtnSecondary}" Click="BtnCancel_Click"/>
-                <Button Content="APPLY" Style="{StaticResource BtnPrimary}" Click="BtnApply_Click"/>
+                <Button Content="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource BtnSecondary}" />
+                <Button Content="APPLY" Command="{Binding ApplyCommand}" Style="{StaticResource BtnPrimary}" />
             </StackPanel>
         </Grid>
     </ContentControl>
