@@ -238,12 +238,16 @@ namespace LbpArchiveToolkit.ViewModels
             InitializeCommands();
         }
 
-        public async Task LoadDataAsync()
+        public async Task LoadDataAsync(bool isStartup = false)
         {
             var dbGenres = await _dbService.GetGenresAsync();
             Application.Current.Dispatcher.Invoke(() =>
             {
-                foreach (var g in dbGenres.OrderBy(x => x)) Genres.Add(g);
+                var existing = Genres.ToHashSet();
+                foreach (var g in dbGenres.OrderBy(x => x))
+                {
+                    if (!existing.Contains(g)) Genres.Add(g);
+                }
             });
 
             foreach (var levelId in SavedLevelsManager.SavedLevels)
@@ -276,7 +280,7 @@ namespace LbpArchiveToolkit.ViewModels
                 if (needsUpdate) SavedLevelsManager.Save();
             }
 
-            if (ConfigManager.LastSearch != null)
+            if (isStartup && ConfigManager.LastSearch != null)
                 ApplySearchState(ConfigManager.LastSearch);
         }
 

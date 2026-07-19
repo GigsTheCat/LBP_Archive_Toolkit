@@ -63,7 +63,7 @@ namespace LbpArchiveToolkit
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            await _viewModel.LoadDataAsync();
+            await _viewModel.LoadDataAsync(true);
             
             _ = Services.UpdateService.CheckForUpdatesAsync(this, SharedHttpClient);
         }
