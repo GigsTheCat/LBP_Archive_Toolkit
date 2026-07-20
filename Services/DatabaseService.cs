@@ -313,8 +313,81 @@ namespace LbpArchiveToolkit.Services
 
             BuildFilters(queryBuilder, parameters, gameFilter, genreFilter, pfx, advanced, reqL0, reqL1, reqT0, reqT1, useFtsForTags);
 
+            if (!string.IsNullOrWhiteSpace(advanced.ExcludedCreators))
+            {
+                var creators = advanced.ExcludedCreators.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (creators.Length > 0)
+                {
+                    var creatorParams = new List<string>();
+                    for (int i = 0; i < creators.Length; i++)
+                    {
+                        string paramName = $"@excr{i}";
+                        creatorParams.Add(paramName);
+                        parameters.Add(new SqliteParameter(paramName, creators[i]));
+                    }
+                    queryBuilder.Append($" AND {pfx}npHandle NOT IN ({string.Join(", ", creatorParams)})");
+                }
+            }
+
+            if (_hasContribsTable && !string.IsNullOrWhiteSpace(advanced.ExcludedContributors))
+            {
+                var contribs = advanced.ExcludedContributors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (contribs.Length > 0)
+                {
+                    var contribParams = new List<string>();
+                    for (int i = 0; i < contribs.Length; i++)
+                    {
+                        string paramName = $"@excontrib{i}";
+                        contribParams.Add(paramName);
+                        parameters.Add(new SqliteParameter(paramName, contribs[i]));
+                    }
+                    queryBuilder.Append($" AND NOT EXISTS (SELECT 1 FROM level_contributors c WHERE c.slot_id = {pfx}id AND c.npHandle IN ({string.Join(", ", contribParams)}))");
+                }
+            }
+
+            if (_hasObjectContribsTable && !string.IsNullOrWhiteSpace(advanced.ExcludedObjectContributors))
+            {
+                var objContribs = advanced.ExcludedObjectContributors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (objContribs.Length > 0)
+                {
+                    var objContribParams = new List<string>();
+                    for (int i = 0; i < objContribs.Length; i++)
+                    {
+                        string paramName = $"@exobjcontrib{i}";
+                        objContribParams.Add(paramName);
+                        parameters.Add(new SqliteParameter(paramName, objContribs[i]));
+                    }
+                    queryBuilder.Append($" AND NOT EXISTS (SELECT 1 FROM object_contributors oc WHERE oc.slot_id = {pfx}id AND oc.npHandle IN ({string.Join(", ", objContribParams)}))");
+                }
+            }
+
+            long exL0 = 0, exL1 = 0;
+            foreach (var reqLabel in advanced.ExcludedLabels)
+            {
+                for (int i = 0; i < labelTags.Count; i++)
+                {
+                    if (labelTags[i] == reqLabel)
+                    {
+                        if (i < 64) exL0 |= (1L << i); else exL1 |= (1L << (i - 64));
+                        break;
+                    }
+                }
+            }
+
+            long exT0 = 0, exT1 = 0;
+            foreach (var reqTag in advanced.ExcludedTags)
+            {
+                int i = GetTagIndex(reqTag);
+                if (i >= 0)
+                {
+                    if (i < 64) exT0 |= (1L << i); else exT1 |= (1L << (i - 64));
+                }
+            }
+
+            bool needsCSharpExclusionFiltering = exL0 != 0 || exL1 != 0 || exT0 != 0 || exT1 != 0 || advanced.PublishedAfter.HasValue || advanced.PublishedBefore.HasValue;
+
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
-            bool needsCSharpFiltering = !useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0);
+            bool needsCSharpFiltering = (!useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0)) || needsCSharpExclusionFiltering;
             int parsedLimit = int.MaxValue;
 
             if (randomSingle)
@@ -429,6 +502,49 @@ namespace LbpArchiveToolkit.Services
                             if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
                             {
                                 continue;
+                            }
+                        }
+
+                        if (exL0 != 0 || exL1 != 0)
+                        {
+                            ReadBitmask(13, out long l0, out long l1);
+                            
+                            long cL0 = 0, cL1 = 0;
+                            if (_colCommunityLabels != "NULL")
+                            {
+                                ReadBitmask(15, out cL0, out cL1);
+                            }
+
+                            long combinedL0 = 0, combinedL1 = 0;
+                            if (advanced.LabelMatchMode == 1) { combinedL0 = l0; combinedL1 = l1; }
+                            else if (advanced.LabelMatchMode == 2) { combinedL0 = cL0; combinedL1 = cL1; }
+                            else { combinedL0 = l0 | cL0; combinedL1 = l1 | cL1; }
+
+                            if ((combinedL0 & exL0) != 0 || (combinedL1 & exL1) != 0)
+                            {
+                                continue;
+                            }
+                        }
+
+                        if ((exT0 != 0 || exT1 != 0) && _colTags != "NULL")
+                        {
+                            ReadBitmask(14, out long t0, out long t1);
+                            if ((t0 & exT0) != 0 || (t1 & exT1) != 0)
+                            {
+                                continue;
+                            }
+                        }
+
+                        if (advanced.PublishedAfter.HasValue || advanced.PublishedBefore.HasValue)
+                        {
+                            if (!reader.IsDBNull(4))
+                            {
+                                string? rawDate = FormatDate(reader.GetValue(4));
+                                if (DateTime.TryParse(rawDate, out DateTime parsedDate))
+                                {
+                                    if (advanced.PublishedAfter.HasValue && parsedDate < advanced.PublishedAfter.Value) continue;
+                                    if (advanced.PublishedBefore.HasValue && parsedDate > advanced.PublishedBefore.Value) continue;
+                                }
                             }
                         }
                     }
@@ -875,12 +991,27 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minHearts", advanced.MinHearts));
             }
 
+            if (advanced.MaxHearts > 0 && _colHeart != "NULL")
+            {
+                query.Append($" AND {pfx}{_colHeart} <= @maxHearts");
+                parameters.Add(new SqliteParameter("@maxHearts", advanced.MaxHearts));
+            }
+
+            if (advanced.MaxPlays > 0 && _colPlay != "NULL")
+            {
+                query.Append($" AND {pfx}{_colPlay} <= @maxPlays");
+                parameters.Add(new SqliteParameter("@maxPlays", advanced.MaxPlays));
+            }
+
             if (advanced.IsTeamPick && !useFtsForTags && _colMmPick != "NULL")
             {
                 query.Append($" AND {pfx}{_colMmPick} = 1");
             }
 
-
+            if (advanced.ExcludeTeamPick && !useFtsForTags && _colMmPick != "NULL")
+            {
+                query.Append($" AND {pfx}{_colMmPick} = 0");
+            }
         }
 
         #endregion

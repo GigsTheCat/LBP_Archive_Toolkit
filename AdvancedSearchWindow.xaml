@@ -1,7 +1,7 @@
 <Window x:Class="LbpArchiveToolkit.AdvancedSearchWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Advanced Filters" Height="650" Width="600"
+        Title="Advanced Filters" Height="750" Width="700"
         WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" WindowStyle="None" BorderThickness="0" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent">
@@ -251,12 +251,42 @@
                         <TextBlock Text="ADVANCED FILTERS" Foreground="{DynamicResource LbpOrange}" FontWeight="Black" FontSize="20"/>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="25,0,25,25">
-                            
-                            <!-- NUMERIC FILTERS -->
-                            <TextBlock Text="POPULARITY" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
-                            <Grid>
+                    <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+                        <TabControl.Resources>
+                            <Style TargetType="TabItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TabItem">
+                                            <Border Name="Border" Padding="15,8" Margin="2,2,2,0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2">
+                                                <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource LbpCyan}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="False">
+                                                    <Setter Property="Foreground" Value="{DynamicResource FgSecondary}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Border" Property="Background" Value="#15FFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="FontSize" Value="14"/>
+                            </Style>
+                        </TabControl.Resources>
+
+                        <TabItem Header="Requirements">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="25,0,25,25">
+                                    
+                                    <!-- NUMERIC FILTERS -->
+                                    <TextBlock Text="POPULARITY" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                                    <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
@@ -319,15 +349,132 @@
                             <TextBlock Text="LBP1 TAGS" Style="{StaticResource SectionHeader}"/>
                             <ItemsControl ItemsSource="{Binding Lbp1Tags}" Margin="0,5,0,15" Style="{StaticResource TagItemsControl}"/>
                             
-                        </StackPanel>
-                    </ScrollViewer>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
 
-                    <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="25,15">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="CLEAR ALL" Command="{Binding ClearCommand}" Style="{StaticResource BtnSecondary}" Margin="0,0,15,0" MinWidth="100"/>
-                            <Button Content="APPLY FILTERS" Command="{Binding ApplyCommand}" Style="{StaticResource BtnPrimary}" Margin="0,0,15,0" MinWidth="120"/>
-                            <Button Content="APPLY &amp; SEARCH" Command="{Binding ApplyAndSearchCommand}" Style="{StaticResource BtnPrimary}" MinWidth="140"/>
-                        </StackPanel>
+                        <TabItem Header="Exclusions">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="25,0,25,25">
+                                    
+                                    <TextBlock Text="EXCLUSION CRITERIA" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                                    
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Exclude Creators:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBox Grid.Column="1" Text="{Binding ExcludedCreators, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Exclude Contributors:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBox Grid.Column="1" Text="{Binding ExcludedContributors, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Exclude Objects By:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBox Grid.Column="1" Text="{Binding ExcludedObjectContributors, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBlock Grid.Column="0" Text="Max Hearts:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBox Grid.Column="1" Text="{Binding MaxHearts, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                        
+                                        <TextBlock Grid.Column="2" Text="Max Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
+                                        <TextBox Grid.Column="3" Text="{Binding MaxPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="Published After:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedAfterYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
+                                            <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedAfterMonth}" Width="70" HorizontalContentAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="2" Text="Published Before:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,10,0"/>
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                            <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedBeforeYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
+                                            <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedBeforeMonth}" Width="70" HorizontalContentAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <CheckBox Content="Exclude Team Picked Levels" IsChecked="{Binding ExcludeTeamPick}" Margin="0,5,0,0"/>
+
+                                    <Rectangle Style="{StaticResource Separator}"/>
+
+                                    <TextBlock Text="EXCLUDE LBP2 &amp; LBP3 LABELS" Style="{StaticResource SectionHeader}"/>
+                                    
+                                    <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp2ExperienceLabels}" Style="{StaticResource TagItemsControl}"/>
+                                    
+                                    <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp2TypeLabels}" Style="{StaticResource TagItemsControl}"/>
+                                    
+                                    <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp2ContentLabels}" Margin="10,0,0,15" Style="{StaticResource TagItemsControl}"/>
+
+                                    <Rectangle Style="{StaticResource Separator}"/>
+
+                                    <TextBlock Text="EXCLUDE LBP3 ONLY LABELS" Style="{StaticResource SectionHeader}"/>
+                                    
+                                    <TextBlock Text="Experience" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp3ExperienceLabels}" Style="{StaticResource TagItemsControl}"/>
+                                    
+                                    <TextBlock Text="Type" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp3TypeLabels}" Style="{StaticResource TagItemsControl}"/>
+                                    
+                                    <TextBlock Text="Content" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp3ContentLabels}" Style="{StaticResource TagItemsControl}"/>
+
+                                    <TextBlock Text="Characters" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="11" Margin="10,5,0,5"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp3CharacterLabels}" Margin="10,0,0,15" Style="{StaticResource TagItemsControl}"/>
+
+                                    <Rectangle Style="{StaticResource Separator}"/>
+
+                                    <TextBlock Text="EXCLUDE LBP1 TAGS" Style="{StaticResource SectionHeader}"/>
+                                    <ItemsControl ItemsSource="{Binding ExcludedLbp1Tags}" Margin="0,5,0,15" Style="{StaticResource TagItemsControl}"/>
+                                    
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+                    </TabControl>
+
+                    <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="0,1,0,0" CornerRadius="0,0,15,15" Padding="20,15">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="SAVE PRESET" Command="{Binding SavePresetCommand}" Style="{StaticResource BtnSecondary}" Padding="10,6" FontSize="11" Margin="0,0,8,0"/>
+                                <Button Content="LOAD PRESET" Command="{Binding LoadPresetCommand}" Style="{StaticResource BtnSecondary}" Padding="10,6" FontSize="11"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="CLEAR ALL" Command="{Binding ClearCommand}" Style="{StaticResource BtnSecondary}" Padding="10,6" FontSize="11" Margin="0,0,8,0"/>
+                                <Button Content="APPLY FILTERS" Command="{Binding ApplyCommand}" Style="{StaticResource BtnPrimary}" Padding="10,6" FontSize="11" Margin="0,0,8,0"/>
+                                <Button Content="APPLY &amp; SEARCH" Command="{Binding ApplyAndSearchCommand}" Style="{StaticResource BtnPrimary}" Padding="10,6" FontSize="11"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </Grid>
             </ContentControl>

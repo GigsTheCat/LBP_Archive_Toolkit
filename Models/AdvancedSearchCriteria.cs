@@ -11,5 +11,17 @@ namespace LbpArchiveToolkit.Models
         public List<string> RequiredTags { get; set; } = [];
         // 0 = Any (Author or Community), 1 = Author Only, 2 = Community Only
         public int LabelMatchMode { get; set; } = 0; 
+
+        // Exclusions
+        public List<string> ExcludedLabels { get; set; } = [];
+        public List<string> ExcludedTags { get; set; } = [];
+        public string ExcludedCreators { get; set; } = "";
+        public string ExcludedContributors { get; set; } = "";
+        public string ExcludedObjectContributors { get; set; } = "";
+        public DateTime? PublishedBefore { get; set; }
+        public DateTime? PublishedAfter { get; set; }
+        public bool ExcludeTeamPick { get; set; } = false;
+        public int MaxHearts { get; set; } = 0;
+        public int MaxPlays { get; set; } = 0;
     }
 }

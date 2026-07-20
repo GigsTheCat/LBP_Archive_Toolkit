@@ -76,7 +76,17 @@ namespace LbpArchiveToolkit.ViewModels
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
-                            LabelMatchMode = _advancedCriteria.LabelMatchMode
+                            LabelMatchMode = _advancedCriteria.LabelMatchMode,
+                            ExcludedLabels = new List<string>(_advancedCriteria.ExcludedLabels),
+                            ExcludedTags = new List<string>(_advancedCriteria.ExcludedTags),
+                            ExcludedCreators = _advancedCriteria.ExcludedCreators,
+                            ExcludedContributors = _advancedCriteria.ExcludedContributors,
+                            ExcludedObjectContributors = _advancedCriteria.ExcludedObjectContributors,
+                            PublishedBefore = _advancedCriteria.PublishedBefore,
+                            PublishedAfter = _advancedCriteria.PublishedAfter,
+                            ExcludeTeamPick = _advancedCriteria.ExcludeTeamPick,
+                            MaxHearts = _advancedCriteria.MaxHearts,
+                            MaxPlays = _advancedCriteria.MaxPlays
                         }
                     };
                 }
@@ -191,7 +201,17 @@ namespace LbpArchiveToolkit.ViewModels
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
-                            LabelMatchMode = _advancedCriteria.LabelMatchMode
+                            LabelMatchMode = _advancedCriteria.LabelMatchMode,
+                            ExcludedLabels = new List<string>(_advancedCriteria.ExcludedLabels),
+                            ExcludedTags = new List<string>(_advancedCriteria.ExcludedTags),
+                            ExcludedCreators = _advancedCriteria.ExcludedCreators,
+                            ExcludedContributors = _advancedCriteria.ExcludedContributors,
+                            ExcludedObjectContributors = _advancedCriteria.ExcludedObjectContributors,
+                            PublishedBefore = _advancedCriteria.PublishedBefore,
+                            PublishedAfter = _advancedCriteria.PublishedAfter,
+                            ExcludeTeamPick = _advancedCriteria.ExcludeTeamPick,
+                            MaxHearts = _advancedCriteria.MaxHearts,
+                            MaxPlays = _advancedCriteria.MaxPlays
                         }
                     };
                 }

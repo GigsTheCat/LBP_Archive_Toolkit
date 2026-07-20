@@ -32,6 +32,39 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _isTeamPick;
         public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
 
+        private string _maxHearts = "0";
+        public string MaxHearts { get => _maxHearts; set => SetProperty(ref _maxHearts, value); }
+
+        private string _maxPlays = "0";
+        public string MaxPlays { get => _maxPlays; set => SetProperty(ref _maxPlays, value); }
+
+        private string _excludedCreators = "";
+        public string ExcludedCreators { get => _excludedCreators; set => SetProperty(ref _excludedCreators, value); }
+
+        private string _excludedContributors = "";
+        public string ExcludedContributors { get => _excludedContributors; set => SetProperty(ref _excludedContributors, value); }
+
+        private string _excludedObjectContributors = "";
+        public string ExcludedObjectContributors { get => _excludedObjectContributors; set => SetProperty(ref _excludedObjectContributors, value); }
+
+        private string _publishedBeforeYear = "Any";
+        public string PublishedBeforeYear { get => _publishedBeforeYear; set => SetProperty(ref _publishedBeforeYear, value); }
+
+        private string _publishedBeforeMonth = "Any";
+        public string PublishedBeforeMonth { get => _publishedBeforeMonth; set => SetProperty(ref _publishedBeforeMonth, value); }
+
+        private string _publishedAfterYear = "Any";
+        public string PublishedAfterYear { get => _publishedAfterYear; set => SetProperty(ref _publishedAfterYear, value); }
+
+        private string _publishedAfterMonth = "Any";
+        public string PublishedAfterMonth { get => _publishedAfterMonth; set => SetProperty(ref _publishedAfterMonth, value); }
+
+        public ObservableCollection<string> AvailableYears { get; } = new();
+        public ObservableCollection<string> AvailableMonths { get; } = new();
+
+        private bool _excludeTeamPick;
+        public bool ExcludeTeamPick { get => _excludeTeamPick; set => SetProperty(ref _excludeTeamPick, value); }
+
         private int _labelMatchMode = 0;
         public int LabelMatchMode
         {
@@ -79,7 +112,21 @@ namespace LbpArchiveToolkit.ViewModels
         
         public ObservableCollection<SelectableTagViewModel> Lbp1Tags { get; } = new();
 
+        // Excluded Categorized Collections
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2ExperienceLabels { get; } = new();
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2TypeLabels { get; } = new();
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2ContentLabels { get; } = new();
+        
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3ExperienceLabels { get; } = new();
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3TypeLabels { get; } = new();
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3ContentLabels { get; } = new();
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3CharacterLabels { get; } = new();
+        
+        public ObservableCollection<SelectableTagViewModel> ExcludedLbp1Tags { get; } = new();
+
         public ICommand ClearCommand { get; }
+        public ICommand SavePresetCommand { get; }
+        public ICommand LoadPresetCommand { get; }
         public ICommand ApplyCommand { get; }
         public ICommand ApplyAndSearchCommand { get; }
 
@@ -97,6 +144,23 @@ namespace LbpArchiveToolkit.ViewModels
             MinHearts = existingCriteria.MinHearts.ToString();
             MinPlays = existingCriteria.MinPlays.ToString();
             IsTeamPick = existingCriteria.IsTeamPick;
+            MaxHearts = existingCriteria.MaxHearts.ToString();
+            MaxPlays = existingCriteria.MaxPlays.ToString();
+            ExcludedCreators = existingCriteria.ExcludedCreators;
+            ExcludedContributors = existingCriteria.ExcludedContributors;
+            ExcludedObjectContributors = existingCriteria.ExcludedObjectContributors;
+            ExcludeTeamPick = existingCriteria.ExcludeTeamPick;
+
+            AvailableYears.Add("Any");
+            for (int y = 2008; y <= DateTime.Now.Year; y++) AvailableYears.Add(y.ToString());
+            
+            AvailableMonths.Add("Any");
+            for (int m = 1; m <= 12; m++) AvailableMonths.Add(m.ToString("D2"));
+
+            PublishedAfterYear = existingCriteria.PublishedAfter.HasValue ? existingCriteria.PublishedAfter.Value.Year.ToString() : "Any";
+            PublishedAfterMonth = existingCriteria.PublishedAfter.HasValue ? existingCriteria.PublishedAfter.Value.Month.ToString("D2") : "Any";
+            PublishedBeforeYear = existingCriteria.PublishedBefore.HasValue ? existingCriteria.PublishedBefore.Value.Year.ToString() : "Any";
+            PublishedBeforeMonth = existingCriteria.PublishedBefore.HasValue ? existingCriteria.PublishedBefore.Value.Month.ToString("D2") : "Any";
             
             // Revert back to Author Only if community labels column isn't present
             LabelMatchMode = !_hasCommunityLabels ? 1 : existingCriteria.LabelMatchMode;
@@ -106,6 +170,8 @@ namespace LbpArchiveToolkit.ViewModels
             ClearCommand = new RelayCommand(_ => ExecuteClear());
             ApplyCommand = new RelayCommand(_ => ExecuteApply(false));
             ApplyAndSearchCommand = new RelayCommand(_ => ExecuteApply(true));
+            SavePresetCommand = new RelayCommand(_ => ExecuteSavePreset());
+            LoadPresetCommand = new RelayCommand(_ => ExecuteLoadPreset());
         }
 
         private void PopulateTags(AdvancedSearchCriteria criteria)
@@ -130,18 +196,27 @@ namespace LbpArchiveToolkit.ViewModels
                     TiltAngle = GetDeterministicTilt(tag)
                 };
 
+                bool isExcludedChecked = criteria.ExcludedLabels.Contains(tag);
+                var vmExcluded = new SelectableTagViewModel
+                {
+                    DisplayName = friendly,
+                    InternalTag = tag,
+                    IsSelected = isExcludedChecked,
+                    TiltAngle = GetDeterministicTilt(tag)
+                };
+
                 if (isLbp2)
                 {
-                    if (category == "Experience") Lbp2ExperienceLabels.Add(vm);
-                    else if (category == "Type") Lbp2TypeLabels.Add(vm);
-                    else Lbp2ContentLabels.Add(vm);
+                    if (category == "Experience") { Lbp2ExperienceLabels.Add(vm); ExcludedLbp2ExperienceLabels.Add(vmExcluded); }
+                    else if (category == "Type") { Lbp2TypeLabels.Add(vm); ExcludedLbp2TypeLabels.Add(vmExcluded); }
+                    else { Lbp2ContentLabels.Add(vm); ExcludedLbp2ContentLabels.Add(vmExcluded); }
                 }
                 else
                 {
-                    if (category == "Character") Lbp3CharacterLabels.Add(vm);
-                    else if (category == "Experience") Lbp3ExperienceLabels.Add(vm);
-                    else if (category == "Type") Lbp3TypeLabels.Add(vm);
-                    else Lbp3ContentLabels.Add(vm);
+                    if (category == "Character") { Lbp3CharacterLabels.Add(vm); ExcludedLbp3CharacterLabels.Add(vmExcluded); }
+                    else if (category == "Experience") { Lbp3ExperienceLabels.Add(vm); ExcludedLbp3ExperienceLabels.Add(vmExcluded); }
+                    else if (category == "Type") { Lbp3TypeLabels.Add(vm); ExcludedLbp3TypeLabels.Add(vmExcluded); }
+                    else { Lbp3ContentLabels.Add(vm); ExcludedLbp3ContentLabels.Add(vmExcluded); }
                 }
             }
 
@@ -155,6 +230,14 @@ namespace LbpArchiveToolkit.ViewModels
                     IsSelected = criteria.RequiredTags.Contains(tagName),
                     TiltAngle = GetDeterministicTilt(tagName)
                 });
+                
+                ExcludedLbp1Tags.Add(new SelectableTagViewModel
+                {
+                    DisplayName = tagName,
+                    InternalTag = tagName,
+                    IsSelected = criteria.ExcludedTags.Contains(tagName),
+                    TiltAngle = GetDeterministicTilt(tagName)
+                });
             }
         }
 
@@ -163,11 +246,23 @@ namespace LbpArchiveToolkit.ViewModels
             MinHearts = "0";
             MinPlays = "0";
             IsTeamPick = false;
+            MaxHearts = "0";
+            MaxPlays = "0";
+            ExcludedCreators = "";
+            ExcludedContributors = "";
+            ExcludedObjectContributors = "";
+            PublishedBeforeYear = "Any";
+            PublishedBeforeMonth = "Any";
+            PublishedAfterYear = "Any";
+            PublishedAfterMonth = "Any";
+            ExcludeTeamPick = false;
             LabelMatchMode = !_hasCommunityLabels ? 1 : 0;
 
             var allCollections = new[] {  
                 Lbp2ExperienceLabels, Lbp2TypeLabels, Lbp2ContentLabels, 
-                Lbp3ExperienceLabels, Lbp3TypeLabels, Lbp3ContentLabels, Lbp3CharacterLabels, Lbp1Tags 
+                Lbp3ExperienceLabels, Lbp3TypeLabels, Lbp3ContentLabels, Lbp3CharacterLabels, Lbp1Tags,
+                ExcludedLbp2ExperienceLabels, ExcludedLbp2TypeLabels, ExcludedLbp2ContentLabels, 
+                ExcludedLbp3ExperienceLabels, ExcludedLbp3TypeLabels, ExcludedLbp3ContentLabels, ExcludedLbp3CharacterLabels, ExcludedLbp1Tags
             };
 
             foreach (var collection in allCollections)
@@ -176,16 +271,43 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private void ExecuteApply(bool shouldSearch)
+        private AdvancedSearchCriteria BuildCriteria()
         {
             int.TryParse(MinHearts, out int hearts);
             int.TryParse(MinPlays, out int plays);
+            int.TryParse(MaxHearts, out int maxHearts);
+            int.TryParse(MaxPlays, out int maxPlays);
+
+            DateTime? after = null;
+            if (PublishedAfterYear != "Any")
+            {
+                int y = int.Parse(PublishedAfterYear);
+                int m = PublishedAfterMonth == "Any" ? 1 : int.Parse(PublishedAfterMonth);
+                after = new DateTime(y, m, 1);
+            }
+
+            DateTime? before = null;
+            if (PublishedBeforeYear != "Any")
+            {
+                int y = int.Parse(PublishedBeforeYear);
+                int m = PublishedBeforeMonth == "Any" ? 12 : int.Parse(PublishedBeforeMonth);
+                int d = DateTime.DaysInMonth(y, m);
+                before = new DateTime(y, m, d, 23, 59, 59); // End of the month
+            }
 
             var criteria = new AdvancedSearchCriteria
             {
                 MinHearts = hearts,
                 MinPlays = plays,
                 IsTeamPick = IsTeamPick,
+                MaxHearts = maxHearts,
+                MaxPlays = maxPlays,
+                ExcludedCreators = ExcludedCreators,
+                ExcludedContributors = ExcludedContributors,
+                ExcludedObjectContributors = ExcludedObjectContributors,
+                PublishedBefore = before,
+                PublishedAfter = after,
+                ExcludeTeamPick = ExcludeTeamPick,
                 LabelMatchMode = LabelMatchMode
             };
 
@@ -201,7 +323,97 @@ namespace LbpArchiveToolkit.ViewModels
 
             criteria.RequiredTags.AddRange(Lbp1Tags.Where(x => x.IsSelected).Select(x => x.InternalTag));
 
-            RequestClose?.Invoke(criteria, shouldSearch);
+            var allExcludedLabels = new[] { 
+                ExcludedLbp2ExperienceLabels, ExcludedLbp2TypeLabels, ExcludedLbp2ContentLabels, 
+                ExcludedLbp3ExperienceLabels, ExcludedLbp3TypeLabels, ExcludedLbp3ContentLabels, ExcludedLbp3CharacterLabels 
+            };
+
+            foreach (var collection in allExcludedLabels)
+            {
+                criteria.ExcludedLabels.AddRange(collection.Where(x => x.IsSelected).Select(x => x.InternalTag));
+            }
+
+            criteria.ExcludedTags.AddRange(ExcludedLbp1Tags.Where(x => x.IsSelected).Select(x => x.InternalTag));
+
+            return criteria;
+        }
+
+        private void ExecuteApply(bool shouldSearch)
+        {
+            RequestClose?.Invoke(BuildCriteria(), shouldSearch);
+        }
+
+        private void ExecuteSavePreset()
+        {
+            string presetsDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", "Presets");
+            System.IO.Directory.CreateDirectory(presetsDir);
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "LBP Search Preset (*.lbppreset)|*.lbppreset",
+                Title = "Save Search Preset",
+                InitialDirectory = presetsDir
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    var criteria = BuildCriteria();
+                    var json = System.Text.Json.JsonSerializer.Serialize(criteria, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = LbpArchiveToolkit.Configuration.ConfigManager.ConfigJsonContext.Default });
+                    System.IO.File.WriteAllText(dlg.FileName, json);
+                    _viewService.Alert("Preset saved successfully.", "Success");
+                }
+                catch (Exception ex)
+                {
+                    _viewService.Alert($"Failed to save preset: {ex.Message}", "Error");
+                }
+            }
+        }
+
+        private void ExecuteLoadPreset()
+        {
+            string presetsDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", "Presets");
+            System.IO.Directory.CreateDirectory(presetsDir);
+
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "LBP Search Preset (*.lbppreset)|*.lbppreset",
+                Title = "Load Search Preset",
+                InitialDirectory = presetsDir
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    var json = System.IO.File.ReadAllText(dlg.FileName);
+                    var criteria = System.Text.Json.JsonSerializer.Deserialize<AdvancedSearchCriteria>(json, new System.Text.Json.JsonSerializerOptions { TypeInfoResolver = LbpArchiveToolkit.Configuration.ConfigManager.ConfigJsonContext.Default });
+                    if (criteria != null)
+                    {
+                        ExecuteClear();
+
+                        MinHearts = criteria.MinHearts.ToString();
+                        MinPlays = criteria.MinPlays.ToString();
+                        IsTeamPick = criteria.IsTeamPick;
+                        MaxHearts = criteria.MaxHearts.ToString();
+                        MaxPlays = criteria.MaxPlays.ToString();
+                        ExcludedCreators = criteria.ExcludedCreators;
+                        ExcludedContributors = criteria.ExcludedContributors;
+                        ExcludedObjectContributors = criteria.ExcludedObjectContributors;
+                        PublishedAfterYear = criteria.PublishedAfter.HasValue ? criteria.PublishedAfter.Value.Year.ToString() : "Any";
+                        PublishedAfterMonth = criteria.PublishedAfter.HasValue ? criteria.PublishedAfter.Value.Month.ToString("D2") : "Any";
+                        PublishedBeforeYear = criteria.PublishedBefore.HasValue ? criteria.PublishedBefore.Value.Year.ToString() : "Any";
+                        PublishedBeforeMonth = criteria.PublishedBefore.HasValue ? criteria.PublishedBefore.Value.Month.ToString("D2") : "Any";
+                        ExcludeTeamPick = criteria.ExcludeTeamPick;
+                        LabelMatchMode = !_hasCommunityLabels ? 1 : criteria.LabelMatchMode;
+
+                        PopulateTags(criteria);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _viewService.Alert($"Failed to load preset: {ex.Message}", "Error");
+                }
+            }
         }
 
         /// <summary>
