@@ -34,8 +34,8 @@
         <Style TargetType="TextBlock" x:Key="SectionHeader">
             <Setter Property="Foreground" Value="{DynamicResource LbpCyan}"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="0,20,0,12"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,15,0,8"/>
         </Style>
 
         <Style TargetType="Rectangle" x:Key="Separator">
@@ -70,7 +70,8 @@
 
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
-            <Setter Property="Height" Value="32"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -95,8 +96,9 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Padding" Value="8,4"/>
             <Setter Property="Margin" Value="2,1"/>
+            <Setter Property="FontSize" Value="12"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource BorderSubtle}"/>
@@ -109,20 +111,28 @@
             </Style.Triggers>
         </Style>
         
+        <!-- Add compact TextBox style -->
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
         <!-- Standard CheckBox (Used for normal list properties like 'Team Picked') -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,6"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal">
-                            <Border x:Name="checkBoxBorder" Width="20" Height="20" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="6" VerticalAlignment="Center">
-                                <Path x:Name="checkMark" Data="M4,10 L8,14 L15,5" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            <Border x:Name="checkBoxBorder" Width="18" Height="18" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="5" VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Data="M3,9 L7,13 L14,4" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                             </Border>
-                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -294,14 +304,14 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox Grid.Column="1" Text="{Binding MinHearts, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1" Text="{Binding MinHearts, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
                                 
-                                <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
-                                <TextBox Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                                <TextBox Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
                             </Grid>
 
-                            <TextBlock Text="PUBLISH DATE" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                            <TextBlock Text="PUBLISH DATE" Style="{StaticResource SectionHeader}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -310,29 +320,29 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0" Text="Published After:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Grid.Column="0" Text="Published After:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                                     <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedAfterYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
                                     <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedAfterMonth}" Width="70" HorizontalContentAlignment="Center"/>
                                 </StackPanel>
 
-                                <TextBlock Grid.Column="2" Text="Published Before:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,10,0"/>
+                                <TextBlock Grid.Column="2" Text="Published Before:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
                                 <StackPanel Grid.Column="3" Orientation="Horizontal">
                                     <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedBeforeYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
                                     <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedBeforeMonth}" Width="70" HorizontalContentAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                             
-                            <CheckBox Content="Team Picked Levels Only" IsChecked="{Binding IsTeamPick}" Margin="0,15,0,0"/>
+                            <CheckBox Content="Team Picked Levels Only" IsChecked="{Binding IsTeamPick}" Margin="0,10,0,0"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
                             <!-- LBP2 & LBP3 LABELS -->
                             <TextBlock Text="LBP2 &amp; LBP3 LABELS" Style="{StaticResource SectionHeader}"/>
                             
-                            <StackPanel Orientation="Horizontal" Margin="10,0,0,15">
-                                <TextBlock Text="Label Match Mode:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ComboBox SelectedIndex="{Binding LabelMatchMode}" Width="190" HorizontalAlignment="Left" Margin="0">
+                            <StackPanel Orientation="Horizontal" Margin="10,0,0,10">
+                                <TextBlock Text="Label Match Mode:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox SelectedIndex="{Binding LabelMatchMode}" Width="200" HorizontalAlignment="Left" Margin="0">
                                     <ComboBoxItem Content="Author or Community"/>
                                     <ComboBoxItem Content="Author Labels Only"/>
                                     <ComboBoxItem Content="Community Labels Only"/>
@@ -379,51 +389,51 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="25,0,25,25">
                                     
-                                    <TextBlock Text="EXCLUSION CRITERIA" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                                    <TextBlock Text="EXCLUSION CRITERIA" Style="{StaticResource SectionHeader}"/>
                                     
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="135"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Exclude Creators:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Grid.Column="0" Text="Exclude Creators:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBox Grid.Column="1" Text="{Binding ExcludedCreators, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
                                     </Grid>
 
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="135"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Exclude Contributors:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Grid.Column="0" Text="Exclude Contributors:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBox Grid.Column="1" Text="{Binding ExcludedContributors, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
                                     </Grid>
 
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="135"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Exclude Objects By:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Grid.Column="0" Text="Exclude Objects By:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBox Grid.Column="1" Text="{Binding ExcludedObjectContributors, UpdateSourceTrigger=PropertyChanged}" ToolTip="Comma separated list of PSN IDs"/>
                                     </Grid>
 
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="135"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <TextBlock Grid.Column="0" Text="Max Hearts:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                        <TextBox Grid.Column="1" Text="{Binding MaxHearts, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                        <TextBlock Grid.Column="0" Text="Max Hearts:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="1" Text="{Binding MaxHearts, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
                                         
-                                        <TextBlock Grid.Column="2" Text="Max Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
-                                        <TextBox Grid.Column="3" Text="{Binding MaxPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
+                                        <TextBlock Grid.Column="2" Text="Max Plays:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                                        <TextBox Grid.Column="3" Text="{Binding MaxPlays, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
                                     </Grid>
 
-                                    <CheckBox Content="Exclude Team Picked Levels" IsChecked="{Binding ExcludeTeamPick}" Margin="0,5,0,0"/>
+                                    <CheckBox Content="Exclude Team Picked Levels" IsChecked="{Binding ExcludeTeamPick}" Margin="0,5,0,5"/>
 
                                     <Rectangle Style="{StaticResource Separator}"/>
 
