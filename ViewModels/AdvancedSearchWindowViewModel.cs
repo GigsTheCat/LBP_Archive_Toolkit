@@ -32,6 +32,41 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _isTeamPick;
         public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
 
+        private int _labelMatchMode = 0;
+        public int LabelMatchMode
+        {
+            get => _labelMatchMode;
+            set
+            {
+                if (!_hasCommunityLabels && value != 1)
+                {
+                    bool download = _viewService.Confirm(
+                        "Your database is out of date and does not contain community labels data.\n\n" +
+                        "To use community labels in searches, you will need to download the updated database.\n\n" +
+                        "Would you like to open the download link now?", 
+                        "Database Out of Date");
+                    
+                    if (download)
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://archive.org/download/fullfastdry") { UseShellExecute = true });
+                        }
+                        catch (Exception ex)
+                        {
+                            LogManager.Log("AdvancedSearchWindowViewModel.LabelMatchMode (Open Link)", ex);
+                        }
+                    }
+                    
+                    // Force the UI ComboBox to revert its selection back to Index 1 (Author Labels Only)
+                    OnPropertyChanged(nameof(LabelMatchMode));
+                    return;
+                }
+
+                SetProperty(ref _labelMatchMode, value);
+            }
+        }
+
         // Categorized Collections for Data Binding
         public ObservableCollection<SelectableTagViewModel> Lbp2ExperienceLabels { get; } = new();
         public ObservableCollection<SelectableTagViewModel> Lbp2TypeLabels { get; } = new();
@@ -51,11 +86,20 @@ namespace LbpArchiveToolkit.ViewModels
         // Action to pass the updated criteria back to the Window
         public Action<AdvancedSearchCriteria, bool>? RequestClose { get; set; }
 
-        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria)
+        private readonly bool _hasCommunityLabels;
+        private readonly IViewService _viewService;
+
+        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, IViewService viewService)
         {
+            _hasCommunityLabels = hasCommunityLabels;
+            _viewService = viewService;
+
             MinHearts = existingCriteria.MinHearts.ToString();
             MinPlays = existingCriteria.MinPlays.ToString();
             IsTeamPick = existingCriteria.IsTeamPick;
+            
+            // Revert back to Author Only if community labels column isn't present
+            LabelMatchMode = !_hasCommunityLabels ? 1 : existingCriteria.LabelMatchMode;
 
             PopulateTags(existingCriteria);
 
@@ -119,8 +163,9 @@ namespace LbpArchiveToolkit.ViewModels
             MinHearts = "0";
             MinPlays = "0";
             IsTeamPick = false;
+            LabelMatchMode = !_hasCommunityLabels ? 1 : 0;
 
-            var allCollections = new[] { 
+            var allCollections = new[] {  
                 Lbp2ExperienceLabels, Lbp2TypeLabels, Lbp2ContentLabels, 
                 Lbp3ExperienceLabels, Lbp3TypeLabels, Lbp3ContentLabels, Lbp3CharacterLabels, Lbp1Tags 
             };
@@ -140,7 +185,8 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 MinHearts = hearts,
                 MinPlays = plays,
-                IsTeamPick = IsTeamPick
+                IsTeamPick = IsTeamPick,
+                LabelMatchMode = LabelMatchMode
             };
 
             var allLabels = new[] { 

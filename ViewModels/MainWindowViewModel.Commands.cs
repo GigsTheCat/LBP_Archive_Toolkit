@@ -48,7 +48,7 @@ namespace LbpArchiveToolkit.ViewModels
             
             OpenAdvancedSearchCommand = new RelayCommand(_ =>
             {
-                var result = _viewService.ShowAdvancedSearchDialog(_advancedCriteria);
+                var result = _viewService.ShowAdvancedSearchDialog(_advancedCriteria, HasCommunityLabels);
                 if (result != null)
                 {
                     _advancedCriteria = result.Value.Criteria;

@@ -39,6 +39,7 @@ namespace LbpArchiveToolkit.ViewModels
     public class TagItem : ViewModelBase
     {
         public string Text { get; set; } = "";
+        public string? ToolTip { get; set; }
         public double TiltAngle { get; set; }
         public bool IsLbp1Tag { get; set; }
         private Visibility _visibility = Visibility.Visible;
@@ -159,6 +160,7 @@ namespace LbpArchiveToolkit.ViewModels
         public Visibility HasContributorsVisibility => _dbService.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
         public Visibility HasObjectContributorsVisibility => _dbService.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
         public bool HasCompletionData => _dbService.HasCompletionData;
+        public bool HasCommunityLabels => _dbService.HasCommunityLabels;
 
         // Level Details Properties
         private LevelItem? _selectedLevel;

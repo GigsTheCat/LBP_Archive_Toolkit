@@ -44,6 +44,15 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        public bool HasCommunityLabels
+        {
+            get
+            {
+                EnsureSchemaResolved();
+                return _colCommunityLabels != "NULL";
+            }
+        }
+
         public bool HasCompletionData
         {
             get
@@ -63,6 +72,7 @@ namespace LbpArchiveToolkit.Services
         private string _colHash = "NULL";
         private string _colIcon = "NULL";
         private string _colLabels = "NULL";
+        private string _colCommunityLabels = "NULL";
         private string _colTags = "NULL";
         private string _colMmPick = "NULL";
 
@@ -225,7 +235,8 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colIcon)).Append(", ")
                         .Append(SafeCol(_colMmPick)).Append(", ")
                         .Append(SafeCol(_colLabels)).Append(", ")
-                        .Append(SafeCol(_colTags));
+                        .Append(SafeCol(_colTags)).Append(", ")
+                        .Append(SafeCol(_colCommunityLabels));
 
             queryBuilder.Append(" FROM slot ");
 
@@ -276,7 +287,12 @@ namespace LbpArchiveToolkit.Services
                     {
                         // 'l' is already the raw tag at this point (e.g. "LABEL_SINGLE_PLAYER")
                         string ftsTag = l.Replace("LABEL_", "").Replace("_", "");
-                        tagTokens.Add($"\"LBL_{ftsTag}\"");
+                        if (advanced.LabelMatchMode == 1)
+                            tagTokens.Add($"\"LBL_{ftsTag}\"");
+                        else if (advanced.LabelMatchMode == 2)
+                            tagTokens.Add($"\"COMM_LBL_{ftsTag}\"");
+                        else
+                            tagTokens.Add($"(\"LBL_{ftsTag}\" OR \"COMM_LBL_{ftsTag}\")");
                     }
                     foreach (var t in advanced.RequiredTags) tagTokens.Add($"\"TAG_{t.Replace(" ", "")}\"");
                     if (advanced.IsTeamPick) tagTokens.Add("\"MM_PICK\"");
@@ -353,70 +369,63 @@ namespace LbpArchiveToolkit.Services
             byte[] sharedBlobBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(256);
             try
             {
+                void ReadBitmask(int colIndex, out long mask0, out long mask1)
+                {
+                    mask0 = 0; mask1 = 0;
+                    if (!reader.IsDBNull(colIndex))
+                    {
+                        long bytesRead = reader.GetBytes(colIndex, 0, sharedBlobBuffer, 0, 256);
+                        int len = (int)bytesRead;
+                        if (len >= 8)
+                        {
+                            mask0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(sharedBlobBuffer.AsSpan(len - 8, 8));
+                            int remaining = len - 8;
+                            if (remaining > 0)
+                            {
+                                Span<byte> temp = stackalloc byte[8];
+                                sharedBlobBuffer.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
+                                mask1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                            }
+                        }
+                        else if (len > 0)
+                        {
+                            Span<byte> temp = stackalloc byte[8];
+                            sharedBlobBuffer.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
+                            mask0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
+                        }
+                    }
+                }
+
                 while (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     long id = reader.GetInt64(0);
 
                     if (needsCSharpFiltering)
                     {
-                        long l0 = 0, l1 = 0;
                         if (reqL0 != 0 || reqL1 != 0)
                         {
-                            if (!reader.IsDBNull(13))
-                            {
-                                long bytesRead = reader.GetBytes(13, 0, sharedBlobBuffer, 0, 256);
-                                int len = (int)bytesRead;
-                                if (len >= 8)
-                                {
-                                    l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(sharedBlobBuffer.AsSpan(len - 8, 8));
-                                    int remaining = len - 8;
-                                    if (remaining > 0)
-                                    {
-                                        Span<byte> temp = stackalloc byte[8];
-                                        sharedBlobBuffer.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
-                                        l1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                                    }
-                                }
-                                else if (len > 0)
-                                {
-                                    Span<byte> temp = stackalloc byte[8];
-                                    sharedBlobBuffer.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
-                                    l0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                                }
-                            }
+                            ReadBitmask(13, out long l0, out long l1);
                             
-                            if ((l0 & reqL0) != reqL0 || (l1 & reqL1) != reqL1)
+                            long cL0 = 0, cL1 = 0;
+                            if (_colCommunityLabels != "NULL")
+                            {
+                                ReadBitmask(15, out cL0, out cL1);
+                            }
+
+                            long combinedL0 = 0, combinedL1 = 0;
+                            if (advanced.LabelMatchMode == 1) { combinedL0 = l0; combinedL1 = l1; }
+                            else if (advanced.LabelMatchMode == 2) { combinedL0 = cL0; combinedL1 = cL1; }
+                            else { combinedL0 = l0 | cL0; combinedL1 = l1 | cL1; }
+
+                            if ((combinedL0 & reqL0) != reqL0 || (combinedL1 & reqL1) != reqL1)
                             {
                                 continue;
                             }
                         }
 
-                        long t0 = 0, t1 = 0;
                         if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
                         {
-                            if (!reader.IsDBNull(14))
-                            {
-                                long bytesRead = reader.GetBytes(14, 0, sharedBlobBuffer, 0, 256);
-                                int len = (int)bytesRead;
-                                if (len >= 8)
-                                {
-                                    t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(sharedBlobBuffer.AsSpan(len - 8, 8));
-                                    int remaining = len - 8;
-                                    if (remaining > 0)
-                                    {
-                                        Span<byte> temp = stackalloc byte[8];
-                                        sharedBlobBuffer.AsSpan(0, remaining).CopyTo(temp.Slice(8 - remaining));
-                                        t1 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                                    }
-                                }
-                                else if (len > 0)
-                                {
-                                    Span<byte> temp = stackalloc byte[8];
-                                    sharedBlobBuffer.AsSpan(0, len).CopyTo(temp.Slice(8 - len));
-                                    t0 = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(temp);
-                                }
-                            }
-                            
+                            ReadBitmask(14, out long t0, out long t1);
                             if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
                             {
                                 continue;
@@ -520,8 +529,15 @@ namespace LbpArchiveToolkit.Services
                 {
                     levelTags.AddRange(TagParser.ParseTagNames(reader.GetFieldValue<byte[]>(14)));
                 }
+
+                var commLabels = new List<string>();
+                if (_colCommunityLabels != "NULL" && !reader.IsDBNull(15) && reader.GetFieldType(15) == typeof(byte[]))
+                {
+                    commLabels.AddRange(LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(15)));
+                }
                 
                 levelItem.Labels = levelLabels;
+                levelItem.CommunityLabels = commLabels;
                 levelItem.Tags = levelTags;
 
                  yield return levelItem;
@@ -920,6 +936,7 @@ namespace LbpArchiveToolkit.Services
                 _colHash = GetDbColumn(columns, "rootLevel", "root_level", "rootLevelHash", "hash");
                 _colIcon = GetDbColumn(columns, "icon", "iconHash");
                 _colLabels = GetDbColumn(columns, "authorLabels");
+                _colCommunityLabels = GetDbColumn(columns, "labels", "communityLabels");
                 _colTags = GetDbColumn(columns, "tags");
                 _colMmPick = GetDbColumn(columns, "mmpick", "mmPick");
 

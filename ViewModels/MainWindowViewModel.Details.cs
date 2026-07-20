@@ -32,14 +32,37 @@ namespace LbpArchiveToolkit.ViewModels
             HeartLevelButtonText = HeartedLevelsManager.IsHearted(_selectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
 
             LevelTags.Clear();
-            bool hasLabels = _selectedLevel.Labels != null && _selectedLevel.Labels.Count > 0;
+            bool hasAuthorLabels = _selectedLevel.Labels != null && _selectedLevel.Labels.Count > 0;
+            bool hasCommLabels = _selectedLevel.CommunityLabels != null && _selectedLevel.CommunityLabels.Count > 0 && HasCommunityLabels;
             bool hasTags = _selectedLevel.Tags != null && _selectedLevel.Tags.Count > 0;
 
-            if (hasLabels || hasTags)
+            if (hasAuthorLabels || hasCommLabels || hasTags)
             {
-                if (hasLabels)
+                var addedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                bool showAsterisk = HasCommunityLabels;
+
+                if (hasAuthorLabels)
+                {
                     foreach (var label in _selectedLevel.Labels!.OrderBy(l => l))
-                        LevelTags.Add(new TagItem { Text = label, TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                    {
+                        addedLabels.Add(label);
+                        string displayName = showAsterisk ? label + "*" : label;
+                        string? tooltip = showAsterisk ? "*Labels chosen by the author" : null;
+                        LevelTags.Add(new TagItem { Text = displayName, ToolTip = tooltip, TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                    }
+                }
+
+                if (hasCommLabels)
+                {
+                    foreach (var label in _selectedLevel.CommunityLabels!.OrderBy(l => l))
+                    {
+                        if (addedLabels.Add(label))
+                        {
+                            LevelTags.Add(new TagItem { Text = label, ToolTip = "Labels chosen by the community", TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                        }
+                    }
+                }
+
                 if (hasTags)
                 {
                     foreach (var tag in _selectedLevel.Tags!.OrderBy(t => t))

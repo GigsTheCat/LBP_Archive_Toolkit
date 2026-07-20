@@ -75,7 +75,8 @@ namespace LbpArchiveToolkit.ViewModels
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
+                            LabelMatchMode = _advancedCriteria.LabelMatchMode
                         }
                     };
                 }
@@ -189,7 +190,8 @@ namespace LbpArchiveToolkit.ViewModels
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags)
+                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
+                            LabelMatchMode = _advancedCriteria.LabelMatchMode
                         }
                     };
                 }

@@ -10,14 +10,14 @@ namespace LbpArchiveToolkit
         public AdvancedSearchCriteria Criteria { get; private set; }
         public bool ShouldSearch { get; private set; }
 
-        public AdvancedSearchWindow(AdvancedSearchCriteria existingCriteria)
+        public AdvancedSearchWindow(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, IViewService viewService)
         {
             InitializeComponent();
             
             // Set default in case the window is closed without pressing Apply
             Criteria = existingCriteria; 
 
-            var viewModel = new AdvancedSearchWindowViewModel(existingCriteria);
+            var viewModel = new AdvancedSearchWindowViewModel(existingCriteria, hasCommunityLabels, viewService);
 
             // Close callback executed when Apply or Apply&Search are pressed
             viewModel.RequestClose += (newCriteria, shouldSearch) =>

@@ -171,9 +171,9 @@ namespace LbpArchiveToolkit
             new SettingsWindow { Owner = this }.ShowDialog();
         }
 
-        public (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current)
+        public (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current, bool hasCommunityLabels)
         {
-            var dlg = new AdvancedSearchWindow(current) { Owner = this };
+            var dlg = new AdvancedSearchWindow(current, hasCommunityLabels, this) { Owner = this };
             return dlg.ShowDialog() == true ? (dlg.Criteria, dlg.ShouldSearch) : null;
         }
 

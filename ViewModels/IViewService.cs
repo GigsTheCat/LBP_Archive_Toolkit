@@ -9,7 +9,7 @@ namespace LbpArchiveToolkit.ViewModels
         Window GetMainWindow();
         bool ShowMissingDatabaseDialog();
         void ShowSettingsDialog();
-        (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current);
+        (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current, bool hasCommunityLabels);
         void ShowToast(string message, string targetElementName);
         void ShowContributorsDialog(List<string> contributors, List<string> objectContributors, string levelCreator, System.Action<string> onCreatorClicked);
         bool Confirm(string message, string title);
