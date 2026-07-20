@@ -300,6 +300,28 @@
                                 <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
                                 <TextBox Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
                             </Grid>
+
+                            <TextBlock Text="PUBLISH DATE" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="Published After:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedAfterYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedAfterMonth}" Width="70" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="2" Text="Published Before:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,10,0"/>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                    <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedBeforeYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedBeforeMonth}" Width="70" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
                             
                             <CheckBox Content="Team Picked Levels Only" IsChecked="{Binding IsTeamPick}" Margin="0,15,0,0"/>
 
@@ -399,27 +421,6 @@
                                         
                                         <TextBlock Grid.Column="2" Text="Max Plays:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,10,0"/>
                                         <TextBox Grid.Column="3" Text="{Binding MaxPlays, UpdateSourceTrigger=PropertyChanged}" Width="80" HorizontalAlignment="Left"/>
-                                    </Grid>
-
-                                    <Grid Margin="0,0,0,15">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock Grid.Column="0" Text="Published After:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                            <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedAfterYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
-                                            <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedAfterMonth}" Width="70" HorizontalContentAlignment="Center"/>
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Column="2" Text="Published Before:" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,10,0"/>
-                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                            <ComboBox ItemsSource="{Binding AvailableYears}" SelectedItem="{Binding PublishedBeforeYear}" Width="85" Margin="0,0,5,0" HorizontalContentAlignment="Center"/>
-                                            <ComboBox ItemsSource="{Binding AvailableMonths}" SelectedItem="{Binding PublishedBeforeMonth}" Width="70" HorizontalContentAlignment="Center"/>
-                                        </StackPanel>
                                     </Grid>
 
                                     <CheckBox Content="Exclude Team Picked Levels" IsChecked="{Binding ExcludeTeamPick}" Margin="0,5,0,0"/>
