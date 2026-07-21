@@ -317,6 +317,17 @@ namespace LbpArchiveToolkit.ViewModels
             if (SearchTypeIndex == 0) SearchCommand.Execute(null); else SearchTypeIndex = 0;
         }
 
+        public void InitiateUserSearch(string npHandle)
+        {
+            SearchText = npHandle;
+            ExactMatch = true;
+            SearchDesc = false;
+            GameIndex = 0;
+            SelectedGenre = "All Genres";
+            _advancedCriteria = new AdvancedSearchCriteria();
+            if (SearchTypeIndex == 1) SearchCommand.Execute(null); else SearchTypeIndex = 1;
+        }
+
         public void InitiateContributionsSearch(string npHandle)
         {
             SearchText = npHandle;

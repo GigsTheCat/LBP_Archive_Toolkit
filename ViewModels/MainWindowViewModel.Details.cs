@@ -202,7 +202,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     var contributors = await _dbService.GetContributorsAsync(SelectedLevel.Id);
                     var objectContributors = await _dbService.GetObjectContributorsAsync(SelectedLevel.Id);
-                    _viewService.ShowContributorsDialog(contributors, objectContributors, SelectedLevel.Creator ?? "Unknown", InitiateCreatorSearch);
+                    _viewService.ShowContributorsDialog(contributors, objectContributors, SelectedLevel.Creator ?? "Unknown", InitiateUserSearch);
                 }
                 catch (Exception ex)
                 {

@@ -93,9 +93,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (param is LevelItem level)
                 {
-                    SearchText = level.Creator ?? "";
-                    if (SearchTypeIndex == 1) SearchCommand.Execute(null);
-                    else SearchTypeIndex = 1;
+                    InitiateUserSearch(level.Creator ?? "");
                 }
             });
 
