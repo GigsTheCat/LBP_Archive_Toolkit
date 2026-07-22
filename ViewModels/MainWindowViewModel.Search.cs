@@ -73,6 +73,7 @@ namespace LbpArchiveToolkit.ViewModels
                         AdvancedCriteria = new AdvancedSearchCriteria
                         {
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
+                            MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
@@ -198,6 +199,7 @@ namespace LbpArchiveToolkit.ViewModels
                         AdvancedCriteria = new AdvancedSearchCriteria
                         {
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
+                            MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),

@@ -297,19 +297,32 @@
                                     <!-- NUMERIC FILTERS -->
                                     <TextBlock Text="POPULARITY" Style="{StaticResource SectionHeader}" Margin="0,15,0,12"/>
                                     <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <TextBlock Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBox Grid.Column="1" Text="{Binding MinHearts, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
-                                
-                                <TextBlock Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
-                                <TextBox Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
-                            </Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="10"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Row 0: Hearts & Plays -->
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Min Hearts:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MinHearts, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
+                                        
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                                        <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
+                                    
+                                        <!-- Row 2: Heart Percentage -->
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Min Heart %:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <DockPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" HorizontalAlignment="Left">
+                                            <TextBox Text="{Binding MinHeartPercentage, UpdateSourceTrigger=PropertyChanged}" Width="50" HorizontalAlignment="Left" Margin="0,0,5,0"/>
+                                            <TextBlock Text="%" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                    </Grid>
 
                             <TextBlock Text="PUBLISH DATE" Style="{StaticResource SectionHeader}"/>
                             <Grid>

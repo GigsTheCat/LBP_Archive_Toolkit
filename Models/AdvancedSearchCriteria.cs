@@ -4,6 +4,7 @@ namespace LbpArchiveToolkit.Models
     {
         public int MinHearts { get; set; } = 0;
         public int MinPlays { get; set; } = 0;
+        public int MinHeartPercentage { get; set; } = 0;
         public bool IsTeamPick { get; set; } = false;
 
         // List of labels/tags the level MUST have to appear in the results

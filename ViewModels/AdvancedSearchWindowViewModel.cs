@@ -29,6 +29,9 @@ namespace LbpArchiveToolkit.ViewModels
         private string _minPlays = "0";
         public string MinPlays { get => _minPlays; set => SetProperty(ref _minPlays, value); }
 
+        private string _minHeartPercentage = "0";
+        public string MinHeartPercentage { get => _minHeartPercentage; set => SetProperty(ref _minHeartPercentage, value); }
+
         private bool _isTeamPick;
         public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
 
@@ -143,6 +146,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             MinHearts = existingCriteria.MinHearts.ToString();
             MinPlays = existingCriteria.MinPlays.ToString();
+            MinHeartPercentage = existingCriteria.MinHeartPercentage.ToString();
             IsTeamPick = existingCriteria.IsTeamPick;
             MaxHearts = existingCriteria.MaxHearts.ToString();
             MaxPlays = existingCriteria.MaxPlays.ToString();
@@ -245,6 +249,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             MinHearts = "0";
             MinPlays = "0";
+            MinHeartPercentage = "0";
             IsTeamPick = false;
             MaxHearts = "0";
             MaxPlays = "0";
@@ -275,6 +280,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             int.TryParse(MinHearts, out int hearts);
             int.TryParse(MinPlays, out int plays);
+            int.TryParse(MinHeartPercentage, out int heartPct);
             int.TryParse(MaxHearts, out int maxHearts);
             int.TryParse(MaxPlays, out int maxPlays);
 
@@ -299,6 +305,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 MinHearts = hearts,
                 MinPlays = plays,
+                MinHeartPercentage = heartPct,
                 IsTeamPick = IsTeamPick,
                 MaxHearts = maxHearts,
                 MaxPlays = maxPlays,
@@ -393,6 +400,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                         MinHearts = criteria.MinHearts.ToString();
                         MinPlays = criteria.MinPlays.ToString();
+                        MinHeartPercentage = criteria.MinHeartPercentage.ToString();
                         IsTeamPick = criteria.IsTeamPick;
                         MaxHearts = criteria.MaxHearts.ToString();
                         MaxPlays = criteria.MaxPlays.ToString();

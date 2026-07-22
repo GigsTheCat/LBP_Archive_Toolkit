@@ -985,6 +985,12 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@minPlays", advanced.MinPlays));
             }
 
+            if (advanced.MinHeartPercentage > 0 && _colHeart != "NULL" && _colPlay != "NULL")
+            {
+                query.Append($" AND {pfx}{_colPlay} > 0 AND {pfx}{_colHeart} >= ({pfx}{_colPlay} * @heartRatio)");
+                parameters.Add(new SqliteParameter("@heartRatio", advanced.MinHeartPercentage / 100.0));
+            }
+
             if (advanced.MinHearts > 0 && _colHeart != "NULL")
             {
                 query.Append($" AND {pfx}{_colHeart} >= @minHearts");
