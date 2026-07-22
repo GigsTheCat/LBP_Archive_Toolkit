@@ -862,9 +862,10 @@ namespace LbpArchiveToolkit.Utils
 
         public static BitmapSource CreateBitmapSource(byte[] bgraData, int width, int height)
         {
-            var bitmapSource = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, bgraData, width * 4);
-            bitmapSource.Freeze(); // Freezing allows WPF to natively cross threads perfectly safely
-            return bitmapSource;
+            var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            wb.WritePixels(new System.Windows.Int32Rect(0, 0, width, height), bgraData, width * 4, 0);
+            wb.Freeze(); // Freezing allows WPF to natively cross threads perfectly safely
+            return wb;
         }
 
         private static byte[] EncodeToPng(BitmapSource bitmapSource)

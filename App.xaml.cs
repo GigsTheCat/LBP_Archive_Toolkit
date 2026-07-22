@@ -63,14 +63,19 @@ public static class LogManager
         try
         {
             Directory.CreateDirectory(AppDataFolder);
+            
+            using var fs = new FileStream(LogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, useAsync: true);
+            using var writer = new StreamWriter(fs, System.Text.Encoding.UTF8, 4096, leaveOpen: true) { AutoFlush = true };
+
             await foreach (var message in _logChannel.Reader.ReadAllAsync())
             {
                 try
                 {
-                    if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 5 * 1024 * 1024)
-                        File.Delete(LogPath);
-
-                    await File.AppendAllTextAsync(LogPath, message);
+                    if (fs.Length > 5 * 1024 * 1024)
+                    {
+                        fs.SetLength(0);
+                    }
+                    await writer.WriteAsync(message);
                 }
                 catch { }
             }

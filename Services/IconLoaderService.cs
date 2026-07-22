@@ -1,5 +1,6 @@
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Utils;
+using System.IO;
 using System.Net.Http;
 using System.Windows.Media;
 
@@ -51,32 +52,26 @@ namespace LbpArchiveToolkit.Services
                 if (contentLength.HasValue && contentLength.Value > 5242880) return null;
 
                 using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-                int capacity = contentLength.HasValue ? (int)contentLength.Value : 81920;
-                byte[] rawBytes = new byte[capacity];
-                int totalBytes = 0;
-                int bytesRead;
-
-                while (true)
+                using var ms = new MemoryStream(contentLength.HasValue ? (int)contentLength.Value : 81920);
+                byte[] chunk = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
+                
+                try
                 {
-                    if (totalBytes == rawBytes.Length)
+                    int bytesRead;
+                    while ((bytesRead = await stream.ReadAsync(chunk, token).ConfigureAwait(false)) > 0)
                     {
-                        Array.Resize(ref rawBytes, rawBytes.Length * 2);
+                        ms.Write(chunk, 0, bytesRead);
+                        if (ms.Length > 5242880) return null; // Hard cap at 5MB
                     }
-
-                    bytesRead = await stream.ReadAsync(rawBytes.AsMemory(totalBytes), token).ConfigureAwait(false);
-                    if (bytesRead == 0) break;
-
-                    totalBytes += bytesRead;
-                    if (totalBytes > 5242880) return null; // Hard cap at 5MB
                 }
-
-                if (totalBytes != rawBytes.Length)
+                finally
                 {
-                    Array.Resize(ref rawBytes, totalBytes);
+                    System.Buffers.ArrayPool<byte>.Shared.Return(chunk);
                 }
 
                 if (token.IsCancellationRequested) return null;
 
+                byte[] rawBytes = ms.ToArray();
                 var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawBytes), token).ConfigureAwait(false);
                 if (webBmp == null) return null;
 

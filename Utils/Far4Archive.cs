@@ -30,25 +30,31 @@ namespace LbpArchiveToolkit.Utils
                 chunkIndex++;
             }
 
-            byte[] buffer = msArchive.ToArray();
-            using var ms = new MemoryStream(buffer);
+            if (!msArchive.TryGetBuffer(out ArraySegment<byte> bufferSegment))
+            {
+                bufferSegment = new ArraySegment<byte>(msArchive.ToArray());
+            }
+            byte[] buffer = bufferSegment.Array!;
+            int bufferLength = bufferSegment.Count;
+            
+            using var ms = new MemoryStream(buffer, bufferSegment.Offset, bufferLength, writable: false);
             using var br = new BinaryReader(ms);
 
-            ms.Position = buffer.Length - 8;
+            ms.Position = bufferLength - 8;
             int entryCount = (int)BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
 
             int footerSize = 28;
             int saveKeySize = 140;
-            int fatOffset = buffer.Length - footerSize - (entryCount * 0x1c);
+            int fatOffset = bufferLength - footerSize - (entryCount * 0x1c);
             int saveKeyOffset = fatOffset - saveKeySize;
 
-            if (buffer.Length >= 32)
+            if (bufferLength >= 32)
             {
-                ms.Position = buffer.Length - 32;
+                ms.Position = bufferLength - 32;
                 int possibleSaveKeyOffset = (int)BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
-                if (possibleSaveKeyOffset > 0 && possibleSaveKeyOffset < buffer.Length - 32)
+                if (possibleSaveKeyOffset > 0 && possibleSaveKeyOffset < bufferLength - 32)
                 {
-                    int expectedFatOffset = buffer.Length - 32 - (entryCount * 0x1c);
+                    int expectedFatOffset = bufferLength - 32 - (entryCount * 0x1c);
                     if (possibleSaveKeyOffset + 140 == expectedFatOffset) { footerSize = 32; saveKeySize = 140; fatOffset = expectedFatOffset; saveKeyOffset = possibleSaveKeyOffset; }
                     else if (possibleSaveKeyOffset + 144 == expectedFatOffset) { footerSize = 32; saveKeySize = 144; fatOffset = expectedFatOffset; saveKeyOffset = possibleSaveKeyOffset; }
                     else if (possibleSaveKeyOffset + 148 == expectedFatOffset) { footerSize = 32; saveKeySize = 148; fatOffset = expectedFatOffset; saveKeyOffset = possibleSaveKeyOffset; }
@@ -81,10 +87,10 @@ namespace LbpArchiveToolkit.Utils
                 ms.ReadExactly(uintBuf);
                 uint size = BinaryPrimitives.ReadUInt32BigEndian(uintBuf);
 
-                if (offset + size > buffer.Length) continue;
+                if (offset + size > bufferLength) continue;
 
                 byte[] data = new byte[size];
-                Array.Copy(buffer, offset, data, 0, size);
+                Array.Copy(buffer, bufferSegment.Offset + (int)offset, data, 0, size);
                 hashes[hash] = data;
             }
 

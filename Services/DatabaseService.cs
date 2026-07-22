@@ -8,7 +8,7 @@ using System.Text;
 
 namespace LbpArchiveToolkit.Services
 {
-    public class DatabaseService
+    public partial class DatabaseService
     {
         #region State & Caching
 
@@ -817,6 +817,9 @@ namespace LbpArchiveToolkit.Services
 
         #region SQL Query Builders
 
+        [System.Text.RegularExpressions.GeneratedRegex(@"[\^\*\(\)\[\]\{\}\:\;\+\'\""]")]
+        private static partial System.Text.RegularExpressions.Regex FtsSanitizerRegex();
+
         private void BuildSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             bool hasDesc = searchDesc && _colDesc != "NULL";
@@ -845,10 +848,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             string matchTerm = "";
-            string Sanitize(string s)
-            {
-                return System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
-            }
+            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
 
             if (exact)
             {
@@ -876,7 +876,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildContribFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
         {
             string matchTerm = "";
-            string Sanitize(string s) => System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
+            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
 
             if (exact)
             {
@@ -917,7 +917,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildObjectFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
         {
             string matchTerm = "";
-            string Sanitize(string s) => System.Text.RegularExpressions.Regex.Replace(s, @"[\^\*\(\)\[\]\{\}\:\;\+\'\""]", "");
+            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
 
             if (exact)
             {
