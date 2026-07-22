@@ -132,8 +132,6 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task SurpriseMeAsync()
         {
-            if (SearchTypeIndex == 2 || SearchTypeIndex == 3) return;
-
             IsSearching = true;
             StatusText = SearchTypeIndex == 1 ? "Finding a random creator..." : "Finding a random level...";
             IsProgressVisible = Visibility.Visible;
@@ -165,7 +163,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             try
             {
-                if (SearchTypeIndex == 0)
+                if (IsLevelSearch)
                 {
                     var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
                     view.SortDescriptions.Clear();
@@ -174,7 +172,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                     await Task.Run(async () =>
                     {
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, false, false, true, searchToken).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
                         {
                             await Application.Current.Dispatcher.InvokeAsync(() =>
                             {
@@ -426,7 +424,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 string? limitFilter = LimitIndex == 4 ? "All" : (LimitIndex == 3 ? "1000" : (LimitIndex == 2 ? "500" : (LimitIndex == 1 ? "200" : "100")));
                 
-                if (state.IsSurpriseMe && state.SelectedItem != null && state.SearchTypeIndex == 0)
+                if (state.IsSurpriseMe && state.SelectedItem != null && (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2 || state.SearchTypeIndex == 3))
                 {
                     ResultsList.Add(state.SelectedItem);
                     UpdateLevelSavedString(state.SelectedItem);

@@ -135,7 +135,7 @@ namespace LbpArchiveToolkit.ViewModels
         }
         public bool IsNotSearching => !IsSearching;
         public Visibility SearchButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility SurpriseButtonVisibility => (IsSearching || SearchTypeIndex == 2 || SearchTypeIndex == 3) ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility SurpriseButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;
 
         private Visibility _isProgressVisible = Visibility.Hidden;
