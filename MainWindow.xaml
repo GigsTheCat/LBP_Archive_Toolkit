@@ -309,7 +309,7 @@
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Creator}" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" TextAlignment="Left" VerticalAlignment="Center" Padding="8,0">
                                                     <TextBlock.ContextMenu>
-                                                        <ContextMenu Opened="ContextMenu_Opened">
+                                                        <ContextMenu>
                                                             <MenuItem Header="Search Creator" Command="{Binding PlacementTarget.Tag.SearchCreatorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
                                                             <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Command="{Binding PlacementTarget.Tag.ViewUserContributionsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
                                                             <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Command="{Binding PlacementTarget.Tag.ViewUserObjectsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
@@ -325,7 +325,7 @@
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding LevelName}" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource DataGridTextCenterStyle}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
                                                     <TextBlock.ContextMenu>
-                                                        <ContextMenu Opened="ContextMenu_Opened">
+                                                        <ContextMenu>
                                                             <MenuItem Header="Copy Level Name" Command="{Binding PlacementTarget.Tag.CopyLevelNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
                                                         </ContextMenu>
                                                     </TextBlock.ContextMenu>
@@ -426,14 +426,14 @@
                                 <StackPanel Grid.Row="1" Margin="0,0,0,10">
                                     <TextBlock Tag="{Binding}" Text="{Binding SelectedLevel.LevelName}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="18" TextWrapping="Wrap" TextAlignment="Center">
                                         <TextBlock.ContextMenu>
-                                            <ContextMenu Opened="ContextMenu_Opened">
+                                            <ContextMenu>
                                                 <MenuItem Header="Copy Level Name" Command="{Binding PlacementTarget.Tag.CopyLevelNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
                                     <TextBlock Tag="{Binding}" Text="{Binding LevelCreatorAndStatsText}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
                                         <TextBlock.ContextMenu>
-                                            <ContextMenu Opened="ContextMenu_Opened">
+                                            <ContextMenu>
                                                 <MenuItem Header="Search Creator" Command="{Binding PlacementTarget.Tag.SearchCreatorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <MenuItem x:Name="MenuSearchContributions" Header="Search Contributions" Command="{Binding PlacementTarget.Tag.ViewUserContributionsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <MenuItem x:Name="MenuSearchObjects" Header="Search Objects By" Command="{Binding PlacementTarget.Tag.ViewUserObjectsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
@@ -467,6 +467,9 @@
                                     <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpPink}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>
                                     <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12">
                                         <RichTextBox x:Name="txtDescription" IsReadOnly="True" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" FontSize="14">
+                                            <RichTextBox.CommandBindings>
+                                                <CommandBinding Command="Copy" CanExecute="TxtDescription_Copy_CanExecute" Executed="TxtDescription_Copy_Executed" />
+                                            </RichTextBox.CommandBindings>
                                             <RichTextBox.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Command="Copy" Header="Copy" />

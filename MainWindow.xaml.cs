@@ -52,13 +52,48 @@ namespace LbpArchiveToolkit
             LbpArchiveToolkit.Utils.WindowPositionManager.RestorePosition(this);
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
 
+            EventManager.RegisterClassHandler(typeof(ContextMenu), ContextMenu.OpenedEvent, new RoutedEventHandler(ContextMenu_Opened));
+
             this.SourceInitialized += (s, e) =>
             {
                 if (ConfigManager.IsMaximized) this.WindowState = WindowState.Maximized;
             };
 
-            DataObject.AddCopyingHandler(txtDescription, (s, e) => ShowToast("Copied!", "Mouse"));
             Loaded += MainWindow_Loaded;
+        }
+
+        private void TxtDescription_Copy_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _viewModel.SelectedLevel != null && !string.IsNullOrEmpty(_viewModel.SelectedLevel.Description);
+            e.Handled = true;
+        }
+
+        private void TxtDescription_Copy_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            try
+            {
+                string textToCopy = string.Empty;
+                
+                if (!txtDescription.Selection.IsEmpty)
+                {
+                    textToCopy = txtDescription.Selection.Text;
+                }
+                else if (_viewModel.SelectedLevel != null)
+                {
+                    textToCopy = _viewModel.SelectedLevel.Description ?? string.Empty;
+                }
+
+                if (!string.IsNullOrEmpty(textToCopy))
+                {
+                    Clipboard.SetText(textToCopy);
+                    ShowToast("Copied!", "Mouse");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.Log("TxtDescription_Copy", ex);
+            }
+            e.Handled = true;
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -76,6 +111,7 @@ namespace LbpArchiveToolkit
         }
 
         private FrameworkElement? _lastContextElement;
+        private Point _lastRightClickPoint;
 
         private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -123,7 +159,8 @@ namespace LbpArchiveToolkit
 
         private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-            if (sender is ContextMenu menu)
+            var menu = e.Source as ContextMenu ?? sender as ContextMenu;
+            if (menu != null)
             {
                 if (menu.PlacementTarget is FrameworkElement feContext)
                 {
@@ -156,6 +193,8 @@ namespace LbpArchiveToolkit
                     }
                 }
             }
+
+            _lastRightClickPoint = Mouse.GetPosition(this);
         }
 
         #region Title Bar Handlers
@@ -205,12 +244,22 @@ namespace LbpArchiveToolkit
                 notificationToastPopup.HorizontalOffset = 15;
                 notificationToastPopup.VerticalOffset = 15;
             }
-            else if (targetElementName == "ContextElement" && _lastContextElement != null)
+            else if (targetElementName == "ContextElement")
             {
-                notificationToastPopup.PlacementTarget = _lastContextElement;
-                notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Relative;
-                notificationToastPopup.HorizontalOffset = 50; // To the right of the element's top-left corner
-                notificationToastPopup.VerticalOffset = -20;  // Slightly above the element's top-left corner
+                if (_lastContextElement != null && _lastContextElement.IsVisible)
+                {
+                    notificationToastPopup.PlacementTarget = _lastContextElement;
+                    notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+                    notificationToastPopup.HorizontalOffset = 0;
+                    notificationToastPopup.VerticalOffset = -8;
+                }
+                else
+                {
+                    notificationToastPopup.PlacementTarget = this;
+                    notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Relative;
+                    notificationToastPopup.HorizontalOffset = _lastRightClickPoint.X + 15;
+                    notificationToastPopup.VerticalOffset = _lastRightClickPoint.Y + 15;
+                }
             }
             else
             {

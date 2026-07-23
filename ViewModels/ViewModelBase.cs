@@ -28,6 +28,7 @@ namespace LbpArchiveToolkit.ViewModels
                 try
                 {
                     Clipboard.SetImage(bmp);
+                    (Application.Current?.MainWindow as IViewService)?.ShowToast("Image Copied!", "Mouse");
                 }
                 catch { }
             }
@@ -52,6 +53,7 @@ namespace LbpArchiveToolkit.ViewModels
                         encoder.Frames.Add(BitmapFrame.Create(bmp));
                         using var fs = File.Create(dlg.FileName);
                         encoder.Save(fs);
+                        (Application.Current?.MainWindow as IViewService)?.ShowToast("Image Saved!", "ContextElement");
                     }
                     catch { }
                 }
