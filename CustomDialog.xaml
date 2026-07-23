@@ -30,6 +30,34 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="checkBoxBorder" Width="20" Height="20" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="5" VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Data="M3,10 L8,15 L16,5" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="checkBoxBorder" Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <ContentControl Style="{DynamicResource PopitCard}" Margin="25" Padding="25">
@@ -54,6 +82,8 @@
             <Grid Grid.Row="3">
                 <Button x:Name="btnCopy" Content="{Binding CopyButtonText}" Visibility="{Binding CopyVisibility}" Command="{Binding CopyCommand}" Style="{DynamicResource BtnSecondary}" HorizontalAlignment="Left" Margin="0"/>
                 
+                <CheckBox Content="{Binding CheckboxText}" Visibility="{Binding CheckboxVisibility}" IsChecked="{Binding IsCheckboxChecked}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="btnNo" Content="NO" Visibility="{Binding YesNoVisibility}" Command="{Binding NoCommand}" Style="{DynamicResource BtnSecondary}"/>
                     <Button x:Name="btnYes" Content="YES" Visibility="{Binding YesNoVisibility}" Command="{Binding YesCommand}" Style="{DynamicResource BtnPrimary}"/>

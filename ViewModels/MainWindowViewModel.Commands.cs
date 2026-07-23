@@ -83,7 +83,7 @@ namespace LbpArchiveToolkit.ViewModels
                 if (param is LevelItem level && !string.IsNullOrEmpty(level.LevelName))
                 {
                     Clipboard.SetText(level.LevelName);
-                    _viewService.ShowToast("Level Name Copied!", "dgResults");
+                    _viewService.ShowToast("Level Name Copied!", "ContextElement");
                 }
             });
 
@@ -99,8 +99,8 @@ namespace LbpArchiveToolkit.ViewModels
 
             HeartUserCommand = new RelayCommand(param => 
             {
-                if (param is LevelItem level) ToggleUserHeart(level.Creator);
-                else ToggleUserHeart(SelectedUser?.NpHandle);
+                if (param is LevelItem level) ToggleUserHeart(level.Creator, true);
+                else ToggleUserHeart(SelectedUser?.NpHandle, false);
             });
 
             ViewUserLevelsCommand = new RelayCommand(param => InitiateCreatorSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle));

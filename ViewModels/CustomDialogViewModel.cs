@@ -25,6 +25,15 @@ namespace LbpArchiveToolkit.ViewModels
         private string _copyButtonText = "COPY";
         public string CopyButtonText { get => _copyButtonText; set => SetProperty(ref _copyButtonText, value); }
 
+        private Visibility _checkboxVisibility = Visibility.Collapsed;
+        public Visibility CheckboxVisibility { get => _checkboxVisibility; set => SetProperty(ref _checkboxVisibility, value); }
+
+        private string _checkboxText = "";
+        public string CheckboxText { get => _checkboxText; set => SetProperty(ref _checkboxText, value); }
+
+        private bool _isCheckboxChecked;
+        public bool IsCheckboxChecked { get => _isCheckboxChecked; set => SetProperty(ref _isCheckboxChecked, value); }
+
         public ICommand OkCommand { get; }
         public ICommand YesCommand { get; }
         public ICommand NoCommand { get; }
@@ -32,10 +41,16 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public CustomDialogViewModel(string message, string title, bool isYesNo)
+        public CustomDialogViewModel(string message, string title, bool isYesNo, string? checkboxText = null)
         {
             Title = title;
             Message = message;
+
+            if (!string.IsNullOrEmpty(checkboxText))
+            {
+                CheckboxText = checkboxText;
+                CheckboxVisibility = Visibility.Visible;
+            }
 
             if (title.Contains("Error", StringComparison.OrdinalIgnoreCase) ||
                 title.Contains("Failed", StringComparison.OrdinalIgnoreCase))

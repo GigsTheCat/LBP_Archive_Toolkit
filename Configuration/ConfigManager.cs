@@ -26,6 +26,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool Lbp2BetaToRetail { get; set; } = true;
         public static bool UseMemoryMappedIO { get; set; } = false;
         public static bool LoadDbIntoRam { get; set; } = false;
+        public static bool ShowExtractionSuccessPrompt { get; set; } = true;
 
         public static List<string> LegacySavedLevels { get; set; } = [];
         
@@ -76,9 +77,10 @@ namespace LbpArchiveToolkit.Configuration
             public string? GameRegion { get; set; }
             public int MaxParallelDownloads { get; set; }
             public bool ForceLbp3Backups { get; set; }
-            public bool Lbp2BetaToRetail { get; set; }
+            public bool? Lbp2BetaToRetail { get; set; }
             public bool UseMemoryMappedIO { get; set; }
             public bool LoadDbIntoRam { get; set; }
+            public bool? ShowExtractionSuccessPrompt { get; set; }
             public double WindowWidth { get; set; }
             public double WindowHeight { get; set; }
             public double WindowLeft { get; set; }
@@ -127,9 +129,10 @@ namespace LbpArchiveToolkit.Configuration
                     GameRegion = data.GameRegion ?? GameRegion;
                     MaxParallelDownloads = data.MaxParallelDownloads;
                     ForceLbp3Backups = data.ForceLbp3Backups;
-                    Lbp2BetaToRetail = data.Lbp2BetaToRetail;
+                    Lbp2BetaToRetail = data.Lbp2BetaToRetail ?? Lbp2BetaToRetail;
                     UseMemoryMappedIO = data.UseMemoryMappedIO;
                     LoadDbIntoRam = data.LoadDbIntoRam;
+                    ShowExtractionSuccessPrompt = data.ShowExtractionSuccessPrompt ?? ShowExtractionSuccessPrompt;
                     WindowWidth = data.WindowWidth;
                     WindowHeight = data.WindowHeight;
                     WindowLeft = data.WindowLeft;
@@ -163,6 +166,7 @@ namespace LbpArchiveToolkit.Configuration
                     Lbp2BetaToRetail = Lbp2BetaToRetail,
                     UseMemoryMappedIO = UseMemoryMappedIO,
                     LoadDbIntoRam = LoadDbIntoRam,
+                    ShowExtractionSuccessPrompt = ShowExtractionSuccessPrompt,
                     WindowWidth = WindowWidth,
                     WindowHeight = WindowHeight,
                     WindowLeft = WindowLeft,

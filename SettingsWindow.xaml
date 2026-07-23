@@ -240,6 +240,7 @@
                                     <CheckBox Content="LBP2 Beta to Retail (Enable if importing corrupt errors)" IsChecked="{Binding Lbp2BetaToRetail}"/>
                                     <CheckBox Content="Use mmap for database (faster search, uses slightly more RAM)" IsChecked="{Binding UseMemoryMappedIO}"/>
                                     <CheckBox Content="{Binding RamUsageText}" IsChecked="{Binding LoadDbIntoRam}"/>
+                                    <CheckBox Content="Show success prompt after downloading a level" IsChecked="{Binding ShowExtractionSuccessPrompt}"/>
                                 </StackPanel>
 
                                 <Rectangle Style="{StaticResource Separator}"/>

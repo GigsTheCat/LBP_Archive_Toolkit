@@ -78,6 +78,9 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _loadDbIntoRam;
         public bool LoadDbIntoRam { get => _loadDbIntoRam; set => SetProperty(ref _loadDbIntoRam, value); }
 
+        private bool _showExtractionSuccessPrompt;
+        public bool ShowExtractionSuccessPrompt { get => _showExtractionSuccessPrompt; set => SetProperty(ref _showExtractionSuccessPrompt, value); }
+
         private string _ramUsageText = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
         public string RamUsageText { get => _ramUsageText; set => SetProperty(ref _ramUsageText, value); }
 
@@ -118,6 +121,7 @@ namespace LbpArchiveToolkit.ViewModels
             Lbp2BetaToRetail = ConfigManager.Lbp2BetaToRetail;
             UseMemoryMappedIO = ConfigManager.UseMemoryMappedIO;
             LoadDbIntoRam = ConfigManager.LoadDbIntoRam;
+            ShowExtractionSuccessPrompt = ConfigManager.ShowExtractionSuccessPrompt;
 
             AvailableThemes.Clear();
             foreach (var theme in ThemeManager.AvailableThemes)
@@ -250,6 +254,7 @@ namespace LbpArchiveToolkit.ViewModels
                 Lbp2BetaToRetail = true;
                 UseMemoryMappedIO = false;
                 LoadDbIntoRam = false;
+                ShowExtractionSuccessPrompt = true;
                 SelectedRegion = AvailableRegions.FirstOrDefault(r => r.StartsWith("EU")) ?? "EU (PAL)";
             }
         }
@@ -271,6 +276,7 @@ namespace LbpArchiveToolkit.ViewModels
             ConfigManager.Lbp2BetaToRetail = Lbp2BetaToRetail;
             ConfigManager.UseMemoryMappedIO = UseMemoryMappedIO;
             ConfigManager.LoadDbIntoRam = LoadDbIntoRam;
+            ConfigManager.ShowExtractionSuccessPrompt = ShowExtractionSuccessPrompt;
             ConfigManager.Theme = SelectedTheme.Key ?? "DefaultTheme";
             ConfigManager.GameRegion = SelectedRegion.Substring(0, 2);
 

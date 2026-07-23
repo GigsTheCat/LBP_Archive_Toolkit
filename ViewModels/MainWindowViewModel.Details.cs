@@ -120,13 +120,16 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private async void ToggleUserHeart(string? creator)
+        private async void ToggleUserHeart(string? creator, bool fromContextMenu = false)
         {
             if (string.IsNullOrEmpty(creator)) return;
+            
+            string targetElement = fromContextMenu ? "ContextElement" : "Mouse";
+            
             if (HeartedCreatorsManager.IsHearted(creator))
             {
                 HeartedCreatorsManager.Remove(creator);
-                _viewService.ShowToast("Unhearted", "dgResults");
+                _viewService.ShowToast("Unhearted", targetElement);
             }
             else
             {
@@ -145,7 +148,7 @@ namespace LbpArchiveToolkit.ViewModels
                 }
 
                 HeartedCreatorsManager.Add(user);
-                _viewService.ShowToast("Hearted!", "dgResults");
+                _viewService.ShowToast("Hearted!", targetElement);
             }
             RefreshHeartStates();
         }

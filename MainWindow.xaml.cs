@@ -57,7 +57,7 @@ namespace LbpArchiveToolkit
                 if (ConfigManager.IsMaximized) this.WindowState = WindowState.Maximized;
             };
 
-            DataObject.AddCopyingHandler(txtDescription, (s, e) => ShowToast("Copied!", "txtDescription"));
+            DataObject.AddCopyingHandler(txtDescription, (s, e) => ShowToast("Copied!", "Mouse"));
             Loaded += MainWindow_Loaded;
         }
 
@@ -74,6 +74,8 @@ namespace LbpArchiveToolkit
             _viewModel.SaveState();
             base.OnClosing(e);
         }
+
+        private FrameworkElement? _lastContextElement;
 
         private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -119,10 +121,15 @@ namespace LbpArchiveToolkit
             }
         }
 
-        private void CreatorContextMenu_Opened(object sender, RoutedEventArgs e)
+        private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (sender is ContextMenu menu)
             {
+                if (menu.PlacementTarget is FrameworkElement feContext)
+                {
+                    _lastContextElement = feContext;
+                }
+
                 string? creatorName = null;
                 if (menu.PlacementTarget is FrameworkElement fe)
                 {
@@ -190,7 +197,35 @@ namespace LbpArchiveToolkit
         public async void ShowToast(string message, string targetElementName)
         {
             txtNotification.Text = message;
-            notificationToastPopup.PlacementTarget = this.FindName(targetElementName) as UIElement ?? this;
+
+            if (targetElementName == "Mouse")
+            {
+                notificationToastPopup.PlacementTarget = null;
+                notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+                notificationToastPopup.HorizontalOffset = 15;
+                notificationToastPopup.VerticalOffset = 15;
+            }
+            else if (targetElementName == "ContextElement" && _lastContextElement != null)
+            {
+                notificationToastPopup.PlacementTarget = _lastContextElement;
+                notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Relative;
+                notificationToastPopup.HorizontalOffset = 50; // To the right of the element's top-left corner
+                notificationToastPopup.VerticalOffset = -20;  // Slightly above the element's top-left corner
+            }
+            else
+            {
+                var target = this.FindName(targetElementName) as UIElement;
+                if (target != null && !target.IsVisible && targetElementName == "btnExtract")
+                {
+                    target = this.FindName("btnBatchDownload") as UIElement;
+                }
+
+                notificationToastPopup.PlacementTarget = target ?? this;
+                notificationToastPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+                notificationToastPopup.HorizontalOffset = 0;
+                notificationToastPopup.VerticalOffset = -8;
+            }
+
             notificationToastPopup.IsOpen = true;
 
             var fadeIn = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(200));

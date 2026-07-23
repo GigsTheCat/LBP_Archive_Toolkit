@@ -90,10 +90,10 @@ namespace LbpArchiveToolkit.Services
                 owner.IsEnabled = true;
                 AssetDownloader.CleanupLocalArchives();
 
-                // Force a full garbage collection and compact the Large Object Heap
-                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
-                GC.Collect(2, GCCollectionMode.Forced, true, true);
-                GC.WaitForPendingFinalizers();
+                // Force a full garbage collection and compact the Large Object Heap - Probably unnecessary
+                // System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                // GC.Collect(2, GCCollectionMode.Forced, true, true);
+                // GC.WaitForPendingFinalizers();
             }
 
             if (failureCount > 0)
@@ -104,13 +104,33 @@ namespace LbpArchiveToolkit.Services
 
             if (successCount > 0)
             {
-                string msg = wasCancelled ? $"Cancelled! However, {successCount} level(s) were successfully packed before cancellation.\n\nOpen backup folder?"
-                                          : $"Successfully packed {successCount} level(s)!\n\nOpen backup folder?";
-
-                if (CustomDialog.Show(owner, msg, "Finished", true))
+                if (ConfigManager.ShowExtractionSuccessPrompt)
                 {
-                    string fullPath = Path.GetFullPath(ConfigManager.BackupDirectory);
-                    if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
+                    string msg = wasCancelled ? $"Cancelled! However, {successCount} level(s) were successfully packed before cancellation.\n\nOpen backup folder?"
+                                              : $"Successfully packed {successCount} level(s)!\n\nOpen backup folder?";
+
+                    bool dontShowAgain = false;
+                    bool result = CustomDialog.ShowWithCheckbox(owner, msg, "Finished", "Don't show again", out dontShowAgain, true);
+
+                    if (dontShowAgain)
+                    {
+                        ConfigManager.ShowExtractionSuccessPrompt = false;
+                        ConfigManager.SaveConfig();
+                    }
+
+                    if (result)
+                    {
+                        string fullPath = Path.GetFullPath(ConfigManager.BackupDirectory);
+                        if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
+                    }
+                }
+                else
+                {
+                    if (Application.Current.MainWindow is LbpArchiveToolkit.ViewModels.IViewService viewService)
+                    {
+                        string msg = wasCancelled ? $"Packed {successCount} level(s) before cancellation" : $"Successfully packed {successCount} level(s)!";
+                        viewService.ShowToast(msg, "btnExtract");
+                    }
                 }
             }
         }
