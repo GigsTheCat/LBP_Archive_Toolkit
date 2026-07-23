@@ -380,7 +380,7 @@
                         </Grid>
                     </ContentControl>
 
-                    <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
+                    <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderSubtle}" Cursor="SizeWE" Margin="0,20"/>
 
                     <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
                         <!-- Level Details -->

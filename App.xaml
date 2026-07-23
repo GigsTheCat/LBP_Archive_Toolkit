@@ -7,6 +7,35 @@
              <ResourceDictionary>
                 <!-- Global Shared Styles -->
 
+                <!-- TOOLTIP THEME -->
+                <Style TargetType="ToolTip">
+                    <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="HasDropShadow" Value="True"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToolTip">
+                                <Border Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}" 
+                                        CornerRadius="6" 
+                                        Margin="0,0,10,10"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="8" ShadowDepth="3" Opacity="0.5" Direction="270" Color="Black"/>
+                                    </Border.Effect>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <!-- CONTEXT MENU & TOP MENU THEME -->
                 <Style TargetType="ContextMenu">
                     <Setter Property="Background" Value="{DynamicResource BgCardDarker}"/>

@@ -95,7 +95,7 @@
                             </DataGrid>
                         </ContentControl>
 
-                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="#453868" Cursor="SizeWE" Margin="0,20"/>
+                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource BorderSubtle}" Cursor="SizeWE" Margin="0,20"/>
 
                         <ContentControl Grid.Column="2" Style="{DynamicResource PopitCard}" Padding="20">
                             <Grid>
