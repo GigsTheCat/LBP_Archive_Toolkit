@@ -1,6 +1,7 @@
 <Window x:Class="LbpArchiveToolkit.HeartedCreatorsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:utils="clr-namespace:LbpArchiveToolkit.Utils"
         Title="Hearted Creators" Height="850" Width="1300"
         MinHeight="600" MinWidth="900"
         WindowStartupLocation="CenterOwner"
@@ -100,7 +101,13 @@
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="CREATOR" Width="*" Binding="{Binding NpHandle}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
+                                    <DataGridTemplateColumn Header="CREATOR" Width="*" SortMemberPath="NpHandle">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding NpHandle}" Style="{DynamicResource DataGridTextCenterStyle}" utils:CreatorPreviewBehavior.CreatorName="{Binding NpHandle}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="TOTAL LEVELS" Width="130" Binding="{Binding TotalLevels}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="♥" Width="100" Binding="{Binding HeartCount}">
                                         <DataGridTextColumn.ElementStyle>
@@ -153,7 +160,7 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                                    <TextBlock x:Name="txtUserNpHandle" Text="{Binding UserNpHandle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <TextBlock x:Name="txtUserNpHandle" Text="{Binding UserNpHandle}" utils:CreatorPreviewBehavior.CreatorName="{Binding SelectedUser.NpHandle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center"/>
                                     <TextBlock x:Name="txtUserStats" Text="{Binding UserStats}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="13" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                                 </StackPanel>
 

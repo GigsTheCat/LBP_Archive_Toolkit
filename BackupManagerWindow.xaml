@@ -1,6 +1,7 @@
 <Window x:Class="LbpArchiveToolkit.BackupManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:utils="clr-namespace:LbpArchiveToolkit.Utils"
         Title="Backup Manager" Height="850" Width="1300"
         MinHeight="600" MinWidth="900"
         WindowStartupLocation="CenterOwner"
@@ -129,7 +130,7 @@
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                 </Grid>
 
-                                <TextBlock Grid.Row="1" Text="{Binding LevelTitle}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
+                                <TextBlock Grid.Row="1" Text="{Binding LevelTitle}" utils:CreatorPreviewBehavior.CreatorName="{Binding SelectedBackup.Creator}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,15"/>
 
                                 <DockPanel Grid.Row="2" Margin="0,0,0,20">
                                     <TextBlock DockPanel.Dock="Top" Text="DESCRIPTION" Foreground="{DynamicResource LbpCyan}" FontWeight="Black" FontSize="12" Margin="0,0,0,6"/>

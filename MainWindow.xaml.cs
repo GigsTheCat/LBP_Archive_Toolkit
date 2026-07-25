@@ -319,6 +319,7 @@ namespace LbpArchiveToolkit
                     link.MouseLeave += (s, ev) => link.TextDecorations = null;
                     string name = c;
                     link.Click += (s, ev) => { dialog.Close(); onCreatorClicked(name); };
+                    LbpArchiveToolkit.Utils.CreatorPreviewBehavior.SetCreatorName(link, name);
                     dialog.txtMessage.Inlines.Add(link);
                     dialog.txtMessage.Inlines.Add(new Run("\n"));
                 }
