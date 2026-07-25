@@ -73,6 +73,7 @@ namespace LbpArchiveToolkit.Utils
         {
             if (d is FrameworkElement element)
             {
+                ToolTipService.SetShowDuration(element, 30000);
                 if (e.NewValue is string creatorName && !string.IsNullOrWhiteSpace(creatorName))
                 {
                     element.ToolTipOpening -= OnToolTipOpening;
@@ -91,6 +92,7 @@ namespace LbpArchiveToolkit.Utils
             }
             else if (d is FrameworkContentElement fce)
             {
+                ToolTipService.SetShowDuration(fce, 30000);
                 if (e.NewValue is string creatorName && !string.IsNullOrWhiteSpace(creatorName))
                 {
                     fce.ToolTipOpening -= OnToolTipOpening;
@@ -136,7 +138,8 @@ namespace LbpArchiveToolkit.Utils
             }
 
             if (string.IsNullOrWhiteSpace(creatorName) || toolTip == null) return;
-            if (toolTip.Tag as string == creatorName) return; // Prevent unnecessary reloading
+
+            if (toolTip.Tag as string == creatorName) return;
 
             var loadingText = new TextBlock { Text = "Loading...", Foreground = (Brush)Application.Current.FindResource("FgPrimary") };
             toolTip.Content = loadingText;
@@ -177,18 +180,28 @@ namespace LbpArchiveToolkit.Utils
                         Foreground = (Brush)Application.Current.FindResource("LbpCyan"),
                         FontWeight = FontWeights.Bold,
                         FontSize = 16,
-                        Margin = new Thickness(0, 0, 0, 5)
+                        Margin = new Thickness(0, 0, 0, 4)
+                    };
+
+                    var heartsBlock = new TextBlock
+                    {
+                        Text = $"Hearts: {user.HeartCount:N0}",
+                        Foreground = (Brush)Application.Current.FindResource("LbpPink"),
+                        FontSize = 13,
+                        FontWeight = FontWeights.SemiBold,
+                        Margin = new Thickness(0, 0, 0, 2)
                     };
 
                     var levelsBlock = new TextBlock
                     {
-                        Text = $"Total Levels: {user.TotalLevels}",
+                        Text = $"Levels: {user.TotalLevels:N0}",
                         Foreground = (Brush)Application.Current.FindResource("FgPrimary"),
                         FontSize = 13,
                         FontWeight = FontWeights.SemiBold
                     };
 
                     stackPanel.Children.Add(nameBlock);
+                    stackPanel.Children.Add(heartsBlock);
                     stackPanel.Children.Add(levelsBlock);
                     grid.Children.Add(stackPanel);
 
