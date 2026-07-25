@@ -95,17 +95,25 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     InitiateUserSearch(level.Creator ?? "");
                 }
-            });
+            }, param => param is LevelItem l && !string.IsNullOrEmpty(l.Creator));
 
             HeartUserCommand = new RelayCommand(param => 
             {
                 if (param is LevelItem level) ToggleUserHeart(level.Creator, true);
                 else ToggleUserHeart(SelectedUser?.NpHandle, false);
-            });
+            }, param => param is LevelItem l ? !string.IsNullOrEmpty(l.Creator) : SelectedUser != null);
 
-            ViewUserLevelsCommand = new RelayCommand(param => InitiateCreatorSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle));
-            ViewUserContributionsCommand = new RelayCommand(param => InitiateContributionsSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle));
-            ViewUserObjectsCommand = new RelayCommand(param => InitiateObjectsSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle));
+            ViewUserLevelsCommand = new RelayCommand(
+                param => InitiateCreatorSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle),
+                param => param is LevelItem l ? !string.IsNullOrEmpty(l.Creator) : SelectedUser != null);
+
+            ViewUserContributionsCommand = new RelayCommand(
+                param => InitiateContributionsSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle),
+                param => param is LevelItem l ? !string.IsNullOrEmpty(l.Creator) : SelectedUser != null);
+
+            ViewUserObjectsCommand = new RelayCommand(
+                param => InitiateObjectsSearch(param is LevelItem l ? l.Creator! : SelectedUser!.NpHandle),
+                param => param is LevelItem l ? !string.IsNullOrEmpty(l.Creator) : SelectedUser != null);
 
             OpenSettingsCommand = new RelayCommand(_ => 
             {
