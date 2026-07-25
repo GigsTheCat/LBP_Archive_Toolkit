@@ -1,0 +1,81 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTemplate x:Key="AnimatedBgTemplate" TargetType="ContentControl">
+        <Grid /> 
+    </ControlTemplate>
+
+    <!-- Backgrounds -->
+    <SolidColorBrush x:Key="BgPrimary" Color="#202020"/> 
+    <SolidColorBrush x:Key="BgCard" Color="#2B2B2B"/>
+    <SolidColorBrush x:Key="BgCardDarker" Color="#1C1C1C"/>
+    
+    <!-- Typography -->
+    <SolidColorBrush x:Key="FgPrimary" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="FgSecondary" Color="#A0A0A0"/>
+    
+    <!-- Borders -->
+    <SolidColorBrush x:Key="BorderSubtle" Color="#404040"/>
+    
+    <SolidColorBrush x:Key="LbpOrange" Color="#D83B01"/> <!-- Office Rust / Orange -->
+    <SolidColorBrush x:Key="LbpPink" Color="#E3008C"/>   <!-- Office Magenta -->
+    <SolidColorBrush x:Key="LbpCyan" Color="#0078D4"/>   <!-- Windows / Office Blue -->
+    <SolidColorBrush x:Key="LbpEmerald" Color="#107C41"/> <!-- Excel Green -->
+
+    <Style x:Key="PopitCard" TargetType="ContentControl">
+        <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <Border.Effect>
+                            <!-- Very subtle, tight shadow mimicking Windows 11 surfaces -->
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.15" Direction="270" Color="Black"/>
+                        </Border.Effect>
+                        <ContentPresenter/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BubbleButton" TargetType="Button">
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="16,6"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bgBorder" 
+                            Background="{TemplateBinding Background}" 
+                            Padding="{TemplateBinding Padding}" 
+                            CornerRadius="4"> <!-- Standard 4px fluent rounding -->
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bgBorder" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bgBorder" Property="Opacity" Value="0.70"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#333333"/>
+                            <Setter Property="Foreground" Value="#777777"/>
+                            <Setter TargetName="bgBorder" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

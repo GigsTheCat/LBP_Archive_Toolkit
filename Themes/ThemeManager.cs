@@ -10,7 +10,8 @@ namespace LbpArchiveToolkit.Themes
             { "DefaultTheme", "Default Theme" },
             { "CraftTheme", "Craft Theme" },
             { "SapphireTheme", "Sapphire Sparkles" },
-            { "AuroraTheme", "Aurora Theme" }
+            { "AuroraTheme", "Aurora Theme" },
+            { "OfficeTheme", "Modern Office" }
         };
 
         public static void ApplyTheme(string themeName)
