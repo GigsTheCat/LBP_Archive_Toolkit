@@ -196,13 +196,6 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        public static string GetOriginalTag(string friendlyName)
-        {
-            int idx = System.Array.IndexOf(FriendlyLabelNames, friendlyName);
-            if (idx >= 0) return LabelTags[idx];
-            return "LABEL_" + friendlyName.Replace(" ", "_");
-        }
-
         public static bool IsLbp2Label(uint hash) => Lbp2ValidHashes.Contains(hash);
 
         public static List<uint> ParseLabelHashes(byte[] blob)

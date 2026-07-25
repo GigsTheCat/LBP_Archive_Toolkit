@@ -127,13 +127,11 @@ namespace LbpArchiveToolkit.ViewModels
             set
             {
                 SetProperty(ref _isSearching, value);
-                OnPropertyChanged(nameof(IsNotSearching));
                 OnPropertyChanged(nameof(SearchButtonVisibility));
                 OnPropertyChanged(nameof(SurpriseButtonVisibility));
                 OnPropertyChanged(nameof(CancelButtonVisibility));
             }
         }
-        public bool IsNotSearching => !IsSearching;
         public Visibility SearchButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
         public Visibility SurpriseButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;

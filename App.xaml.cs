@@ -93,13 +93,4 @@ public static class LogManager
         catch { }
     }
 
-    public static void LogWarning(string context, string message)
-    {
-        try
-        {
-            string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] WARNING in {context}: {message}{Environment.NewLine}{Environment.NewLine}";
-            _logChannel.Writer.TryWrite(logMessage);
-        }
-        catch { }
-    }
 }
