@@ -35,6 +35,39 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _isTeamPick;
         public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
 
+        private bool _requireLocked;
+        public bool RequireLocked 
+        { 
+            get => _requireLocked; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireLocked)); return; }
+                SetProperty(ref _requireLocked, value);
+            } 
+        }
+
+        private bool _requireSubLevel;
+        public bool RequireSubLevel 
+        { 
+            get => _requireSubLevel; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireSubLevel)); return; }
+                SetProperty(ref _requireSubLevel, value);
+            } 
+        }
+
+        private bool _requireShareable;
+        public bool RequireShareable 
+        { 
+            get => _requireShareable; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireShareable)); return; }
+                SetProperty(ref _requireShareable, value);
+            } 
+        }
+
         private string _maxHearts = "0";
         public string MaxHearts { get => _maxHearts; set => SetProperty(ref _maxHearts, value); }
 
@@ -68,6 +101,39 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _excludeTeamPick;
         public bool ExcludeTeamPick { get => _excludeTeamPick; set => SetProperty(ref _excludeTeamPick, value); }
 
+        private bool _excludeLocked;
+        public bool ExcludeLocked 
+        { 
+            get => _excludeLocked; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeLocked)); return; }
+                SetProperty(ref _excludeLocked, value);
+            } 
+        }
+
+        private bool _excludeSubLevels;
+        public bool ExcludeSubLevels 
+        { 
+            get => _excludeSubLevels; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeSubLevels)); return; }
+                SetProperty(ref _excludeSubLevels, value);
+            } 
+        }
+
+        private bool _excludeShareable;
+        public bool ExcludeShareable 
+        { 
+            get => _excludeShareable; 
+            set
+            {
+                if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeShareable)); return; }
+                SetProperty(ref _excludeShareable, value);
+            } 
+        }
+
         private int _labelMatchMode = 0;
         public int LabelMatchMode
         {
@@ -76,30 +142,33 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (!_hasCommunityLabels && value != 1)
                 {
-                    bool download = _viewService.Confirm(
-                        "Your database is out of date and does not contain community labels data.\n\n" +
-                        "To use community labels in searches, you will need to download the updated database.\n\n" +
-                        "Would you like to open the download link now?", 
-                        "Database Out of Date");
-                    
-                    if (download)
-                    {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://archive.org/download/fullfastdry") { UseShellExecute = true });
-                        }
-                        catch (Exception ex)
-                        {
-                            LogManager.Log("AdvancedSearchWindowViewModel.LabelMatchMode (Open Link)", ex);
-                        }
-                    }
-                    
-                    // Force the UI ComboBox to revert its selection back to Index 1 (Author Labels Only)
+                    ShowDatabaseOutdatedPrompt("community labels data");
                     OnPropertyChanged(nameof(LabelMatchMode));
                     return;
                 }
 
                 SetProperty(ref _labelMatchMode, value);
+            }
+        }
+
+        private void ShowDatabaseOutdatedPrompt(string missingFeature)
+        {
+            bool download = _viewService.Confirm(
+                $"Your database is out of date and does not contain {missingFeature}.\n\n" +
+                "To use this feature, you will need to download the updated database.\n\n" +
+                "Would you like to open the download link now?", 
+                "Database Out of Date");
+            
+            if (download)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://archive.org/download/fullfastdry") { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Log("AdvancedSearchWindowViewModel.ShowDatabaseOutdatedPrompt (Open Link)", ex);
+                }
             }
         }
 
@@ -137,23 +206,31 @@ namespace LbpArchiveToolkit.ViewModels
         public Action<AdvancedSearchCriteria, bool>? RequestClose { get; set; }
 
         private readonly bool _hasCommunityLabels;
+        private readonly bool _hasExtendedSlotProperties;
         private readonly IViewService _viewService;
 
-        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, IViewService viewService)
+        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, bool hasExtendedSlotProperties, IViewService viewService)
         {
             _hasCommunityLabels = hasCommunityLabels;
+            _hasExtendedSlotProperties = hasExtendedSlotProperties;
             _viewService = viewService;
 
             MinHearts = existingCriteria.MinHearts.ToString();
             MinPlays = existingCriteria.MinPlays.ToString();
             MinHeartPercentage = existingCriteria.MinHeartPercentage.ToString();
             IsTeamPick = existingCriteria.IsTeamPick;
+            RequireLocked = existingCriteria.RequireLocked;
+            RequireSubLevel = existingCriteria.RequireSubLevel;
+            RequireShareable = existingCriteria.RequireShareable;
             MaxHearts = existingCriteria.MaxHearts.ToString();
             MaxPlays = existingCriteria.MaxPlays.ToString();
             ExcludedCreators = existingCriteria.ExcludedCreators;
             ExcludedContributors = existingCriteria.ExcludedContributors;
             ExcludedObjectContributors = existingCriteria.ExcludedObjectContributors;
             ExcludeTeamPick = existingCriteria.ExcludeTeamPick;
+            ExcludeLocked = existingCriteria.ExcludeLocked;
+            ExcludeSubLevels = existingCriteria.ExcludeSubLevels;
+            ExcludeShareable = existingCriteria.ExcludeShareable;
 
             AvailableYears.Add("Any");
             for (int y = 2008; y <= DateTime.Now.Year; y++) AvailableYears.Add(y.ToString());
@@ -251,6 +328,9 @@ namespace LbpArchiveToolkit.ViewModels
             MinPlays = "0";
             MinHeartPercentage = "0";
             IsTeamPick = false;
+            RequireLocked = false;
+            RequireSubLevel = false;
+            RequireShareable = false;
             MaxHearts = "0";
             MaxPlays = "0";
             ExcludedCreators = "";
@@ -261,6 +341,9 @@ namespace LbpArchiveToolkit.ViewModels
             PublishedAfterYear = "Any";
             PublishedAfterMonth = "Any";
             ExcludeTeamPick = false;
+            ExcludeLocked = false;
+            ExcludeSubLevels = false;
+            ExcludeShareable = false;
             LabelMatchMode = !_hasCommunityLabels ? 1 : 0;
 
             var allCollections = new[] {  
@@ -307,6 +390,9 @@ namespace LbpArchiveToolkit.ViewModels
                 MinPlays = plays,
                 MinHeartPercentage = heartPct,
                 IsTeamPick = IsTeamPick,
+                RequireLocked = RequireLocked,
+                RequireSubLevel = RequireSubLevel,
+                RequireShareable = RequireShareable,
                 MaxHearts = maxHearts,
                 MaxPlays = maxPlays,
                 ExcludedCreators = ExcludedCreators,
@@ -315,6 +401,9 @@ namespace LbpArchiveToolkit.ViewModels
                 PublishedBefore = before,
                 PublishedAfter = after,
                 ExcludeTeamPick = ExcludeTeamPick,
+                ExcludeLocked = ExcludeLocked,
+                ExcludeSubLevels = ExcludeSubLevels,
+                ExcludeShareable = ExcludeShareable,
                 LabelMatchMode = LabelMatchMode
             };
 
@@ -402,6 +491,9 @@ namespace LbpArchiveToolkit.ViewModels
                         MinPlays = criteria.MinPlays.ToString();
                         MinHeartPercentage = criteria.MinHeartPercentage.ToString();
                         IsTeamPick = criteria.IsTeamPick;
+                        RequireLocked = criteria.RequireLocked;
+                        RequireSubLevel = criteria.RequireSubLevel;
+                        RequireShareable = criteria.RequireShareable;
                         MaxHearts = criteria.MaxHearts.ToString();
                         MaxPlays = criteria.MaxPlays.ToString();
                         ExcludedCreators = criteria.ExcludedCreators;
@@ -412,6 +504,9 @@ namespace LbpArchiveToolkit.ViewModels
                         PublishedBeforeYear = criteria.PublishedBefore.HasValue ? criteria.PublishedBefore.Value.Year.ToString() : "Any";
                         PublishedBeforeMonth = criteria.PublishedBefore.HasValue ? criteria.PublishedBefore.Value.Month.ToString("D2") : "Any";
                         ExcludeTeamPick = criteria.ExcludeTeamPick;
+                        ExcludeLocked = criteria.ExcludeLocked;
+                        ExcludeSubLevels = criteria.ExcludeSubLevels;
+                        ExcludeShareable = criteria.ExcludeShareable;
                         LabelMatchMode = !_hasCommunityLabels ? 1 : criteria.LabelMatchMode;
 
                         PopulateTags(criteria);

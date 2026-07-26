@@ -51,6 +51,15 @@ namespace LbpArchiveToolkit.ViewModels
         private Brush _iconFill;
         public Brush IconFill { get => _iconFill; set => SetProperty(ref _iconFill, value); }
 
+        private Brush _originalIconFill;
+        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
+
+        private Visibility _iconLockVisibility = Visibility.Hidden;
+        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
+
+        private double _iconScale = 1.0;
+        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
+
         private string _iconStatusText = "Select a level\nto view details";
         public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
 
@@ -64,6 +73,7 @@ namespace LbpArchiveToolkit.ViewModels
             // Initialize default brushes
             _iconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
             _iconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            _originalIconFill = _iconFill;
 
             RemoveCommand = new RelayCommand(ExecuteRemove, CanExecuteAction);
             ExtractCommand = new RelayCommand(ExecuteExtract, CanExecuteAction);
@@ -105,11 +115,14 @@ namespace LbpArchiveToolkit.ViewModels
                 MmPickVisibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
                 IconStroke = selected.IsMmPick ? GetBrush("LbpPink", Color.FromRgb(247, 37, 133)) : GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
 
+                IconLockVisibility = selected.IsLocked ? Visibility.Visible : Visibility.Hidden;
+                IconScale = selected.IsSubLevel ? 0.85 : 1.0;
+
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
                 _iconCts?.Cancel();
                 _iconCts = new CancellationTokenSource();
 
-                await LoadIconAsync(selected.IconHash, _iconCts.Token, expectedRequestId);
+                await LoadIconAsync(selected.IconHash, _iconCts.Token, expectedRequestId, selected.IsLocked);
             }
             else
             {
@@ -118,15 +131,19 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelCreator = "";
                 HeartOverlayVisibility = Visibility.Hidden;
                 MmPickVisibility = Visibility.Hidden;
+                IconLockVisibility = Visibility.Hidden;
+                IconScale = 1.0;
                 IconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
                 IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                OriginalIconFill = IconFill;
                 IconStatusText = "Select a level\nto view details";
             }
         }
 
-        private async Task LoadIconAsync(string? hash, CancellationToken token, long expectedRequestId)
+        private async Task LoadIconAsync(string? hash, CancellationToken token, long expectedRequestId, bool isLocked)
         {
             IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            OriginalIconFill = IconFill;
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -142,7 +159,16 @@ namespace LbpArchiveToolkit.ViewModels
 
             if (brush != null)
             {
-                IconFill = brush;
+                OriginalIconFill = brush;
+                if (isLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
+                {
+                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
+                    grayscaleBmp.Freeze();
+                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
+                    grayBrush.Freeze();
+                    IconFill = grayBrush;
+                }
+                else IconFill = brush;
                 IconStatusText = "";
             }
             else

@@ -19,9 +19,12 @@ namespace LbpArchiveToolkit.ViewModels
                 IconEllipseStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3));
                 MmPickVisibility = Visibility.Hidden;
                 LevelHeartOverlayVisibility = Visibility.Hidden;
+                IconLockVisibility = Visibility.Hidden;
+                IconScale = 1.0;
                 LevelTags.Clear();
                 ToggleTagsButtonVisibility = Visibility.Collapsed;
                 IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+                OriginalIconFill = IconEllipseFill;
                 IconStatusText = "Select a level\nto view details";
                 return;
             }
@@ -29,6 +32,8 @@ namespace LbpArchiveToolkit.ViewModels
             MmPickVisibility = _selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
             IconEllipseStroke = _selectedLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
             LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(_selectedLevel.Id) ? Visibility.Visible : Visibility.Hidden;
+            IconLockVisibility = _selectedLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
+            IconScale = _selectedLevel.IsSubLevel ? 0.85 : 1.0;
             HeartLevelButtonText = HeartedLevelsManager.IsHearted(_selectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
 
             LevelTags.Clear();
@@ -166,6 +171,7 @@ namespace LbpArchiveToolkit.ViewModels
         private async Task LoadIconAsync(string? hash)
         {
             IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+            OriginalIconFill = IconEllipseFill;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { IconStatusText = "No Icon Available"; return; }
 
             IconStatusText = "Loading Icon...";
@@ -176,7 +182,19 @@ namespace LbpArchiveToolkit.ViewModels
             var brush = await IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, _iconCts.Token);
             if (_currentIconRequestId != expectedRequestId || _iconCts.Token.IsCancellationRequested) return;
 
-            if (brush != null) { IconEllipseFill = brush; IconStatusText = ""; }
+            if (brush != null) { 
+                OriginalIconFill = brush;
+                if (_selectedLevel != null && _selectedLevel.IsLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
+                {
+                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
+                    grayscaleBmp.Freeze();
+                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
+                    grayBrush.Freeze();
+                    IconEllipseFill = grayBrush;
+                }
+                else IconEllipseFill = brush;
+                IconStatusText = ""; 
+            }
             else IconStatusText = "Icon offline\nor missing.";
         }
 

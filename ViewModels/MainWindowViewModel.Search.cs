@@ -18,7 +18,7 @@ namespace LbpArchiveToolkit.ViewModels
         private async Task SearchAsync()
         {
             string keyword = SearchText?.Trim() ?? "";
-            bool hasAdvancedFilters = _advancedCriteria.MinHearts > 0 || _advancedCriteria.MinPlays > 0 || _advancedCriteria.IsTeamPick || _advancedCriteria.RequiredLabels.Count > 0 || _advancedCriteria.RequiredTags.Count > 0;
+            bool hasAdvancedFilters = _advancedCriteria.MinHearts > 0 || _advancedCriteria.MinPlays > 0 || _advancedCriteria.IsTeamPick || _advancedCriteria.RequireLocked || _advancedCriteria.RequireSubLevel || _advancedCriteria.RequireShareable || _advancedCriteria.ExcludeTeamPick || _advancedCriteria.ExcludeLocked || _advancedCriteria.ExcludeSubLevels || _advancedCriteria.ExcludeShareable || _advancedCriteria.RequiredLabels.Count > 0 || _advancedCriteria.RequiredTags.Count > 0;
 
             if (string.IsNullOrWhiteSpace(keyword) && LimitIndex == 4 && !hasAdvancedFilters)
             {
@@ -75,6 +75,9 @@ namespace LbpArchiveToolkit.ViewModels
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
+                            RequireLocked = _advancedCriteria.RequireLocked,
+                            RequireSubLevel = _advancedCriteria.RequireSubLevel,
+                            RequireShareable = _advancedCriteria.RequireShareable,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
                             LabelMatchMode = _advancedCriteria.LabelMatchMode,
@@ -86,10 +89,13 @@ namespace LbpArchiveToolkit.ViewModels
                             PublishedBefore = _advancedCriteria.PublishedBefore,
                             PublishedAfter = _advancedCriteria.PublishedAfter,
                             ExcludeTeamPick = _advancedCriteria.ExcludeTeamPick,
+                            ExcludeLocked = _advancedCriteria.ExcludeLocked,
+                            ExcludeSubLevels = _advancedCriteria.ExcludeSubLevels,
+                            ExcludeShareable = _advancedCriteria.ExcludeShareable,
                             MaxHearts = _advancedCriteria.MaxHearts,
                             MaxPlays = _advancedCriteria.MaxPlays
-                        }
-                    };
+                            }
+                        };
                 }
                  else
                 {
@@ -199,6 +205,9 @@ namespace LbpArchiveToolkit.ViewModels
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
+                            RequireLocked = _advancedCriteria.RequireLocked,
+                            RequireSubLevel = _advancedCriteria.RequireSubLevel,
+                            RequireShareable = _advancedCriteria.RequireShareable,
                             RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
                             RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
                             LabelMatchMode = _advancedCriteria.LabelMatchMode,
@@ -210,6 +219,9 @@ namespace LbpArchiveToolkit.ViewModels
                             PublishedBefore = _advancedCriteria.PublishedBefore,
                             PublishedAfter = _advancedCriteria.PublishedAfter,
                             ExcludeTeamPick = _advancedCriteria.ExcludeTeamPick,
+                            ExcludeLocked = _advancedCriteria.ExcludeLocked,
+                            ExcludeSubLevels = _advancedCriteria.ExcludeSubLevels,
+                            ExcludeShareable = _advancedCriteria.ExcludeShareable,
                             MaxHearts = _advancedCriteria.MaxHearts,
                             MaxPlays = _advancedCriteria.MaxPlays
                         }
@@ -400,7 +412,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
             finally { _isApplyingState = false; }
 
-            bool hasAdv = state.AdvancedCriteria.MinHearts > 0 || state.AdvancedCriteria.MinPlays > 0 || state.AdvancedCriteria.IsTeamPick || state.AdvancedCriteria.RequiredLabels.Count > 0 || state.AdvancedCriteria.RequiredTags.Count > 0;
+            bool hasAdv = state.AdvancedCriteria.MinHearts > 0 || state.AdvancedCriteria.MinPlays > 0 || state.AdvancedCriteria.IsTeamPick || state.AdvancedCriteria.RequireLocked || state.AdvancedCriteria.RequireSubLevel || state.AdvancedCriteria.RequireShareable || state.AdvancedCriteria.ExcludeTeamPick || state.AdvancedCriteria.ExcludeLocked || state.AdvancedCriteria.ExcludeSubLevels || state.AdvancedCriteria.ExcludeShareable || state.AdvancedCriteria.RequiredLabels.Count > 0 || state.AdvancedCriteria.RequiredTags.Count > 0;
             if (string.IsNullOrWhiteSpace(state.SearchText) && state.LimitIndex == 4 && !hasAdv && !state.IsSurpriseMe)
             {
                 StatusText = "Previous search was too broad and will not be restored.";

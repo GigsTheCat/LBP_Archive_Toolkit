@@ -264,7 +264,112 @@ namespace LbpArchiveToolkit.Utils
             return result;
         }
 
-        public static (byte[] patchedSlt, string npHandle, int gameVersion) PatchSltb(byte[] sltData, string newName, string newDesc, byte[]? newIconHash = null)
+        public static (bool isLocked, bool isSubLevel, bool isShareable) ReadSlotBools(byte[] sltData)
+        {
+            try {
+                using var ms = new MemoryStream(sltData);
+                using var br = new BinaryReader(ms);
+                
+                br.ReadBytes(4); // SLTb
+                uint head = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                uint version = head & 0xFFFF;
+                uint subversion = (head >> 16) & 0xFFFF;
+                
+                if (head >= LbpConstants.REV_DEPENDENCIES) {
+                    ms.Position += 4;
+                    if (head >= LbpConstants.REV_COMPRESSED_RESOURCES) {
+                        ushort bId = 0, bRev = 0;
+                        if (head >= LbpConstants.REV_BRANCHES) { bId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); bRev = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); }
+                        bool useCompressedInts = false;
+                        if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && bId == LbpConstants.BRANCH_LD_ID && bRev >= LbpConstants.REV_LD_RESOURCES)) { useCompressedInts = (br.ReadByte() & 1) != 0; }
+                        ms.Position += 1;
+                        
+                        long ReadUleb128() {
+                            long result = 0; int shift = 0;
+                            while (true) {
+                                byte b = br.ReadByte();
+                                result |= (long)(b & 0x7F) << shift;
+                                if ((b & 0x80) == 0) break;
+                                shift += 7;
+                            }
+                            return result;
+                        }
+                        int ReadI32() => useCompressedInts ? (int)(ReadUleb128() & 0xFFFFFFFF) : (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                        long ReadU32() => useCompressedInts ? ReadUleb128() : (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                        int ReadS32() {
+                            if (useCompressedInts) { uint v = (uint)ReadUleb128(); return (int)((v >> 1) ^ -(int)(v & 1)); }
+                            return (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                        }
+                        
+                        int slotCount = ReadI32();
+                        int slotType = ReadI32();
+                        long slotNumber = ReadU32();
+                        
+                        void SkipResDescriptor() {
+                            byte flags = br.ReadByte();
+                            if (flags == 0) return;
+                            if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)1 : (byte)2)) != 0) ReadU32();
+                            if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1)) != 0) ms.Position += 20;
+                        }
+
+                        SkipResDescriptor();
+                        if (subversion >= LbpConstants.SUBREV_ADVENTURE) SkipResDescriptor();
+                        SkipResDescriptor();
+                        
+                        ms.Position += 16;
+                        bool lengthPrefixed = version < LbpConstants.REV_NETWORK_ONLINE_ID;
+                        if (lengthPrefixed) ReadI32();
+                        ms.Position += 16; // npData
+                        ms.Position += 1;
+                        if (lengthPrefixed) ReadI32();
+                        ms.Position += 3;
+                        
+                        if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) { int authorLen = ReadS32(); ms.Position += authorLen * 2; }
+                        int transLen = ReadS32(); ms.Position += transLen;
+                        
+                        int nameLen = ReadS32(); ms.Position += nameLen * 2;
+                        int descLen = ReadS32(); ms.Position += descLen * 2;
+                        
+                        ReadI32(); ReadI32(); // 0, 0
+                        if (version >= LbpConstants.REV_SLOT_GROUPS) { ReadI32(); ReadI32(); }
+                        
+                        bool isLocked = br.ReadByte() != 0;
+                        bool isShareable = true;
+                        if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) {
+                            isShareable = br.ReadByte() != 0;
+                            ReadI32(); // bg guid
+                        }
+                        
+                        if (version > LbpConstants.REV_PLANET_DECORATIONS) SkipResDescriptor();
+                        if (version < 0x188) br.ReadByte();
+                        if (version > 0x1de) ReadI32();
+                        if (version > 0x1ad && version < 0x1b9) br.ReadByte();
+                        if (version > 0x1b8 && version < 0x36c) ReadI32();
+                        
+                        bool isSubLevel = false;
+                        if (version >= LbpConstants.REV_SWITCH_BEHAVIOR) {
+                            if (version >= LbpConstants.REV_SLOT_LABELS) {
+                                int lblCount = ReadI32();
+                                for (int i = 0; i < lblCount; i++) { ReadI32(); ReadI32(); }
+                            }
+                            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_REQUIRED) {
+                                ReadI32();
+                                for (int i = 0; i < 3; i++) { SkipResDescriptor(); ReadI32(); }
+                            }
+                            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) ReadI32();
+                            if (version >= LbpConstants.REV_SLOT_SUBLEVEL) {
+                                isSubLevel = br.ReadByte() != 0;
+                            }
+                        }
+                        
+                        return (isLocked, isSubLevel, isShareable);
+                    }
+                }
+            } catch { }
+            return (false, false, true);
+        }
+
+        public static (byte[] patchedSlt, string npHandle, int gameVersion) PatchSltb(byte[] sltData, string newName, string newDesc, byte[]? newIconHash = null, bool? isLocked = null, bool? isSubLevel = null, bool? isShareable = null)
         {
             using var ms = new MemoryStream(sltData);
             using var br = new BinaryReader(ms);
@@ -372,6 +477,67 @@ namespace LbpArchiveToolkit.Utils
             byte[] descBytes = Encoding.BigEndianUnicode.GetBytes(newDesc);
 
             using var patchedMs = new MemoryStream();
+
+            int currentOffset = endOfStrings;
+            
+            void SkipResDescriptorBytes(ref int offset) {
+                byte flags = sltData[offset++];
+                if (flags == 0) return;
+                if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)1 : (byte)2)) != 0) {
+                    if (useCompressedInts) {
+                        while ((sltData[offset++] & 0x80) != 0) {}
+                    } else offset += 4;
+                }
+                if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1)) != 0) offset += 20;
+            }
+            
+            void SkipI32Bytes(ref int offset) {
+                if (useCompressedInts) {
+                    while ((sltData[offset++] & 0x80) != 0) {}
+                } else offset += 4;
+            }
+
+            if (isLocked.HasValue || isSubLevel.HasValue || isShareable.HasValue) {
+                try {
+                    SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); // 0, 0
+                    if (version >= LbpConstants.REV_SLOT_GROUPS) { SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); }
+                    
+                    if (isLocked.HasValue) sltData[currentOffset] = (byte)(isLocked.Value ? 1 : 0);
+                    currentOffset += 1;
+                    
+                    if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) {
+                        if (isShareable.HasValue) sltData[currentOffset] = (byte)(isShareable.Value ? 1 : 0);
+                        currentOffset += 1;
+                        SkipI32Bytes(ref currentOffset); // bg guid
+                    }
+                    
+                    if (isSubLevel.HasValue) {
+                        if (version > LbpConstants.REV_PLANET_DECORATIONS) SkipResDescriptorBytes(ref currentOffset);
+                        if (version < 0x188) currentOffset += 1;
+                        if (version > 0x1de) SkipI32Bytes(ref currentOffset);
+                        if (version > 0x1ad && version < 0x1b9) currentOffset += 1;
+                        if (version > 0x1b8 && version < 0x36c) SkipI32Bytes(ref currentOffset);
+                        
+                        if (version >= LbpConstants.REV_SWITCH_BEHAVIOR) {
+                            if (version >= LbpConstants.REV_SLOT_LABELS) {
+                                int prevPos = (int)ms.Position;
+                                ms.Position = currentOffset;
+                                int lblCount = ReadI32();
+                                currentOffset = (int)ms.Position;
+                                for (int i = 0; i < lblCount; i++) { SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); }
+                            }
+                            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_REQUIRED) {
+                                SkipI32Bytes(ref currentOffset);
+                                for (int i = 0; i < 3; i++) { SkipResDescriptorBytes(ref currentOffset); SkipI32Bytes(ref currentOffset); }
+                            }
+                            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) SkipI32Bytes(ref currentOffset);
+                            if (version >= LbpConstants.REV_SLOT_SUBLEVEL) {
+                                sltData[currentOffset] = (byte)(isSubLevel.Value ? 1 : 0);
+                            }
+                        }
+                    }
+                } catch { }
+            }
 
             if (newIconHash != null && oldIconHash == null)
             {

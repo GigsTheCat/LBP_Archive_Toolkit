@@ -13,7 +13,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class SaveDataBuilder
     {
-        public static void UpdateLevelInfo(string bkpDir, string newName, string newDesc, string? newIconPath = null)
+        public static void UpdateLevelInfo(string bkpDir, string newName, string newDesc, string? newIconPath = null, bool isLocked = false, bool isSubLevel = false, bool isShareable = true)
         {
             var (head, branchId, branchRev, sltHash, hashes) = Far4Archive.ReadSaveArchive(bkpDir);
 
@@ -29,7 +29,7 @@ namespace LbpArchiveToolkit.Services
             }
 
             sltData = SltbProcessor.DecompressSltData(sltData);
-            var (newSltData, npHandle, gameVersion) = SltbProcessor.PatchSltb(sltData!, newName, newDesc, newIconHash);
+            var (newSltData, npHandle, gameVersion) = SltbProcessor.PatchSltb(sltData!, newName, newDesc, newIconHash, isLocked, isSubLevel, isShareable);
 
             byte[] newSltHash = SHA1.HashData(newSltData);
             string newHashHex = Convert.ToHexStringLower(newSltHash);

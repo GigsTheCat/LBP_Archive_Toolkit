@@ -29,6 +29,10 @@ namespace LbpArchiveToolkit.ViewModels
         public string? FullPath { get; set; }
         public string? IconPath { get; set; }
         public string? DateSaved { get; set; }
+
+        public bool? IsLocked { get; set; }
+        public bool? IsSubLevel { get; set; }
+        public bool? IsShareable { get; set; }
     }
 
     public class BackupManagerWindowViewModel : ViewModelBase
@@ -58,8 +62,19 @@ namespace LbpArchiveToolkit.ViewModels
         private Brush _iconFill;
         public Brush IconFill { get => _iconFill; set => SetProperty(ref _iconFill, value); }
 
+        private Brush _originalIconFill;
+        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
+
+        private Visibility _iconLockVisibility = Visibility.Hidden;
+        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
+
+        private double _iconScale = 1.0;
+        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
+
         private string _iconStatusText = "Select a backup\nto view details";
         public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
+
+        private CancellationTokenSource? _sltCts;
 
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
@@ -71,6 +86,7 @@ namespace LbpArchiveToolkit.ViewModels
             _viewService = viewService;
             _backupDir = ConfigManager.BackupDirectory;
             _iconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            _originalIconFill = _iconFill;
 
             EditCommand = new RelayCommand(ExecuteEdit, CanExecuteEdit);
             DeleteCommand = new RelayCommand(ExecuteDelete, CanExecuteMultipleAction);
@@ -159,7 +175,7 @@ namespace LbpArchiveToolkit.ViewModels
             };
         }
 
-        private void UpdateSelectionDetails()
+        private async void UpdateSelectionDetails()
         {
             var selected = SelectedBackup;
             if (selected != null)
@@ -167,12 +183,70 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTitle = $"{selected.LevelName} by {selected.Creator}";
                 LevelDescription = selected.Description ?? "";
                 LoadIconPreview(selected.IconPath);
+
+                IconLockVisibility = (selected.IsLocked == true) ? Visibility.Visible : Visibility.Hidden;
+                IconScale = (selected.IsSubLevel == true) ? 0.85 : 1.0;
+
+                if (selected.IsLocked == true && OriginalIconFill is ImageBrush cacheImgBrush && cacheImgBrush.ImageSource is System.Windows.Media.Imaging.BitmapSource cacheBmp)
+                {
+                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(cacheBmp, System.Windows.Media.PixelFormats.Gray8, null, 0);
+                    grayscaleBmp.Freeze();
+                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
+                    grayBrush.Freeze();
+                    IconFill = grayBrush;
+                }
+
+                if (!selected.IsLocked.HasValue)
+                {
+                    _sltCts?.Cancel();
+                    _sltCts = new CancellationTokenSource();
+                    var token = _sltCts.Token;
+
+                    try
+                    {
+                        bool isLocked = false;
+                        bool isSubLevel = false;
+                        bool isShareable = true;
+
+                        await Task.Run(() => {
+                            var (_, _, _, sltHash, hashes) = Far4Archive.ReadSaveArchive(selected.FullPath!);
+                            string oldHashHex = Convert.ToHexStringLower(sltHash);
+                            if (hashes.TryGetValue(oldHashHex, out byte[]? sltData)) {
+                                sltData = SltbProcessor.DecompressSltData(sltData);
+                                (isLocked, isSubLevel, isShareable) = SltbProcessor.ReadSlotBools(sltData!);
+                            }
+                        }, token);
+
+                        if (!token.IsCancellationRequested)
+                        {
+                            selected.IsLocked = isLocked;
+                            selected.IsSubLevel = isSubLevel;
+                            selected.IsShareable = isShareable;
+
+                            IconLockVisibility = isLocked ? Visibility.Visible : Visibility.Hidden;
+                            IconScale = isSubLevel ? 0.85 : 1.0;
+
+                            if (isLocked && OriginalIconFill is ImageBrush imgBrush && imgBrush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
+                            {
+                                var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, System.Windows.Media.PixelFormats.Gray8, null, 0);
+                                grayscaleBmp.Freeze();
+                                var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
+                                grayBrush.Freeze();
+                                IconFill = grayBrush;
+                            }
+                        }
+                    }
+                    catch { }
+                }
             }
             else
             {
                 LevelTitle = "";
                 LevelDescription = "";
                 IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                OriginalIconFill = IconFill;
+                IconLockVisibility = Visibility.Hidden;
+                IconScale = 1.0;
                 IconStatusText = "Select a backup\nto view details";
             }
         }
@@ -186,18 +260,21 @@ namespace LbpArchiveToolkit.ViewModels
                     var bitmap = TextureDecoder.LoadBitmapImage(iconPath);
                     var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
                     brush.Freeze();
+                    OriginalIconFill = brush;
                     IconFill = brush;
                     IconStatusText = "";
                 }
                 catch
                 {
-                    IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                    OriginalIconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                    IconFill = OriginalIconFill;
                     IconStatusText = "Icon error";
                 }
             }
             else
             {
-                IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                OriginalIconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                IconFill = OriginalIconFill;
                 IconStatusText = "No icon";
             }
         }
@@ -206,8 +283,44 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedBackup != null && SelectedBackup.FullPath != null)
             {
+                var selected = SelectedBackup; // capture instance for thread
+
+                bool isLocked = selected.IsLocked ?? false;
+                bool isSubLevel = selected.IsSubLevel ?? false;
+                bool isShareable = selected.IsShareable ?? true;
+
+                if (!selected.IsLocked.HasValue)
+                {
+                    StatusText = "Reading slot data...";
+                    _isBusy = true;
+                    CommandManager.InvalidateRequerySuggested();
+
+                    try
+                    {
+                        await Task.Run(() => {
+                            var (_, _, _, sltHash, hashes) = Far4Archive.ReadSaveArchive(selected.FullPath);
+                            string oldHashHex = Convert.ToHexStringLower(sltHash);
+                            if (hashes.TryGetValue(oldHashHex, out byte[]? sltData)) {
+                                sltData = SltbProcessor.DecompressSltData(sltData);
+                                (isLocked, isSubLevel, isShareable) = SltbProcessor.ReadSlotBools(sltData!);
+                            }
+                        });
+                        
+                        selected.IsLocked = isLocked;
+                        selected.IsSubLevel = isSubLevel;
+                        selected.IsShareable = isShareable;
+                    }
+                    catch (Exception ex)
+                    {
+                        LogManager.Log("ExecuteEdit.ReadSlt", ex);
+                    }
+
+                    _isBusy = false;
+                    CommandManager.InvalidateRequerySuggested();
+                }
+
                 var owner = Application.Current.Windows.OfType<BackupManagerWindow>().FirstOrDefault();
-                var dialog = new EditInfoDialog(SelectedBackup.LevelName ?? "", SelectedBackup.Description ?? "", SelectedBackup.IconPath)
+                var dialog = new EditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath, isLocked, isSubLevel, isShareable)
                 {
                     Owner = owner
                 };
@@ -217,8 +330,11 @@ namespace LbpArchiveToolkit.ViewModels
                     string newName = dialog.LevelName;
                     string newDesc = dialog.Description;
                     string? newIcon = dialog.NewIconPath;
+                    bool newLocked = dialog.IsLocked;
+                    bool newSubLevel = dialog.IsSubLevel;
+                    bool newShareable = dialog.IsShareable;
 
-                    if (newName == SelectedBackup.LevelName && newDesc == SelectedBackup.Description && newIcon == null) return;
+                    if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null && newLocked == isLocked && newSubLevel == isSubLevel && newShareable == isShareable) return;
 
                     StatusText = "Updating and re-encrypting backup...";
                     _isBusy = true;
@@ -226,11 +342,14 @@ namespace LbpArchiveToolkit.ViewModels
 
                     try
                     {
-                        var backupToUpdate = SelectedBackup; // capture instance for thread
-                        await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(backupToUpdate.FullPath, newName, newDesc, newIcon));
+                        var backupToUpdate = selected; // capture instance for thread
+                        await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(backupToUpdate.FullPath, newName, newDesc, newIcon, newLocked, newSubLevel, newShareable));
 
                         backupToUpdate.LevelName = newName;
                         backupToUpdate.Description = newDesc;
+                        backupToUpdate.IsLocked = newLocked;
+                        backupToUpdate.IsSubLevel = newSubLevel;
+                        backupToUpdate.IsShareable = newShareable;
                         
                         // Force UI refresh
                         UpdateSelectionDetails();

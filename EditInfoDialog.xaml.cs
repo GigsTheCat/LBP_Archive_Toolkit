@@ -14,12 +14,15 @@ namespace LbpArchiveToolkit
         public string LevelName => _viewModel.LevelName;
         public string Description => _viewModel.Description;
         public string? NewIconPath => _viewModel.NewIconPath;
+        public bool IsLocked => _viewModel.IsLocked;
+        public bool IsSubLevel => _viewModel.IsSubLevel;
+        public bool IsShareable => _viewModel.IsShareable;
 
-        public EditInfoDialog(string currentName, string currentDesc, string? currentIconPath)
+        public EditInfoDialog(string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
         {
             InitializeComponent();
             
-            _viewModel = new EditInfoDialogViewModel(this, currentName, currentDesc, currentIconPath);
+            _viewModel = new EditInfoDialogViewModel(this, currentName, currentDesc, currentIconPath, isLocked, isSubLevel, isShareable);
 
             // Reacts to commands setting the dialog's close request
             _viewModel.RequestClose += (result) =>

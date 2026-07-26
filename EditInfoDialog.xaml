@@ -8,6 +8,34 @@
         FontFamily="Segoe UI" Topmost="False">
 
     <Window.Resources>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource FgPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="checkBoxBorder" Width="20" Height="20" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="5" VerticalAlignment="Center">
+                                <Path x:Name="checkMark" Data="M3,10 L8,15 L16,5" Stroke="{DynamicResource LbpCyan}" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="checkBoxBorder" Property="BorderBrush" Value="{DynamicResource LbpCyan}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="checkBoxBorder" Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
             <Setter Property="Foreground" Value="#002D3D"/>
@@ -51,6 +79,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Text="EDIT LEVEL INFO" Foreground="{DynamicResource LbpOrange}" FontSize="22" FontWeight="Black" Margin="0,0,0,12"/>
@@ -78,7 +107,7 @@
                 <TextBox Text="{Binding LevelName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
              </StackPanel>
 
-            <StackPanel Grid.Row="4" Margin="0,0,0,25">
+            <StackPanel Grid.Row="4" Margin="0,0,0,15">
                 <DockPanel Margin="0,0,0,5">
                     <TextBlock Text="DESCRIPTION" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" DockPanel.Dock="Left"/>
                     <TextBlock Text="{Binding DescCountText}" Foreground="{DynamicResource FgSecondary}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
@@ -86,7 +115,13 @@
                 <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" Height="100" VerticalContentAlignment="Top" MaxLength="1000"/>
              </StackPanel>
 
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+            <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,25">
+                <CheckBox Content="Locked" IsChecked="{Binding IsLocked}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,20,0"/>
+                <CheckBox Content="Sub-level" IsChecked="{Binding IsSubLevel}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,20,0"/>
+                <CheckBox Content="Copyable" IsChecked="{Binding IsShareable}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="CANCEL" Command="{Binding CancelCommand}" Style="{DynamicResource BtnSecondary}"/>
                 <Button Content="SAVE" Command="{Binding SaveCommand}" Style="{DynamicResource BtnPrimary}"/>
             </StackPanel>

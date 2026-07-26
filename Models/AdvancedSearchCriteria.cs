@@ -6,6 +6,9 @@ namespace LbpArchiveToolkit.Models
         public int MinPlays { get; set; } = 0;
         public int MinHeartPercentage { get; set; } = 0;
         public bool IsTeamPick { get; set; } = false;
+        public bool RequireLocked { get; set; } = false;
+        public bool RequireSubLevel { get; set; } = false;
+        public bool RequireShareable { get; set; } = false;
 
         // List of labels/tags the level MUST have to appear in the results
         public List<string> RequiredLabels { get; set; } = [];
@@ -22,6 +25,9 @@ namespace LbpArchiveToolkit.Models
         public DateTime? PublishedBefore { get; set; }
         public DateTime? PublishedAfter { get; set; }
         public bool ExcludeTeamPick { get; set; } = false;
+        public bool ExcludeLocked { get; set; } = false;
+        public bool ExcludeSubLevels { get; set; } = false;
+        public bool ExcludeShareable { get; set; } = false;
         public int MaxHearts { get; set; } = 0;
         public int MaxPlays { get; set; } = 0;
     }

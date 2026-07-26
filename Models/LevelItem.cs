@@ -29,6 +29,9 @@ namespace LbpArchiveToolkit.Models
         public List<string>? CommunityLabels { get; set; }
         public List<string>? Tags { get; set; }
         public bool IsMmPick { get; set; }
+        public bool IsLocked { get; set; }
+        public bool IsSubLevel { get; set; }
+        public bool IsShareable { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

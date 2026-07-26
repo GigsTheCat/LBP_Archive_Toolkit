@@ -62,6 +62,15 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        public bool HasExtendedSlotProperties
+        {
+            get
+            {
+                EnsureSchemaResolved();
+                return _colInitiallyLocked != "NULL" && _colIsSubLevel != "NULL" && _colShareable != "NULL";
+            }
+        }
+
         private string _colGame = "NULL";
         private string _colDate = "NULL";
         private string _colDesc = "NULL";
@@ -75,6 +84,9 @@ namespace LbpArchiveToolkit.Services
         private string _colCommunityLabels = "NULL";
         private string _colTags = "NULL";
         private string _colMmPick = "NULL";
+        private string _colInitiallyLocked = "NULL";
+        private string _colIsSubLevel = "NULL";
+        private string _colShareable = "NULL";
 
         private static readonly FrozenDictionary<string, int> _genreToIntMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) {
             {"Platformer", 1}, {"Versus", 2}, {"Arcade", 3}, {"Cinematic", 4}, {"Fighter", 5},
@@ -236,7 +248,10 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colMmPick)).Append(", ")
                         .Append(SafeCol(_colLabels)).Append(", ")
                         .Append(SafeCol(_colTags)).Append(", ")
-                        .Append(SafeCol(_colCommunityLabels));
+                        .Append(SafeCol(_colCommunityLabels)).Append(", ")
+                        .Append(SafeCol(_colInitiallyLocked)).Append(", ")
+                        .Append(SafeCol(_colIsSubLevel)).Append(", ")
+                        .Append(SafeCol(_colShareable));
 
             queryBuilder.Append(" FROM slot ");
 
@@ -655,6 +670,9 @@ namespace LbpArchiveToolkit.Services
                 levelItem.Labels = levelLabels;
                 levelItem.CommunityLabels = commLabels;
                 levelItem.Tags = levelTags;
+                levelItem.IsLocked = !reader.IsDBNull(16) && reader.GetBoolean(16);
+                levelItem.IsSubLevel = !reader.IsDBNull(17) && reader.GetBoolean(17);
+                levelItem.IsShareable = reader.IsDBNull(18) || reader.GetBoolean(18); // Default true if missing
 
                  yield return levelItem;
 
@@ -1014,9 +1032,39 @@ namespace LbpArchiveToolkit.Services
                 query.Append($" AND {pfx}{_colMmPick} = 1");
             }
 
+            if (advanced.RequireLocked && _colInitiallyLocked != "NULL")
+            {
+                query.Append($" AND {pfx}{_colInitiallyLocked} = 1");
+            }
+
+            if (advanced.RequireSubLevel && _colIsSubLevel != "NULL")
+            {
+                query.Append($" AND {pfx}{_colIsSubLevel} = 1");
+            }
+
+            if (advanced.RequireShareable && _colShareable != "NULL")
+            {
+                query.Append($" AND {pfx}{_colShareable} = 1");
+            }
+
             if (advanced.ExcludeTeamPick && !useFtsForTags && _colMmPick != "NULL")
             {
                 query.Append($" AND {pfx}{_colMmPick} = 0");
+            }
+
+            if (advanced.ExcludeLocked && _colInitiallyLocked != "NULL")
+            {
+                query.Append($" AND {pfx}{_colInitiallyLocked} = 0");
+            }
+
+            if (advanced.ExcludeSubLevels && _colIsSubLevel != "NULL")
+            {
+                query.Append($" AND {pfx}{_colIsSubLevel} = 0");
+            }
+
+            if (advanced.ExcludeShareable && _colShareable != "NULL")
+            {
+                query.Append($" AND {pfx}{_colShareable} = 0");
             }
         }
 
@@ -1076,6 +1124,9 @@ namespace LbpArchiveToolkit.Services
                 _colCommunityLabels = GetDbColumn(columns, "labels", "communityLabels");
                 _colTags = GetDbColumn(columns, "tags");
                 _colMmPick = GetDbColumn(columns, "mmpick", "mmPick");
+                _colInitiallyLocked = GetDbColumn(columns, "initiallyLocked", "locked");
+                _colIsSubLevel = GetDbColumn(columns, "isSubLevel", "subLevel");
+                _colShareable = GetDbColumn(columns, "shareable");
 
                 _isSchemaResolved = true;
             }

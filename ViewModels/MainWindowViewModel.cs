@@ -159,6 +159,7 @@ namespace LbpArchiveToolkit.ViewModels
         public Visibility HasObjectContributorsVisibility => _dbService.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
         public bool HasCompletionData => _dbService.HasCompletionData;
         public bool HasCommunityLabels => _dbService.HasCommunityLabels;
+        public bool HasExtendedSlotProperties => _dbService.HasExtendedSlotProperties;
 
         // Level Details Properties
         private LevelItem? _selectedLevel;
@@ -173,6 +174,15 @@ namespace LbpArchiveToolkit.ViewModels
 
         private Brush _iconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
         public Brush IconEllipseFill { get => _iconEllipseFill; set => SetProperty(ref _iconEllipseFill, value); }
+
+        private Brush _originalIconFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
+
+        private Visibility _iconLockVisibility = Visibility.Hidden;
+        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
+
+        private double _iconScale = 1.0;
+        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
 
         private Visibility _mmPickVisibility = Visibility.Hidden;
         public Visibility MmPickVisibility { get => _mmPickVisibility; set => SetProperty(ref _mmPickVisibility, value); }

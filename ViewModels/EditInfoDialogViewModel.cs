@@ -39,6 +39,15 @@ namespace LbpArchiveToolkit.ViewModels
         public string TitleCountText => $"{LevelName?.Length ?? 0} / 100";
         public string DescCountText => $"{Description?.Length ?? 0} / 1000";
 
+        private bool _isLocked;
+        public bool IsLocked { get => _isLocked; set => SetProperty(ref _isLocked, value); }
+
+        private bool _isSubLevel;
+        public bool IsSubLevel { get => _isSubLevel; set => SetProperty(ref _isSubLevel, value); }
+
+        private bool _isShareable;
+        public bool IsShareable { get => _isShareable; set => SetProperty(ref _isShareable, value); }
+
         private string? _newIconPath;
         public string? NewIconPath
         {
@@ -63,12 +72,15 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public EditInfoDialogViewModel(Window ownerWindow, string currentName, string currentDesc, string? currentIconPath)
+        public EditInfoDialogViewModel(Window ownerWindow, string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
         {
             _ownerWindow = ownerWindow;
             _originalIconPath = currentIconPath;
             LevelName = currentName;
             Description = currentDesc;
+            IsLocked = isLocked;
+            IsSubLevel = isSubLevel;
+            IsShareable = isShareable;
 
             if (File.Exists(currentIconPath))
             {

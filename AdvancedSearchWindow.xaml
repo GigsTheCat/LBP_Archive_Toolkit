@@ -347,6 +347,9 @@
                             </Grid>
                             
                             <CheckBox Content="Team Picked Levels Only" IsChecked="{Binding IsTeamPick}" Margin="0,10,0,0"/>
+                            <CheckBox Content="Locked Levels Only" IsChecked="{Binding RequireLocked}" Margin="0,5,0,0"/>
+                            <CheckBox Content="Sub-levels Only" IsChecked="{Binding RequireSubLevel}" Margin="0,5,0,0"/>
+                            <CheckBox Content="Copyable Levels Only" IsChecked="{Binding RequireShareable}" Margin="0,5,0,0"/>
 
                             <Rectangle Style="{StaticResource Separator}"/>
 
@@ -447,6 +450,9 @@
                                     </Grid>
 
                                     <CheckBox Content="Exclude Team Picked Levels" IsChecked="{Binding ExcludeTeamPick}" Margin="0,5,0,5"/>
+                                    <CheckBox Content="Exclude Locked Levels" IsChecked="{Binding ExcludeLocked}" Margin="0,5,0,5"/>
+                                    <CheckBox Content="Exclude Sub-levels" IsChecked="{Binding ExcludeSubLevels}" Margin="0,5,0,5"/>
+                                    <CheckBox Content="Exclude Copyable Levels" IsChecked="{Binding ExcludeShareable}" Margin="0,5,0,5"/>
 
                                     <Rectangle Style="{StaticResource Separator}"/>
 
