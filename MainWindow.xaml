@@ -334,9 +334,9 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn x:Name="colClears" Header="CLEARS" Width="80" Binding="{Binding Clears}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
-                                    <DataGridTextColumn Header="♥" Width="60" Binding="{Binding Hearts}">
+                                    <DataGridTextColumn Header="PLAYS" Width="80" Binding="{Binding Plays, StringFormat=N0}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="YAYS" Width="80" Binding="{Binding Yays, StringFormat=N0}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
+                                    <DataGridTextColumn Header="♥" Width="70" Binding="{Binding Hearts, StringFormat=N0}">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource DataGridTextCenterStyle}">
                                                 <Setter Property="Foreground" Value="{DynamicResource LbpPink}"/>
@@ -349,6 +349,7 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
+                                    <DataGridTextColumn x:Name="colClears" Header="CLEARS" Width="80" Binding="{Binding Clears, StringFormat=N0}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                     <DataGridTextColumn Header="GENRE" Width="110" Binding="{Binding Genre}" ElementStyle="{StaticResource DataGridTextCenterStyle}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -441,14 +442,14 @@
                                 </Grid>
 
                                 <StackPanel Grid.Row="1" Margin="0,0,0,10">
-                                    <TextBlock Tag="{Binding}" Text="{Binding SelectedLevel.LevelName}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="18" TextWrapping="Wrap" TextAlignment="Center">
+                                    <TextBlock Tag="{Binding}" Text="{Binding SelectedLevel.LevelName}" Foreground="{DynamicResource FgPrimary}" FontWeight="Black" FontSize="16" TextWrapping="Wrap" TextAlignment="Center">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Copy Level Name" Command="{Binding PlacementTarget.Tag.CopyLevelNameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
-                                    <TextBlock Tag="{Binding}" Text="{Binding LevelCreatorAndStatsText}" utils:CreatorPreviewBehavior.CreatorName="{Binding SelectedLevel.Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
+                                    <TextBlock Tag="{Binding}" Text="{Binding LevelCreatorText}" utils:CreatorPreviewBehavior.CreatorName="{Binding SelectedLevel.Creator}" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="13" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Search Creator" Command="{Binding PlacementTarget.Tag.SearchCreatorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.Tag.SelectedLevel, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
@@ -458,6 +459,7 @@
                                             </ContextMenu>
                                         </TextBlock.ContextMenu>
                                     </TextBlock>
+                                    <TextBlock Text="{Binding LevelStatsText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" FontSize="12" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,0,0,15">

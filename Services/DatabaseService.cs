@@ -77,6 +77,7 @@ namespace LbpArchiveToolkit.Services
         private string _colPlay = "NULL";
         private string _colCompletion = "NULL";
         private string _colHeart = "NULL";
+        private string _colYays = "NULL";
         private string _colGenre = "NULL";
         private string _colHash = "NULL";
         private string _colIcon = "NULL";
@@ -251,7 +252,8 @@ namespace LbpArchiveToolkit.Services
                         .Append(SafeCol(_colCommunityLabels)).Append(", ")
                         .Append(SafeCol(_colInitiallyLocked)).Append(", ")
                         .Append(SafeCol(_colIsSubLevel)).Append(", ")
-                        .Append(SafeCol(_colShareable));
+                        .Append(SafeCol(_colShareable)).Append(", ")
+                        .Append(SafeCol(_colYays));
 
             queryBuilder.Append(" FROM slot ");
 
@@ -673,6 +675,7 @@ namespace LbpArchiveToolkit.Services
                 levelItem.IsLocked = !reader.IsDBNull(16) && reader.GetBoolean(16);
                 levelItem.IsSubLevel = !reader.IsDBNull(17) && reader.GetBoolean(17);
                 levelItem.IsShareable = reader.IsDBNull(18) || reader.GetBoolean(18); // Default true if missing
+                levelItem.Yays = reader.FieldCount > 19 ? (reader.IsDBNull(19) ? 0 : reader.GetInt32(19)) : 0;
 
                  yield return levelItem;
 
@@ -1117,6 +1120,7 @@ namespace LbpArchiveToolkit.Services
                 _colPlay = GetDbColumn(columns, "playCount", "plays", "play_count");
                 _colCompletion = GetDbColumn(columns, "completionCount", "completions");
                 _colHeart = GetDbColumn(columns, "heartCount", "hearts", "heart_count");
+                _colYays = GetDbColumn(columns, "yayCount", "yays", "thumbsUp", "thumbs_up", "upvotes");
                 _colGenre = GetDbColumn(columns, "genre", "levelGenre", "level_genre");
                 _colHash = GetDbColumn(columns, "rootLevel", "root_level", "rootLevelHash", "hash");
                 _colIcon = GetDbColumn(columns, "icon", "iconHash");

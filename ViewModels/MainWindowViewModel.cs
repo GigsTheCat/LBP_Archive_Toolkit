@@ -228,13 +228,15 @@ namespace LbpArchiveToolkit.ViewModels
         public string UserSummaryText => SelectedUser != null ? 
             $"Published Level slots summary:\n• LBP1 Slots: {SelectedUser.Lbp1UsedSlots}\n• LBP2 Slots: {SelectedUser.Lbp2UsedSlots}\n• LBP3 Slots: {SelectedUser.Lbp3UsedSlots}\n\nClick the button below to view all levels published by {SelectedUser.NpHandle}." : "";
 
-        public string LevelCreatorAndStatsText
+        public string LevelCreatorText => SelectedLevel != null ? $"By {SelectedLevel.Creator}" : "";
+
+        public string LevelStatsText
         {
             get
             {
                 if (SelectedLevel == null) return "";
-                string clearsText = HasCompletionData ? $"  |  Clears: {SelectedLevel.Clears}" : "";
-                return $"By: {SelectedLevel.Creator}  |  Genre: {SelectedLevel.Genre}  |  Plays: {SelectedLevel.Plays}{clearsText}  |  ♥ {SelectedLevel.Hearts}";
+                string clearsText = HasCompletionData ? $"  •  Clears: {SelectedLevel.Clears:N0}" : "";
+                return $"Plays: {SelectedLevel.Plays:N0}  •  Yays: {SelectedLevel.Yays:N0}  •  ♥ {SelectedLevel.Hearts:N0}{clearsText}";
             }
         }
 
@@ -321,7 +323,8 @@ namespace LbpArchiveToolkit.ViewModels
             OnPropertyChanged(nameof(HasContributorsVisibility));
             OnPropertyChanged(nameof(HasObjectContributorsVisibility));
             OnPropertyChanged(nameof(HasCompletionData));
-            OnPropertyChanged(nameof(LevelCreatorAndStatsText));
+            OnPropertyChanged(nameof(LevelCreatorText));
+            OnPropertyChanged(nameof(LevelStatsText));
             _ = LoadDataAsync();
         }
 

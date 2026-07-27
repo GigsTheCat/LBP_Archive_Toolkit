@@ -21,6 +21,7 @@ namespace LbpArchiveToolkit.Models
         public int Plays { get; set; }
         public int Clears { get; set; }
         public int Hearts { get; set; }
+        public int Yays { get; set; }
         public string? Genre { get; set; }
         public string? Hash { get; set; }
         public string? IconHash { get; set; }

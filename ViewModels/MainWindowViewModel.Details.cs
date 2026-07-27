@@ -80,7 +80,8 @@ namespace LbpArchiveToolkit.ViewModels
             }
             
             _ = LoadIconAsync(_selectedLevel.IconHash);
-            OnPropertyChanged(nameof(LevelCreatorAndStatsText));
+            OnPropertyChanged(nameof(LevelCreatorText));
+            OnPropertyChanged(nameof(LevelStatsText));
         }
 
         private void UpdateUserDetails()
