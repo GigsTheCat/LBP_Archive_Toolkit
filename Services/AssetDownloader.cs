@@ -191,7 +191,7 @@ namespace LbpArchiveToolkit.Services
 
                 ctx.ReportProgress("Encrypting and building save archive...");
 
-                var sortedResources = new SortedDictionary<string, byte[]>(ctx.Resources, StringComparer.OrdinalIgnoreCase);
+                var sortedResources = new SortedDictionary<string, byte[]>(ctx.Resources, StringComparer.Ordinal);
                 await SaveDataBuilder.BuildAndWriteSaveDataAsync(lvl, slotInfo, sortedResources, backupDir, client, token).ConfigureAwait(false);
 
                 ctx.ReportProgress("Finished successfully!");
@@ -507,11 +507,11 @@ namespace LbpArchiveToolkit.Services
             public readonly HttpClient Client;
             public readonly CancellationToken Token;
             public readonly ChannelWriter<string> QueueWriter;
-            public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.OrdinalIgnoreCase);
+            public readonly ConcurrentDictionary<string, byte[]> Resources = new(StringComparer.Ordinal);
             public readonly ExtractionConfig Config;
 
             private readonly IProgress<(int processed, int total, string message)>? _progress;
-            private readonly ConcurrentDictionary<string, byte> _downloadedHashes = new(StringComparer.OrdinalIgnoreCase);
+            private readonly ConcurrentDictionary<string, byte> _downloadedHashes = new(StringComparer.Ordinal);
 
             private int _totalDiscovered;
             private int _totalProcessed;

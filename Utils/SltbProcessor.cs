@@ -267,38 +267,55 @@ namespace LbpArchiveToolkit.Utils
         public static (bool isLocked, bool isSubLevel, bool isShareable) ReadSlotBools(byte[] sltData)
         {
             try {
-                using var ms = new MemoryStream(sltData);
-                using var br = new BinaryReader(ms);
-                
-                br.ReadBytes(4); // SLTb
-                uint head = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                int offset = 4; // Skip "SLTb"
+                uint head = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(sltData.AsSpan(offset, 4));
+                offset += 4;
                 uint version = head & 0xFFFF;
                 uint subversion = (head >> 16) & 0xFFFF;
                 
                 if (head >= LbpConstants.REV_DEPENDENCIES) {
-                    ms.Position += 4;
+                    offset += 4;
                     if (head >= LbpConstants.REV_COMPRESSED_RESOURCES) {
                         ushort bId = 0, bRev = 0;
-                        if (head >= LbpConstants.REV_BRANCHES) { bId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); bRev = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2)); }
+                        if (head >= LbpConstants.REV_BRANCHES) { 
+                            bId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(sltData.AsSpan(offset, 2)); 
+                            offset += 2;
+                            bRev = System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(sltData.AsSpan(offset, 2)); 
+                            offset += 2;
+                        }
                         bool useCompressedInts = false;
-                        if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && bId == LbpConstants.BRANCH_LD_ID && bRev >= LbpConstants.REV_LD_RESOURCES)) { useCompressedInts = (br.ReadByte() & 1) != 0; }
-                        ms.Position += 1;
+                        if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && bId == LbpConstants.BRANCH_LD_ID && bRev >= LbpConstants.REV_LD_RESOURCES)) { 
+                            useCompressedInts = (sltData[offset++] & 1) != 0; 
+                        }
+                        offset += 1;
                         
                         long ReadUleb128() {
                             long result = 0; int shift = 0;
                             while (true) {
-                                byte b = br.ReadByte();
+                                byte b = sltData[offset++];
                                 result |= (long)(b & 0x7F) << shift;
                                 if ((b & 0x80) == 0) break;
                                 shift += 7;
                             }
                             return result;
                         }
-                        int ReadI32() => useCompressedInts ? (int)(ReadUleb128() & 0xFFFFFFFF) : (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
-                        long ReadU32() => useCompressedInts ? ReadUleb128() : (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                        int ReadI32() {
+                            if (useCompressedInts) return (int)(ReadUleb128() & 0xFFFFFFFF);
+                            int res = (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(sltData.AsSpan(offset, 4));
+                            offset += 4;
+                            return res;
+                        }
+                        long ReadU32() {
+                            if (useCompressedInts) return ReadUleb128();
+                            long res = (long)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(sltData.AsSpan(offset, 4));
+                            offset += 4;
+                            return res;
+                        }
                         int ReadS32() {
                             if (useCompressedInts) { uint v = (uint)ReadUleb128(); return (int)((v >> 1) ^ -(int)(v & 1)); }
-                            return (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
+                            int res = (int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(sltData.AsSpan(offset, 4));
+                            offset += 4;
+                            return res;
                         }
                         
                         int slotCount = ReadI32();
@@ -306,44 +323,44 @@ namespace LbpArchiveToolkit.Utils
                         long slotNumber = ReadU32();
                         
                         void SkipResDescriptor() {
-                            byte flags = br.ReadByte();
+                            byte flags = sltData[offset++];
                             if (flags == 0) return;
                             if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)1 : (byte)2)) != 0) ReadU32();
-                            if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1)) != 0) ms.Position += 20;
+                            if ((flags & (version < LbpConstants.REV_GUID_HASH_FLAGS_SWAP ? (byte)2 : (byte)1)) != 0) offset += 20;
                         }
 
                         SkipResDescriptor();
                         if (subversion >= LbpConstants.SUBREV_ADVENTURE) SkipResDescriptor();
                         SkipResDescriptor();
                         
-                        ms.Position += 16;
+                        offset += 16;
                         bool lengthPrefixed = version < LbpConstants.REV_NETWORK_ONLINE_ID;
                         if (lengthPrefixed) ReadI32();
-                        ms.Position += 16; // npData
-                        ms.Position += 1;
+                        offset += 16; // npData
+                        offset += 1;
                         if (lengthPrefixed) ReadI32();
-                        ms.Position += 3;
+                        offset += 3;
                         
-                        if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) { int authorLen = ReadS32(); ms.Position += authorLen * 2; }
-                        int transLen = ReadS32(); ms.Position += transLen;
+                        if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) { int authorLen = ReadS32(); offset += authorLen * 2; }
+                        int transLen = ReadS32(); offset += transLen;
                         
-                        int nameLen = ReadS32(); ms.Position += nameLen * 2;
-                        int descLen = ReadS32(); ms.Position += descLen * 2;
+                        int nameLen = ReadS32(); offset += nameLen * 2;
+                        int descLen = ReadS32(); offset += descLen * 2;
                         
                         ReadI32(); ReadI32(); // 0, 0
                         if (version >= LbpConstants.REV_SLOT_GROUPS) { ReadI32(); ReadI32(); }
                         
-                        bool isLocked = br.ReadByte() != 0;
+                        bool isLocked = sltData[offset++] != 0;
                         bool isShareable = true;
                         if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) {
-                            isShareable = br.ReadByte() != 0;
+                            isShareable = sltData[offset++] != 0;
                             ReadI32(); // bg guid
                         }
                         
                         if (version > LbpConstants.REV_PLANET_DECORATIONS) SkipResDescriptor();
-                        if (version < 0x188) br.ReadByte();
+                        if (version < 0x188) offset++;
                         if (version > 0x1de) ReadI32();
-                        if (version > 0x1ad && version < 0x1b9) br.ReadByte();
+                        if (version > 0x1ad && version < 0x1b9) offset++;
                         if (version > 0x1b8 && version < 0x36c) ReadI32();
                         
                         bool isSubLevel = false;
@@ -358,7 +375,7 @@ namespace LbpArchiveToolkit.Utils
                             }
                             if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) ReadI32();
                             if (version >= LbpConstants.REV_SLOT_SUBLEVEL) {
-                                isSubLevel = br.ReadByte() != 0;
+                                isSubLevel = sltData[offset++] != 0;
                             }
                         }
                         

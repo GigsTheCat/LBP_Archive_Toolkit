@@ -117,8 +117,8 @@
 
             <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,25">
                 <CheckBox Content="Locked" IsChecked="{Binding IsLocked}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,20,0"/>
-                <CheckBox Content="Sub-level" IsChecked="{Binding IsSubLevel}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,20,0"/>
-                <CheckBox Content="Copyable" IsChecked="{Binding IsShareable}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold"/>
+                <CheckBox Content="Copyable" IsChecked="{Binding IsShareable}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,20,0"/>
+                <CheckBox Content="Sub-level" IsChecked="{Binding IsSubLevel}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold"/>
             </StackPanel>
 
             <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">

@@ -121,7 +121,7 @@ namespace LbpArchiveToolkit.Services
                 string pragmaCmd = "PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
                 if (LbpArchiveToolkit.Configuration.ConfigManager.UseMemoryMappedIO)
                 {
-                    pragmaCmd += " PRAGMA mmap_size = 2147483648;";
+                    pragmaCmd += " PRAGMA mmap_size = 32212254720;";
                 }
 
                 using var cmdPragma = new SqliteCommand(pragmaCmd, conn);
@@ -409,8 +409,22 @@ namespace LbpArchiveToolkit.Services
 
             if (randomSingle)
             {
-                queryBuilder.Append(" ORDER BY RANDOM()");
-                if (!needsCSharpFiltering) queryBuilder.Append(" LIMIT 1");
+                if (!needsCSharpFiltering)
+                {
+                    string countQuery = "SELECT COUNT(*) " + queryBuilder.ToString().Substring(queryBuilder.ToString().IndexOf("FROM slot"));
+                    using var countCmd = new SqliteCommand(countQuery, conn);
+                    foreach (var param in parameters) countCmd.Parameters.AddWithValue(param.ParameterName, param.Value);
+                    object? countObj = await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+                    long totalCount = countObj != null && countObj != DBNull.Value ? Convert.ToInt64(countObj) : 0;
+                    int randomOffset = totalCount > 0 ? Random.Shared.Next(0, (int)totalCount) : 0;
+                    
+                    queryBuilder.Append($" LIMIT 1 OFFSET {randomOffset}");
+                }
+                else
+                {
+                    // Fallback to RANDOM() if C# filtering is required since offset applies pre-filter
+                    queryBuilder.Append(" ORDER BY RANDOM()");
+                }
             }
             else
             {
@@ -452,7 +466,6 @@ namespace LbpArchiveToolkit.Services
 
             var creatorCache = new Dictionary<string, string>();
             var dateCache = new Dictionary<string, string>();
-            var nameCache = new Dictionary<string, string>();
 
             using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             
@@ -588,23 +601,7 @@ namespace LbpArchiveToolkit.Services
                     }
                 }
 
-                string levelName = "Unknown";
-                if (!reader.IsDBNull(2))
-                {
-                    string? raw = reader.GetString(2);
-                    if (raw != null)
-                    {
-                        if (nameCache.TryGetValue(raw, out var cachedName) && cachedName != null)
-                        {
-                            levelName = cachedName;
-                        }
-                        else
-                        {
-                            nameCache[raw] = raw;
-                            levelName = raw;
-                        }
-                    }
-                }
+                string levelName = reader.IsDBNull(2) ? "Unknown" : (reader.GetString(2) ?? "Unknown");
 
                 int gameInt = reader.IsDBNull(3) ? -1 : reader.GetInt32(3);
                 string gameStr = gameInt switch
@@ -744,7 +741,14 @@ namespace LbpArchiveToolkit.Services
 
                 if (randomSingle)
                 {
-                    queryBuilder.Append(" ORDER BY RANDOM() LIMIT 1");
+                    string countQuery = "SELECT COUNT(*) " + queryBuilder.ToString().Substring(queryBuilder.ToString().IndexOf("FROM user"));
+                    using var countCmd = new SqliteCommand(countQuery, conn);
+                    foreach (var p in parameters) countCmd.Parameters.AddWithValue(p.ParameterName, p.Value);
+                    object? countObj = await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+                    long totalCount = countObj != null && countObj != DBNull.Value ? Convert.ToInt64(countObj) : 0;
+                    int randomOffset = totalCount > 0 ? Random.Shared.Next(0, (int)totalCount) : 0;
+
+                    queryBuilder.Append($" LIMIT 1 OFFSET {randomOffset}");
                 }
                 else
                 {

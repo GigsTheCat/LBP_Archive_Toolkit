@@ -72,7 +72,7 @@ namespace LbpArchiveToolkit.Utils
             byte[] sltHash = br.ReadBytes(20);
 
             ms.Position = fatOffset;
-            var hashes = new SortedDictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            var hashes = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
             Span<byte> hashBuf = stackalloc byte[20];
             Span<byte> uintBuf = stackalloc byte[4];
 
