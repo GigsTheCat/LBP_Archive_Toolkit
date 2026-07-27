@@ -18,7 +18,7 @@ namespace LbpArchiveToolkit.ViewModels
         private async Task SearchAsync()
         {
             string keyword = SearchText?.Trim() ?? "";
-            bool hasAdvancedFilters = _advancedCriteria.MinHearts > 0 || _advancedCriteria.MinPlays > 0 || _advancedCriteria.IsTeamPick || _advancedCriteria.RequireLocked || _advancedCriteria.RequireSubLevel || _advancedCriteria.RequireShareable || _advancedCriteria.ExcludeTeamPick || _advancedCriteria.ExcludeLocked || _advancedCriteria.ExcludeSubLevels || _advancedCriteria.ExcludeShareable || _advancedCriteria.RequiredLabels.Count > 0 || _advancedCriteria.RequiredTags.Count > 0;
+            bool hasAdvancedFilters = _advancedCriteria.MinHearts > 0 || _advancedCriteria.MinPlays > 0 || _advancedCriteria.MinHeartPercentage > 0 || _advancedCriteria.MinYayPercentage > 0 || _advancedCriteria.MinClearPercentage > 0 || _advancedCriteria.MaxClearPercentage < 100 || _advancedCriteria.IsTeamPick || _advancedCriteria.RequireLocked || _advancedCriteria.RequireSubLevel || _advancedCriteria.RequireShareable || _advancedCriteria.ExcludeTeamPick || _advancedCriteria.ExcludeLocked || _advancedCriteria.ExcludeSubLevels || _advancedCriteria.ExcludeShareable || _advancedCriteria.RequiredLabels.Count > 0 || _advancedCriteria.RequiredTags.Count > 0;
 
             if (string.IsNullOrWhiteSpace(keyword) && LimitIndex == 4 && !hasAdvancedFilters)
             {
@@ -74,6 +74,9 @@ namespace LbpArchiveToolkit.ViewModels
                         {
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
+                            MinYayPercentage = _advancedCriteria.MinYayPercentage,
+                            MinClearPercentage = _advancedCriteria.MinClearPercentage,
+                            MaxClearPercentage = _advancedCriteria.MaxClearPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequireLocked = _advancedCriteria.RequireLocked,
                             RequireSubLevel = _advancedCriteria.RequireSubLevel,
@@ -204,6 +207,9 @@ namespace LbpArchiveToolkit.ViewModels
                         {
                             MinHearts = _advancedCriteria.MinHearts, MinPlays = _advancedCriteria.MinPlays,
                             MinHeartPercentage = _advancedCriteria.MinHeartPercentage,
+                            MinYayPercentage = _advancedCriteria.MinYayPercentage,
+                            MinClearPercentage = _advancedCriteria.MinClearPercentage,
+                            MaxClearPercentage = _advancedCriteria.MaxClearPercentage,
                             IsTeamPick = _advancedCriteria.IsTeamPick,
                             RequireLocked = _advancedCriteria.RequireLocked,
                             RequireSubLevel = _advancedCriteria.RequireSubLevel,
@@ -412,7 +418,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
             finally { _isApplyingState = false; }
 
-            bool hasAdv = state.AdvancedCriteria.MinHearts > 0 || state.AdvancedCriteria.MinPlays > 0 || state.AdvancedCriteria.IsTeamPick || state.AdvancedCriteria.RequireLocked || state.AdvancedCriteria.RequireSubLevel || state.AdvancedCriteria.RequireShareable || state.AdvancedCriteria.ExcludeTeamPick || state.AdvancedCriteria.ExcludeLocked || state.AdvancedCriteria.ExcludeSubLevels || state.AdvancedCriteria.ExcludeShareable || state.AdvancedCriteria.RequiredLabels.Count > 0 || state.AdvancedCriteria.RequiredTags.Count > 0;
+            bool hasAdv = state.AdvancedCriteria.MinHearts > 0 || state.AdvancedCriteria.MinPlays > 0 || state.AdvancedCriteria.MinHeartPercentage > 0 || state.AdvancedCriteria.MinYayPercentage > 0 || state.AdvancedCriteria.MinClearPercentage > 0 || state.AdvancedCriteria.MaxClearPercentage > 0 || state.AdvancedCriteria.IsTeamPick || state.AdvancedCriteria.RequireLocked || state.AdvancedCriteria.RequireSubLevel || state.AdvancedCriteria.RequireShareable || state.AdvancedCriteria.ExcludeTeamPick || state.AdvancedCriteria.ExcludeLocked || state.AdvancedCriteria.ExcludeSubLevels || state.AdvancedCriteria.ExcludeShareable || state.AdvancedCriteria.RequiredLabels.Count > 0 || state.AdvancedCriteria.RequiredTags.Count > 0;
             if (string.IsNullOrWhiteSpace(state.SearchText) && state.LimitIndex == 4 && !hasAdv && !state.IsSurpriseMe)
             {
                 StatusText = "Previous search was too broad and will not be restored.";

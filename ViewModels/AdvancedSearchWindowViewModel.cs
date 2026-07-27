@@ -32,6 +32,15 @@ namespace LbpArchiveToolkit.ViewModels
         private string _minHeartPercentage = "0";
         public string MinHeartPercentage { get => _minHeartPercentage; set => SetProperty(ref _minHeartPercentage, value); }
 
+        private string _minYayPercentage = "0";
+        public string MinYayPercentage { get => _minYayPercentage; set => SetProperty(ref _minYayPercentage, value); }
+
+        private string _minClearPercentage = "0";
+        public string MinClearPercentage { get => _minClearPercentage; set => SetProperty(ref _minClearPercentage, value); }
+
+        private string _maxClearPercentage = "100";
+        public string MaxClearPercentage { get => _maxClearPercentage; set => SetProperty(ref _maxClearPercentage, value); }
+
         private bool _isTeamPick;
         public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
 
@@ -218,6 +227,9 @@ namespace LbpArchiveToolkit.ViewModels
             MinHearts = existingCriteria.MinHearts.ToString();
             MinPlays = existingCriteria.MinPlays.ToString();
             MinHeartPercentage = existingCriteria.MinHeartPercentage.ToString();
+            MinYayPercentage = existingCriteria.MinYayPercentage.ToString();
+            MinClearPercentage = existingCriteria.MinClearPercentage.ToString();
+            MaxClearPercentage = existingCriteria.MaxClearPercentage.ToString();
             IsTeamPick = existingCriteria.IsTeamPick;
             RequireLocked = existingCriteria.RequireLocked;
             RequireSubLevel = existingCriteria.RequireSubLevel;
@@ -327,6 +339,9 @@ namespace LbpArchiveToolkit.ViewModels
             MinHearts = "0";
             MinPlays = "0";
             MinHeartPercentage = "0";
+            MinYayPercentage = "0";
+            MinClearPercentage = "0";
+            MaxClearPercentage = "100";
             IsTeamPick = false;
             RequireLocked = false;
             RequireSubLevel = false;
@@ -364,6 +379,9 @@ namespace LbpArchiveToolkit.ViewModels
             int.TryParse(MinHearts, out int hearts);
             int.TryParse(MinPlays, out int plays);
             int.TryParse(MinHeartPercentage, out int heartPct);
+            int.TryParse(MinYayPercentage, out int yayPct);
+            int.TryParse(MinClearPercentage, out int minClearPct);
+            int.TryParse(MaxClearPercentage, out int maxClearPct);
             int.TryParse(MaxHearts, out int maxHearts);
             int.TryParse(MaxPlays, out int maxPlays);
 
@@ -389,6 +407,9 @@ namespace LbpArchiveToolkit.ViewModels
                 MinHearts = hearts,
                 MinPlays = plays,
                 MinHeartPercentage = heartPct,
+                MinYayPercentage = yayPct,
+                MinClearPercentage = minClearPct,
+                MaxClearPercentage = maxClearPct,
                 IsTeamPick = IsTeamPick,
                 RequireLocked = RequireLocked,
                 RequireSubLevel = RequireSubLevel,
@@ -490,6 +511,9 @@ namespace LbpArchiveToolkit.ViewModels
                         MinHearts = criteria.MinHearts.ToString();
                         MinPlays = criteria.MinPlays.ToString();
                         MinHeartPercentage = criteria.MinHeartPercentage.ToString();
+                        MinYayPercentage = criteria.MinYayPercentage.ToString();
+                        MinClearPercentage = criteria.MinClearPercentage.ToString();
+                        MaxClearPercentage = criteria.MaxClearPercentage.ToString();
                         IsTeamPick = criteria.IsTeamPick;
                         RequireLocked = criteria.RequireLocked;
                         RequireSubLevel = criteria.RequireSubLevel;

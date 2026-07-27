@@ -1016,6 +1016,24 @@ namespace LbpArchiveToolkit.Services
                 parameters.Add(new SqliteParameter("@heartRatio", advanced.MinHeartPercentage / 100.0));
             }
 
+            if (advanced.MinYayPercentage > 0 && _colYays != "NULL" && _colPlay != "NULL")
+            {
+                query.Append($" AND {pfx}{_colPlay} > 0 AND {pfx}{_colYays} >= ({pfx}{_colPlay} * @yayRatio)");
+                parameters.Add(new SqliteParameter("@yayRatio", advanced.MinYayPercentage / 100.0));
+            }
+
+            if (advanced.MinClearPercentage > 0 && _colCompletion != "NULL" && _colPlay != "NULL")
+            {
+                query.Append($" AND {pfx}{_colPlay} > 0 AND {pfx}{_colCompletion} >= ({pfx}{_colPlay} * @minClearRatio)");
+                parameters.Add(new SqliteParameter("@minClearRatio", advanced.MinClearPercentage / 100.0));
+            }
+
+            if (advanced.MaxClearPercentage < 100 && _colCompletion != "NULL" && _colPlay != "NULL")
+            {
+                query.Append($" AND ({pfx}{_colPlay} = 0 OR {pfx}{_colCompletion} <= ({pfx}{_colPlay} * @maxClearRatio))");
+                parameters.Add(new SqliteParameter("@maxClearRatio", advanced.MaxClearPercentage / 100.0));
+            }
+
             if (advanced.MinHearts > 0 && _colHeart != "NULL")
             {
                 query.Append($" AND {pfx}{_colHeart} >= @minHearts");

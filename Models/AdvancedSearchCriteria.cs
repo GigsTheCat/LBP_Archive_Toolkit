@@ -5,6 +5,9 @@ namespace LbpArchiveToolkit.Models
         public int MinHearts { get; set; } = 0;
         public int MinPlays { get; set; } = 0;
         public int MinHeartPercentage { get; set; } = 0;
+        public int MinYayPercentage { get; set; } = 0;
+        public int MinClearPercentage { get; set; } = 0;
+        public int MaxClearPercentage { get; set; } = 100;
         public bool IsTeamPick { get; set; } = false;
         public bool RequireLocked { get; set; } = false;
         public bool RequireSubLevel { get; set; } = false;

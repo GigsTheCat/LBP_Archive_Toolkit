@@ -1,7 +1,7 @@
 <Window x:Class="LbpArchiveToolkit.AdvancedSearchWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Advanced Filters" Height="750" Width="700"
+        Title="Advanced Filters" Height="900" Width="700"
         WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" WindowStyle="None" BorderThickness="0" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent">
@@ -301,6 +301,8 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="10"/>
                                             <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="10"/>
+                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -316,10 +318,29 @@
                                         <TextBlock Grid.Row="0" Grid.Column="2" Text="Min Plays:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
                                         <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding MinPlays, UpdateSourceTrigger=PropertyChanged}" Width="85" HorizontalAlignment="Left"/>
                                     
-                                        <!-- Row 2: Heart Percentage -->
+                                        <!-- Row 2: Heart & Yay Percentage -->
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Min Heart %:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <DockPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" HorizontalAlignment="Left">
+                                        <DockPanel Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left">
                                             <TextBox Text="{Binding MinHeartPercentage, UpdateSourceTrigger=PropertyChanged}" Width="50" HorizontalAlignment="Left" Margin="0,0,5,0"/>
+                                            <TextBlock Text="%" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DockPanel>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Min Yay %:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                                        <DockPanel Grid.Row="2" Grid.Column="3" HorizontalAlignment="Left">
+                                            <TextBox Text="{Binding MinYayPercentage, UpdateSourceTrigger=PropertyChanged}" Width="50" HorizontalAlignment="Left" Margin="0,0,5,0"/>
+                                            <TextBlock Text="%" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DockPanel>
+
+                                        <!-- Row 4: Min & Max Clear Percentage -->
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Min Clear %:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <DockPanel Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left">
+                                            <TextBox Text="{Binding MinClearPercentage, UpdateSourceTrigger=PropertyChanged}" Width="50" HorizontalAlignment="Left" Margin="0,0,5,0"/>
+                                            <TextBlock Text="%" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DockPanel>
+
+                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="Max Clear %:" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                                        <DockPanel Grid.Row="4" Grid.Column="3" HorizontalAlignment="Left">
+                                            <TextBox Text="{Binding MaxClearPercentage, UpdateSourceTrigger=PropertyChanged}" Width="50" HorizontalAlignment="Left" Margin="0,0,5,0"/>
                                             <TextBlock Text="%" Foreground="{DynamicResource FgSecondary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </DockPanel>
                                     </Grid>
