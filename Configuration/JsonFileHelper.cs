@@ -8,6 +8,8 @@ namespace LbpArchiveToolkit.Configuration
     [JsonSerializable(typeof(List<UserItem>))]
     [JsonSerializable(typeof(List<LevelItem>))]
     [JsonSerializable(typeof(List<string>))]
+    [JsonSerializable(typeof(List<Playlist>))]
+    [JsonSerializable(typeof(Playlist))]
     internal partial class AppJsonContext : JsonSerializerContext { }
 
     public static class JsonFileHelper

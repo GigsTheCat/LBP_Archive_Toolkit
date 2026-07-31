@@ -208,6 +208,7 @@
                         <MenuItem Header="Backup Manager..." Command="{Binding OpenBackupManagerCommand}"/>
                         <MenuItem Header="Hearted Levels..." Command="{Binding OpenHeartedLevelsCommand}"/>
                         <MenuItem Header="Hearted Creators..." Command="{Binding OpenHeartedCreatorsCommand}"/>
+                        <MenuItem Header="Playlists..." Command="{Binding OpenPlaylistsCommand}"/>
                     </MenuItem>
                     <MenuItem Header="Info">
                         <MenuItem Header="Downloads..." Command="{Binding OpenDownloadsCommand}"/>
@@ -500,6 +501,7 @@
 
                                 <StackPanel Grid.Row="4" VerticalAlignment="Bottom">
                                     <Button Content="{Binding HeartLevelButtonText}" Command="{Binding HeartLevelCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" />
+                                    <Button Content="ADD TO PLAYLIST" Command="{Binding AddToPlaylistCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnCopyHash" Content="COPY HASH" Command="{Binding CopyHashCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button Content="CONTRIBUTORS" Command="{Binding ShowContributorsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Command="{Binding ExtractSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgResults}" Style="{DynamicResource BtnExtract}" />

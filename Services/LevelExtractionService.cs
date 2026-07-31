@@ -8,7 +8,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class LevelExtractionService
     {
-        public static async Task ExtractLevelsAsync(Window owner, List<LevelItem> levelsToExtract, Action<LevelItem>? onLevelSaved = null)
+        public static async Task ExtractLevelsAsync(Window owner, List<LevelItem> levelsToExtract, Action<LevelItem>? onLevelSaved = null, string? customBackupDir = null)
         {
             var progressWin = new ProgressWindow { Owner = owner };
             progressWin.Show();
@@ -50,7 +50,7 @@ namespace LbpArchiveToolkit.Services
                             MaxParallelDownloads = ConfigManager.MaxParallelDownloads
                         };
 
-                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
+                        var result = await AssetDownloader.RunExtractionProcessAsync(lvl, ConfigManager.DatabasePath, customBackupDir ?? ConfigManager.BackupDirectory, MainWindow.SharedHttpClient, config, token, progressIndicator);
 
                         if (result is ExtractionResult.Success)
                         {
@@ -120,7 +120,7 @@ namespace LbpArchiveToolkit.Services
 
                     if (result)
                     {
-                        string fullPath = Path.GetFullPath(ConfigManager.BackupDirectory);
+                        string fullPath = Path.GetFullPath(customBackupDir ?? ConfigManager.BackupDirectory);
                         if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
                     }
                 }

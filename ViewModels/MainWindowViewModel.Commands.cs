@@ -33,6 +33,8 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand OpenBackupManagerCommand { get; private set; } = null!;
         public ICommand OpenHeartedLevelsCommand { get; private set; } = null!;
         public ICommand OpenHeartedCreatorsCommand { get; private set; } = null!;
+        public ICommand OpenPlaylistsCommand { get; private set; } = null!;
+        public ICommand AddToPlaylistCommand { get; private set; } = null!;
         public ICommand OpenDownloadsCommand { get; private set; } = null!;
         public ICommand OpenLogViewerCommand { get; private set; } = null!;
         public ICommand OpenAboutCommand { get; private set; } = null!;
@@ -127,11 +129,19 @@ namespace LbpArchiveToolkit.ViewModels
                 _viewService.OpenHeartedLevels();
                 RefreshHeartStates();
             });
-            OpenHeartedCreatorsCommand = new RelayCommand(_ => 
+             OpenHeartedCreatorsCommand = new RelayCommand(_ => 
             {
                 _viewService.OpenHeartedCreators();
                 RefreshHeartStates();
             });
+            OpenPlaylistsCommand = new RelayCommand(_ => _viewService.OpenPlaylists());
+            AddToPlaylistCommand = new RelayCommand(_ => 
+            {
+                if (SelectedLevel != null)
+                {
+                    _viewService.ShowAddToPlaylistDialog(SelectedLevel);
+                }
+            }, _ => SelectedLevel != null);
             OpenDownloadsCommand = new RelayCommand(_ => _viewService.OpenDownloads());
             OpenLogViewerCommand = new RelayCommand(_ => _viewService.OpenLogViewer());
             OpenAboutCommand = new RelayCommand(_ => _viewService.OpenAbout());

@@ -42,6 +42,7 @@ namespace LbpArchiveToolkit
             SavedLevelsManager.Load(ConfigManager.LegacySavedLevels);
             HeartedLevelsManager.Load();
             HeartedCreatorsManager.Load();
+            PlaylistsManager.Load();
 
             LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(ConfigManager.Theme);
 
@@ -226,6 +227,8 @@ namespace LbpArchiveToolkit
         public void OpenBackupManager() => new BackupManagerWindow { Owner = this }.ShowDialog();
         public void OpenHeartedLevels() => new HeartedLevelsWindow { Owner = this }.ShowDialog();
         public void OpenHeartedCreators() => new HeartedCreatorsWindow { Owner = this }.ShowDialog();
+        public void OpenPlaylists() => new PlaylistsWindow { Owner = this }.ShowDialog();
+        public void ShowAddToPlaylistDialog(LevelItem level) => new AddToPlaylistDialog(level) { Owner = this }.ShowDialog();
         public void OpenDownloads() => new DownloadsWindow { Owner = this }.ShowDialog();
         public void OpenLogViewer() => new LogViewerWindow { Owner = this }.ShowDialog();
         public void OpenAbout() => new AboutWindow { Owner = this }.ShowDialog();

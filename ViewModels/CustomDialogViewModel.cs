@@ -34,6 +34,12 @@ namespace LbpArchiveToolkit.ViewModels
         private bool _isCheckboxChecked;
         public bool IsCheckboxChecked { get => _isCheckboxChecked; set => SetProperty(ref _isCheckboxChecked, value); }
 
+        private Visibility _inputVisibility = Visibility.Collapsed;
+        public Visibility InputVisibility { get => _inputVisibility; set => SetProperty(ref _inputVisibility, value); }
+
+        private string _inputText = "";
+        public string InputText { get => _inputText; set => SetProperty(ref _inputText, value); }
+
         public ICommand OkCommand { get; }
         public ICommand YesCommand { get; }
         public ICommand NoCommand { get; }
@@ -41,10 +47,16 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public CustomDialogViewModel(string message, string title, bool isYesNo, string? checkboxText = null)
+        public CustomDialogViewModel(string message, string title, bool isYesNo, string? checkboxText = null, bool isInput = false, string defaultInput = "")
         {
             Title = title;
             Message = message;
+
+            if (isInput)
+            {
+                InputVisibility = Visibility.Visible;
+                InputText = defaultInput;
+            }
 
             if (!string.IsNullOrEmpty(checkboxText))
             {

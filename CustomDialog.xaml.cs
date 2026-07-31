@@ -10,10 +10,12 @@ namespace LbpArchiveToolkit
 
         public bool IsCheckboxChecked => _viewModel.IsCheckboxChecked;
 
-        public CustomDialog(string message, string title, bool isYesNo, string? checkboxText = null)
+        public string InputText => _viewModel.InputText;
+
+        public CustomDialog(string message, string title, bool isYesNo, string? checkboxText = null, bool isInput = false, string defaultInput = "")
         {
             InitializeComponent();
-            _viewModel = new CustomDialogViewModel(message, title, isYesNo, checkboxText);
+            _viewModel = new CustomDialogViewModel(message, title, isYesNo, checkboxText, isInput, defaultInput);
             _viewModel.RequestClose += (result) => { DialogResult = result; Close(); };
             DataContext = _viewModel;
 
@@ -48,6 +50,17 @@ namespace LbpArchiveToolkit
             };
             bool result = dialog.ShowDialog() == true;
             isChecked = dialog.IsCheckboxChecked;
+            return result;
+        }
+
+        public static bool ShowInput(Window owner, string message, string title, string defaultText, out string inputText)
+        {
+            var dialog = new CustomDialog(message, title, isYesNo: true, checkboxText: null, isInput: true, defaultInput: defaultText)
+            {
+                Owner = owner
+            };
+            bool result = dialog.ShowDialog() == true;
+            inputText = dialog.InputText;
             return result;
         }
     }

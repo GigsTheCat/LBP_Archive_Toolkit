@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,10 +12,34 @@ namespace LbpArchiveToolkit;
 /// </summary>
 public partial class App : Application
 {
+    private static Mutex? _instanceMutex;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        const string mutexName = "LbpArchiveToolkit_SingleInstanceMutex";
+        
+        _instanceMutex = new Mutex(true, mutexName, out bool createdNew);
+
+        if (!createdNew)
+        {
+            MessageBox.Show("Another instance of LBP Archive Toolkit is already running.", "App Already Running", MessageBoxButton.OK, MessageBoxImage.Information);
+            Current.Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
         this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        if (_instanceMutex != null)
+        {
+            _instanceMutex.ReleaseMutex();
+            _instanceMutex.Dispose();
+        }
+        
+        base.OnExit(e);
     }
 
     private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

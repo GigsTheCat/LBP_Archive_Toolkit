@@ -18,6 +18,8 @@ namespace LbpArchiveToolkit.ViewModels
         void OpenBackupManager();
         void OpenHeartedLevels();
         void OpenHeartedCreators();
+        void OpenPlaylists();
+        void ShowAddToPlaylistDialog(LevelItem level);
         void OpenDownloads();
         void OpenLogViewer();
         void OpenAbout();
