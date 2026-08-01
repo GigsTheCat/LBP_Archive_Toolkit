@@ -23,10 +23,12 @@ namespace LbpArchiveToolkit.ViewModels
         public Action<bool>? RequestClose { get; set; }
 
         private readonly LevelItem _level;
+        private readonly IViewService _viewService;
 
-        public AddToPlaylistDialogViewModel(LevelItem level)
+        public AddToPlaylistDialogViewModel(LevelItem level, IViewService viewService)
         {
             _level = level;
+            _viewService = viewService;
 
             foreach (var p in PlaylistsManager.Playlists)
                 Playlists.Add(p);
@@ -45,6 +47,9 @@ namespace LbpArchiveToolkit.ViewModels
                 var newPlaylist = new Playlist { Name = NewPlaylistName.Trim() };
                 newPlaylist.Levels.Add(_level);
                 PlaylistsManager.AddPlaylist(newPlaylist);
+                
+                _viewService.ShowToast($"Added to '{newPlaylist.Name}'", "Mouse");
+                RequestClose?.Invoke(true);
             }
             else if (SelectedPlaylist != null)
             {
@@ -52,10 +57,16 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     SelectedPlaylist.Levels.Add(_level);
                     PlaylistsManager.Save();
+                    
+                    _viewService.ShowToast($"Added to '{SelectedPlaylist.Name}'", "Mouse");
+                    RequestClose?.Invoke(true);
+                }
+                else
+                {
+                    _viewService.Alert($"This level is already in the playlist '{SelectedPlaylist.Name}'.", "Already Added");
+                    // We don't close the dialog here so the user can easily select a different playlist
                 }
             }
-
-            RequestClose?.Invoke(true);
         }
     }
 }

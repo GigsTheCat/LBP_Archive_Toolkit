@@ -10,7 +10,8 @@ namespace LbpArchiveToolkit
         public AddToPlaylistDialog(LevelItem level)
         {
             InitializeComponent();
-            var vm = new AddToPlaylistDialogViewModel(level);
+            var viewService = (ViewModels.IViewService)Application.Current.MainWindow;
+            var vm = new AddToPlaylistDialogViewModel(level, viewService);
             vm.RequestClose += (result) => { DialogResult = result; Close(); };
             DataContext = vm;
         }

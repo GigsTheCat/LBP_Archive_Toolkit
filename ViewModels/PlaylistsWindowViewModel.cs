@@ -267,7 +267,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     try
                     {
-                        var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = ConfigManager.ConfigJsonContext.Default };
+                        var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = AppJsonContext.Default };
                         string json = JsonSerializer.Serialize(SelectedPlaylist, options);
                         File.WriteAllText(dlg.FileName, json);
                         _viewService.Alert("Playlist exported successfully.", "Export Complete");
@@ -293,7 +293,7 @@ namespace LbpArchiveToolkit.ViewModels
                 try
                 {
                     string json = File.ReadAllText(dlg.FileName);
-                    var options = new JsonSerializerOptions { TypeInfoResolver = ConfigManager.ConfigJsonContext.Default };
+                    var options = new JsonSerializerOptions { TypeInfoResolver = AppJsonContext.Default };
                     var playlist = JsonSerializer.Deserialize<Playlist>(json, options);
 
                     if (playlist != null)
