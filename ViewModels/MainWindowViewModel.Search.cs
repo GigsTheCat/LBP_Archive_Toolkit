@@ -178,23 +178,31 @@ namespace LbpArchiveToolkit.ViewModels
                     view.SortDescriptions.Clear();
 
                     var progressReporter = new Progress<string>(status => StatusText = status);
+                    var candidates = new List<LevelItem>();
+
+                    // Use a candidate pool limit (minimum 500 for good random variety, or the user's limit if larger)
+                    string candidateLimit = (limitFilter == "100" || limitFilter == "200") ? "500" : limitFilter;
 
                     await Task.Run(async () =>
                     {
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, candidateLimit, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
                         {
-                            await Application.Current.Dispatcher.InvokeAsync(() =>
-                            {
-                                ResultsList.Add(lvl);
-                                SelectedLevel = lvl;
-                            });
+                            candidates.Add(lvl);
                         }
                     });
 
-                    if (ResultsList.Count == 0)
-                        StatusText = "No levels matched the random search criteria.";
-                    else
+                    if (candidates.Count > 0)
+                    {
+                        // Restored to correctly pick a random item if C# receives the 20k pool
+                        var randomLevel = candidates[Random.Shared.Next(candidates.Count)];
+                        ResultsList.Add(randomLevel);
+                        SelectedLevel = randomLevel;
                         StatusText = "Surprise! Found a random level.";
+                    }
+                    else
+                    {
+                        StatusText = "No levels matched the random search criteria.";
+                    }
 
                     _currentSearch = new SearchState
                     {

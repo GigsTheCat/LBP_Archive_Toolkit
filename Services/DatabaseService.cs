@@ -411,19 +411,29 @@ namespace LbpArchiveToolkit.Services
             {
                 if (!needsCSharpFiltering)
                 {
-                    string countQuery = "SELECT COUNT(*) " + queryBuilder.ToString().Substring(queryBuilder.ToString().IndexOf("FROM slot"));
-                    using var countCmd = new SqliteCommand(countQuery, conn);
-                    foreach (var param in parameters) countCmd.Parameters.AddWithValue(param.ParameterName, param.Value);
-                    object? countObj = await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
-                    long totalCount = countObj != null && countObj != DBNull.Value ? Convert.ToInt64(countObj) : 0;
-                    int randomOffset = totalCount > 0 ? Random.Shared.Next(0, (int)totalCount) : 0;
-                    
-                    queryBuilder.Append($" LIMIT 1 OFFSET {randomOffset}");
+                    // Fast subquery: Grab a huge pool of 20,000 matches instantly, then let SQLite pick 1 at random.
+                    string baseQuery = queryBuilder.ToString();
+                    string limitClause = "";
+
+                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+                        limitClause = " ORDER BY f.rank LIMIT 20000";
+                    else if (_colHeart != "NULL")
+                        limitClause = $" ORDER BY {SafeCol(_colHeart)} DESC LIMIT 20000";
+                    else
+                        limitClause = " LIMIT 20000";
+
+                    queryBuilder.Clear();
+                    queryBuilder.Append($"SELECT * FROM ({baseQuery}{limitClause}) ORDER BY RANDOM() LIMIT 1");
                 }
                 else
                 {
-                    // Fallback to RANDOM() if C# filtering is required since offset applies pre-filter
-                    queryBuilder.Append(" ORDER BY RANDOM()");
+                    // If C# filtering is needed, we must pass the 20k pool back to C# to be randomized there.
+                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+                        queryBuilder.Append(" ORDER BY f.rank LIMIT 20000");
+                    else if (_colHeart != "NULL")
+                        queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC LIMIT 20000");
+                    else
+                        queryBuilder.Append(" LIMIT 20000");
                 }
             }
             else
@@ -679,12 +689,12 @@ namespace LbpArchiveToolkit.Services
                 levelItem.IsShareable = reader.IsDBNull(18) || reader.GetBoolean(18); // Default true if missing
                 levelItem.Yays = reader.FieldCount > 19 ? (reader.IsDBNull(19) ? 0 : reader.GetInt32(19)) : 0;
 
-                 yield return levelItem;
+                yield return levelItem;
 
-                if (randomSingle)
-                {
-                    break; 
-                }
+		if (randomSingle && !needsCSharpFiltering)
+		{
+    		    break; 
+		}
 
                 if (needsCSharpFiltering && !randomSingle)
                 {
@@ -746,14 +756,9 @@ namespace LbpArchiveToolkit.Services
 
                 if (randomSingle)
                 {
-                    string countQuery = "SELECT COUNT(*) " + queryBuilder.ToString().Substring(queryBuilder.ToString().IndexOf("FROM user"));
-                    using var countCmd = new SqliteCommand(countQuery, conn);
-                    foreach (var p in parameters) countCmd.Parameters.AddWithValue(p.ParameterName, p.Value);
-                    object? countObj = await countCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
-                    long totalCount = countObj != null && countObj != DBNull.Value ? Convert.ToInt64(countObj) : 0;
-                    int randomOffset = totalCount > 0 ? Random.Shared.Next(0, (int)totalCount) : 0;
-
-                    queryBuilder.Append($" LIMIT 1 OFFSET {randomOffset}");
+                    string baseQuery = queryBuilder.ToString();
+                    queryBuilder.Clear();
+                    queryBuilder.Append($"SELECT * FROM ({baseQuery} ORDER BY heartCount DESC LIMIT 20000) ORDER BY RANDOM() LIMIT 1");
                 }
                 else
                 {
