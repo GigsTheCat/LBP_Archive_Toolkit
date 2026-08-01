@@ -45,6 +45,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 var addedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 bool showAsterisk = HasCommunityLabels;
+                var newTags = new List<TagItem>();
 
                 if (hasAuthorLabels)
                 {
@@ -53,7 +54,7 @@ namespace LbpArchiveToolkit.ViewModels
                         addedLabels.Add(label);
                         string displayName = showAsterisk ? label + "*" : label;
                         string? tooltip = showAsterisk ? "*Labels chosen by the author" : null;
-                        LevelTags.Add(new TagItem { Text = displayName, ToolTip = tooltip, TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                        newTags.Add(new TagItem { Text = displayName, ToolTip = tooltip, TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
                     }
                 }
 
@@ -63,7 +64,7 @@ namespace LbpArchiveToolkit.ViewModels
                     {
                         if (addedLabels.Add(label))
                         {
-                            LevelTags.Add(new TagItem { Text = label, ToolTip = "Labels chosen by the community", TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                            newTags.Add(new TagItem { Text = label, ToolTip = "Labels chosen by the community", TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
                         }
                     }
                 }
@@ -71,12 +72,17 @@ namespace LbpArchiveToolkit.ViewModels
                 if (hasTags)
                 {
                     foreach (var tag in SelectedLevel.Tags!.OrderBy(t => t))
-                        LevelTags.Add(new TagItem { Text = tag, TiltAngle = GetDeterministicTilt(tag), Visibility = Visibility.Collapsed, IsLbp1Tag = true });
+                        newTags.Add(new TagItem { Text = tag, TiltAngle = GetDeterministicTilt(tag), Visibility = Visibility.Collapsed, IsLbp1Tag = true });
                     ToggleTagsButtonVisibility = Visibility.Visible;
                     ToggleTagsButtonText = "SHOW TAGS";
                     _showingLbp1Tags = false;
                 }
                 else ToggleTagsButtonVisibility = Visibility.Collapsed;
+
+                if (newTags.Count > 0)
+                {
+                    LevelTags.AddRange(newTags);
+                }
             }
             
             _ = LoadIconAsync(SelectedLevel.IconHash);

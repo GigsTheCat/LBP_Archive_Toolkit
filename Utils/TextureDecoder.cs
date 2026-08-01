@@ -396,7 +396,7 @@ namespace LbpArchiveToolkit.Utils
 
             if (format == FMT_DXT1) // DXT1
             {
-                Parallel.For(0, blocksY, by =>
+                for (int by = 0; by < blocksY; by++)
                 {
                     int srcOffset = dataOffset + by * blocksX * 8;
                     Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
@@ -408,11 +408,11 @@ namespace LbpArchiveToolkit.Utils
                         DecodeDXT1Block(dataSpan, srcOffset, dest, bx, by, width, height, true);
                         srcOffset += 8;
                     }
-                });
+                }
             }
             else if (format == FMT_DXT3) // DXT3
             {
-                Parallel.For(0, blocksY, by =>
+                for (int by = 0; by < blocksY; by++)
                 {
                     int srcOffset = dataOffset + by * blocksX * 16;
                     Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
@@ -424,11 +424,11 @@ namespace LbpArchiveToolkit.Utils
                         DecodeDXT3Block(dataSpan, srcOffset, dest, bx, by, width, height);
                         srcOffset += 16;
                     }
-                });
+                }
             }
             else if (format == FMT_DXT5) // DXT5
             {
-                Parallel.For(0, blocksY, by =>
+                for (int by = 0; by < blocksY; by++)
                 {
                     int srcOffset = dataOffset + by * blocksX * 16;
                     Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
@@ -440,11 +440,11 @@ namespace LbpArchiveToolkit.Utils
                         DecodeDXT5Block(dataSpan, srcOffset, dest, bx, by, width, height);
                         srcOffset += 16;
                     }
-                });
+                }
             }
             else
             {
-                Parallel.For(0, blocksY, by =>
+                for (int by = 0; by < blocksY; by++)
                 {
                     Span<uint> dest = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bgra.AsSpan());
                     for (int bx = 0; bx < blocksX; bx++)
@@ -456,7 +456,7 @@ namespace LbpArchiveToolkit.Utils
                                     dest[(by * 4 + y) * width + (bx * 4 + x)] = 0xFFFF00FF;
                             }
                     }
-                });
+                }
             }
 
             return bgra;
@@ -692,7 +692,7 @@ namespace LbpArchiveToolkit.Utils
                         colOffsetMap[x] = colOffset;
                     }
 
-                    Parallel.For(0, blocksY, y =>
+                    for (int y = 0; y < blocksY; y++)
                     {
                         int iy = (y & ((1 << minLog) - 1));
                         iy = (iy | (iy << 8)) & 0x00FF00FF;
@@ -724,7 +724,7 @@ namespace LbpArchiveToolkit.Utils
                             }
                             localDestOffset += bytesPerBlock;
                         }
-                    });
+                    }
 
                     destOffset += blocksX * blocksY * bytesPerBlock;
                     srcOffset += paddedMipDataSize;
@@ -832,7 +832,7 @@ namespace LbpArchiveToolkit.Utils
                     srcXMap[x] = srcX;
                 }
 
-                Parallel.For(0, scaledHeight, y =>
+                for (int y = 0; y < scaledHeight; y++)
                 {
                     int srcY = (int)(y * invScale);
                     if (srcY >= srcHeight) srcY = srcHeight - 1;
@@ -847,7 +847,7 @@ namespace LbpArchiveToolkit.Utils
                     {
                         targetPixels[destRowOffset + x] = sourcePixels[srcRowOffset + srcXMap[x]];
                     }
-                });
+                }
 
                 return CreateBitmapSource(targetBgra, targetWidth, targetHeight);
             }

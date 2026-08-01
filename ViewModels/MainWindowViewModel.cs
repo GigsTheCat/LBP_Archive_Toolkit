@@ -72,7 +72,7 @@ namespace LbpArchiveToolkit.ViewModels
         public List<UserItem> UserResultsList { get; set => SetProperty(ref field, value); } = new();
 
         public ObservableCollection<string> Genres { get; } = new() { "All Genres" };
-        public ObservableCollection<TagItem> LevelTags { get; } = new();
+        public BulkObservableCollection<TagItem> LevelTags { get; } = new();
 
         #region UI Properties
 
