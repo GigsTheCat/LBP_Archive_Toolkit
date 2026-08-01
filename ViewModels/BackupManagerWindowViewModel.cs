@@ -38,7 +38,7 @@ namespace LbpArchiveToolkit.ViewModels
         private string _backupDir;
         private bool _isBusy;
 
-        public ObservableCollection<BackupItemViewModel> BackupList { get; } = new();
+        public BulkObservableCollection<BackupItemViewModel> BackupList { get; } = new();
 
         public BackupItemViewModel? SelectedBackup
         {
@@ -107,7 +107,7 @@ namespace LbpArchiveToolkit.ViewModels
                     .ToList();
             });
 
-            foreach (var item in backups) BackupList.Add(item);
+            BackupList.AddRange(backups);
 
             StatusText = $"Found {BackupList.Count} local level backups.";
 

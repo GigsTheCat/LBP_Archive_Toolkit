@@ -138,28 +138,28 @@ namespace LbpArchiveToolkit.ViewModels
         }
 
         // Categorized Collections for Data Binding
-        public ObservableCollection<SelectableTagViewModel> Lbp2ExperienceLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> Lbp2TypeLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> Lbp2ContentLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp2ExperienceLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp2TypeLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp2ContentLabels { get; } = new();
         
-        public ObservableCollection<SelectableTagViewModel> Lbp3ExperienceLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> Lbp3TypeLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> Lbp3ContentLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> Lbp3CharacterLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp3ExperienceLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp3TypeLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp3ContentLabels { get; } = new();
+        public List<SelectableTagViewModel> Lbp3CharacterLabels { get; } = new();
         
-        public ObservableCollection<SelectableTagViewModel> Lbp1Tags { get; } = new();
+        public List<SelectableTagViewModel> Lbp1Tags { get; } = new();
 
         // Excluded Categorized Collections
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2ExperienceLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2TypeLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp2ContentLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp2ExperienceLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp2TypeLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp2ContentLabels { get; } = new();
         
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3ExperienceLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3TypeLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3ContentLabels { get; } = new();
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp3CharacterLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp3ExperienceLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp3TypeLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp3ContentLabels { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp3CharacterLabels { get; } = new();
         
-        public ObservableCollection<SelectableTagViewModel> ExcludedLbp1Tags { get; } = new();
+        public List<SelectableTagViewModel> ExcludedLbp1Tags { get; } = new();
 
         public ICommand ClearCommand { get; }
         public ICommand SavePresetCommand { get; }

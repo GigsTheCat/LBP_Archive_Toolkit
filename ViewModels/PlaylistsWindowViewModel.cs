@@ -22,7 +22,7 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly IViewService _viewService;
         private readonly Window _ownerWindow;
 
-        public ObservableCollection<Playlist> Playlists { get; } = new();
+        public BulkObservableCollection<Playlist> Playlists { get; } = new();
 
         public Playlist? SelectedPlaylist
         {
@@ -39,7 +39,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public string PlaylistTitle => SelectedPlaylist != null ? SelectedPlaylist.Name : "NO PLAYLIST SELECTED";
 
-        public ObservableCollection<LevelItem> LevelsInPlaylist { get; } = new();
+        public BulkObservableCollection<LevelItem> LevelsInPlaylist { get; } = new();
 
         public LevelItem? SelectedLevel
         {
@@ -166,8 +166,7 @@ namespace LbpArchiveToolkit.ViewModels
         private void LoadPlaylists()
         {
             Playlists.Clear();
-            foreach (var p in PlaylistsManager.Playlists)
-                Playlists.Add(p);
+            Playlists.AddRange(PlaylistsManager.Playlists);
 
             if (Playlists.Any())
                 SelectedPlaylist = Playlists[0];
@@ -178,8 +177,7 @@ namespace LbpArchiveToolkit.ViewModels
             LevelsInPlaylist.Clear();
             if (SelectedPlaylist != null)
             {
-                foreach (var l in SelectedPlaylist.Levels)
-                    LevelsInPlaylist.Add(l);
+                LevelsInPlaylist.AddRange(SelectedPlaylist.Levels);
             }
 
             if (LevelsInPlaylist.Any())

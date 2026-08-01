@@ -71,7 +71,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public List<UserItem> UserResultsList { get; set => SetProperty(ref field, value); } = new();
 
-        public ObservableCollection<string> Genres { get; } = new() { "All Genres" };
+        public BulkObservableCollection<string> Genres { get; } = new() { "All Genres" };
         public BulkObservableCollection<TagItem> LevelTags { get; } = new();
 
         #region UI Properties
@@ -206,9 +206,10 @@ namespace LbpArchiveToolkit.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 var existing = Genres.ToHashSet();
-                foreach (var g in dbGenres.OrderBy(x => x))
+                var newGenres = dbGenres.OrderBy(x => x).Where(g => !existing.Contains(g)).ToList();
+                if (newGenres.Count > 0)
                 {
-                    if (!existing.Contains(g)) Genres.Add(g);
+                    Genres.AddRange(newGenres);
                 }
             });
 

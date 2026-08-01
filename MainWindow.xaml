@@ -298,6 +298,7 @@
                     <ContentControl Grid.Row="1" Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                         <Grid>
                             <DataGrid x:Name="dgResults" ItemsSource="{Binding ResultsList}" SelectedItem="{Binding SelectedLevel}"
+                                      EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                       Visibility="{Binding LevelViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
@@ -356,6 +357,7 @@
                             </DataGrid>
 
                             <DataGrid x:Name="dgUsers" ItemsSource="{Binding UserResultsList}" SelectedItem="{Binding SelectedUser}"
+                                      EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                       Visibility="{Binding UserViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">

@@ -91,6 +91,7 @@
                         <ContentControl Grid.Column="0" Style="{DynamicResource PopitCard}" Padding="5">
                             <DataGrid x:Name="lvBackups" 
                                       ItemsSource="{Binding BackupList}" SelectedItem="{Binding SelectedBackup}"
+                                      EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                       Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">

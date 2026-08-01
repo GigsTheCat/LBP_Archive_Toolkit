@@ -101,6 +101,7 @@
                                 </Grid.RowDefinitions>
 
                                 <DataGrid x:Name="dgPlaylists" ItemsSource="{Binding Playlists}" SelectedItem="{Binding SelectedPlaylist}"
+                                          EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                           Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                           Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                           HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True" Margin="0,0,0,15">
@@ -149,6 +150,7 @@
                                 <TextBlock Grid.Row="0" Text="{Binding PlaylistTitle}" Foreground="{DynamicResource LbpCyan}" FontSize="18" FontWeight="Black" Margin="0,0,0,15" TextAlignment="Center"/>
 
                                 <DataGrid x:Name="dgLevels" Grid.Row="1" ItemsSource="{Binding LevelsInPlaylist}" SelectedItem="{Binding SelectedLevel}"
+                                          EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                           Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                           Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                           HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True" Margin="0">

@@ -19,7 +19,7 @@ namespace LbpArchiveToolkit.ViewModels
         private CancellationTokenSource? _iconCts;
         private long _currentIconRequestId = -1;
 
-        public ObservableCollection<UserItem> HeartedList { get; } = new();
+        public BulkObservableCollection<UserItem> HeartedList { get; } = new();
 
         public UserItem? SelectedUser
         {
@@ -76,10 +76,7 @@ namespace LbpArchiveToolkit.ViewModels
         private void LoadHeartedCreators()
         {
             HeartedList.Clear();
-            foreach (var item in HeartedCreatorsManager.HeartedCreators)
-            {
-                HeartedList.Add(item);
-            }
+            HeartedList.AddRange(HeartedCreatorsManager.HeartedCreators);
             
             StatusText = $"You have {HeartedList.Count} hearted creator(s).";
             HeartOverlayVisibility = Visibility.Hidden;

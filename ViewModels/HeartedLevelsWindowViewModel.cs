@@ -18,7 +18,7 @@ namespace LbpArchiveToolkit.ViewModels
         private CancellationTokenSource? _iconCts;
         private long _currentIconRequestId = -1;
 
-        public ObservableCollection<LevelItem> HeartedList { get; } = new();
+        public BulkObservableCollection<LevelItem> HeartedList { get; } = new();
 
         public LevelItem? SelectedLevel
         {
@@ -65,10 +65,8 @@ namespace LbpArchiveToolkit.ViewModels
         private void LoadHeartedLevels()
         {
             HeartedList.Clear();
-            foreach (var item in HeartedLevelsManager.HeartedLevels)
-            {
-                HeartedList.Add(item);
-            }
+            HeartedList.AddRange(HeartedLevelsManager.HeartedLevels);
+            
             StatusText = $"You have {HeartedList.Count} hearted level(s).";
             HeartOverlayVisibility = Visibility.Hidden;
 
