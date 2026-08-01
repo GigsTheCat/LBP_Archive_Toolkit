@@ -12,21 +12,19 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly IViewService _viewService;
         private readonly string _logFolder;
 
-        private int _selectedLogIndex = 0;
         public int SelectedLogIndex
         {
-            get => _selectedLogIndex;
+            get;
             set
             {
-                if (SetProperty(ref _selectedLogIndex, value))
+                if (SetProperty(ref field, value))
                 {
                     LoadSelectedLog();
                 }
             }
-        }
+        } = 0;
 
-        private string _logText = "Reading log file...";
-        public string LogText { get => _logText; set => SetProperty(ref _logText, value); }
+        public string LogText { get; set => SetProperty(ref field, value); } = "Reading log file...";
 
         public ICommand OpenFolderCommand { get; }
         public ICommand CopyCommand { get; }

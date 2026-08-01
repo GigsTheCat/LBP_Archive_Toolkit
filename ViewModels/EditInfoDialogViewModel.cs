@@ -13,54 +13,35 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly Window _ownerWindow;
         private readonly string? _originalIconPath;
 
-        private string _levelName = "";
         public string LevelName
         {
-            get => _levelName;
+            get;
             set
             {
-                if (SetProperty(ref _levelName, value))
+                if (SetProperty(ref field, value))
                     OnPropertyChanged(nameof(TitleCountText));
             }
-        }
+        } = "";
 
-        private string _description = "";
         public string Description
         {
-            get => _description;
+            get;
             set
             {
-                if (SetProperty(ref _description, value))
+                if (SetProperty(ref field, value))
                     OnPropertyChanged(nameof(DescCountText));
             }
-        }
+        } = "";
 
         // Dynamically compute character counts purely through binding evaluation
         public string TitleCountText => $"{LevelName?.Length ?? 0} / 100";
         public string DescCountText => $"{Description?.Length ?? 0} / 1000";
 
-        private bool _isLocked;
-        public bool IsLocked { get => _isLocked; set => SetProperty(ref _isLocked, value); }
-
-        private bool _isSubLevel;
-        public bool IsSubLevel { get => _isSubLevel; set => SetProperty(ref _isSubLevel, value); }
-
-        private bool _isShareable;
-        public bool IsShareable { get => _isShareable; set => SetProperty(ref _isShareable, value); }
-
-        private string? _newIconPath;
-        public string? NewIconPath
-        {
-            get => _newIconPath;
-            private set => SetProperty(ref _newIconPath, value);
-        }
-
-        private ImageSource? _iconImage;
-        public ImageSource? IconImage
-        {
-            get => _iconImage;
-            private set => SetProperty(ref _iconImage, value);
-        }
+        public bool IsLocked { get; set => SetProperty(ref field, value); }
+        public bool IsSubLevel { get; set => SetProperty(ref field, value); }
+        public bool IsShareable { get; set => SetProperty(ref field, value); }
+        public string? NewIconPath { get; private set => SetProperty(ref field, value); }
+        public ImageSource? IconImage { get; private set => SetProperty(ref field, value); }
 
         // Commands
         public ICommand ChangeIconCommand { get; }

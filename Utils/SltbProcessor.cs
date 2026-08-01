@@ -146,8 +146,7 @@ namespace LbpArchiveToolkit.Utils
             using var br = new BinaryReader(ms);
 
             byte[] magic = br.ReadBytes(4); 
-            string magicStr = Encoding.ASCII.GetString(magic, 0, 3);
-            if (magicStr != "SLT") return sltData;
+            if (!magic.AsSpan(0, 3).SequenceEqual("SLT"u8)) return sltData;
 
             uint head = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
             uint depOffset = BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
@@ -216,16 +215,9 @@ namespace LbpArchiveToolkit.Utils
                 currentPos += info.decomp;
             }
 
-            byte[] depTableBytes = Array.Empty<byte>();
-            if (depOffset > 0 && depOffset < sltData.Length)
-            {
-                depTableBytes = new byte[sltData.Length - depOffset];
-                Array.Copy(sltData, depOffset, depTableBytes, 0, depTableBytes.Length);
-            }
-
             using var outMs = new MemoryStream();
             using var outW = new BinaryWriter(outMs);
-            outW.Write(Encoding.ASCII.GetBytes("SLTb"));
+            outW.Write("SLTb"u8);
             outW.WriteUInt32BE(head);
 
             long depOffsetPositionInHeader = outMs.Position;
@@ -238,7 +230,10 @@ namespace LbpArchiveToolkit.Utils
             outW.Write(decompressedPayload);
 
             long finalDepOffset = outMs.Position;
-            outW.Write(depTableBytes);
+            if (depOffset > 0 && depOffset < sltData.Length)
+            {
+                outW.Write(sltData.AsSpan((int)depOffset));
+            }
 
             outMs.Position = depOffsetPositionInHeader;
             outW.WriteUInt32BE((uint)finalDepOffset); 

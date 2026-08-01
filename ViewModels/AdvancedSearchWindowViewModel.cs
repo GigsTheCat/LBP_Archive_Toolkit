@@ -13,140 +13,97 @@ namespace LbpArchiveToolkit.ViewModels
         public string InternalTag { get; set; } = "";
         public double TiltAngle { get; set; }
 
-        private bool _isSelected;
-        public bool IsSelected
-        {
-            get => _isSelected;
-            set => SetProperty(ref _isSelected, value);
-        }
+        public bool IsSelected { get; set => SetProperty(ref field, value); }
     }
 
     public class AdvancedSearchWindowViewModel : ViewModelBase
     {
-        private string _minHearts = "0";
-        public string MinHearts { get => _minHearts; set => SetProperty(ref _minHearts, value); }
+        public string MinHearts { get; set => SetProperty(ref field, value); } = "0";
+        public string MinPlays { get; set => SetProperty(ref field, value); } = "0";
+        public string MinHeartPercentage { get; set => SetProperty(ref field, value); } = "0";
+        public string MinYayPercentage { get; set => SetProperty(ref field, value); } = "0";
+        public string MinClearPercentage { get; set => SetProperty(ref field, value); } = "0";
+        public string MaxClearPercentage { get; set => SetProperty(ref field, value); } = "100";
+        public bool IsTeamPick { get; set => SetProperty(ref field, value); }
 
-        private string _minPlays = "0";
-        public string MinPlays { get => _minPlays; set => SetProperty(ref _minPlays, value); }
-
-        private string _minHeartPercentage = "0";
-        public string MinHeartPercentage { get => _minHeartPercentage; set => SetProperty(ref _minHeartPercentage, value); }
-
-        private string _minYayPercentage = "0";
-        public string MinYayPercentage { get => _minYayPercentage; set => SetProperty(ref _minYayPercentage, value); }
-
-        private string _minClearPercentage = "0";
-        public string MinClearPercentage { get => _minClearPercentage; set => SetProperty(ref _minClearPercentage, value); }
-
-        private string _maxClearPercentage = "100";
-        public string MaxClearPercentage { get => _maxClearPercentage; set => SetProperty(ref _maxClearPercentage, value); }
-
-        private bool _isTeamPick;
-        public bool IsTeamPick { get => _isTeamPick; set => SetProperty(ref _isTeamPick, value); }
-
-        private bool _requireLocked;
         public bool RequireLocked 
         { 
-            get => _requireLocked; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireLocked)); return; }
-                SetProperty(ref _requireLocked, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private bool _requireSubLevel;
         public bool RequireSubLevel 
         { 
-            get => _requireSubLevel; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireSubLevel)); return; }
-                SetProperty(ref _requireSubLevel, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private bool _requireShareable;
         public bool RequireShareable 
         { 
-            get => _requireShareable; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(RequireShareable)); return; }
-                SetProperty(ref _requireShareable, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private string _maxHearts = "0";
-        public string MaxHearts { get => _maxHearts; set => SetProperty(ref _maxHearts, value); }
-
-        private string _maxPlays = "0";
-        public string MaxPlays { get => _maxPlays; set => SetProperty(ref _maxPlays, value); }
-
-        private string _excludedCreators = "";
-        public string ExcludedCreators { get => _excludedCreators; set => SetProperty(ref _excludedCreators, value); }
-
-        private string _excludedContributors = "";
-        public string ExcludedContributors { get => _excludedContributors; set => SetProperty(ref _excludedContributors, value); }
-
-        private string _excludedObjectContributors = "";
-        public string ExcludedObjectContributors { get => _excludedObjectContributors; set => SetProperty(ref _excludedObjectContributors, value); }
-
-        private string _publishedBeforeYear = "Any";
-        public string PublishedBeforeYear { get => _publishedBeforeYear; set => SetProperty(ref _publishedBeforeYear, value); }
-
-        private string _publishedBeforeMonth = "Any";
-        public string PublishedBeforeMonth { get => _publishedBeforeMonth; set => SetProperty(ref _publishedBeforeMonth, value); }
-
-        private string _publishedAfterYear = "Any";
-        public string PublishedAfterYear { get => _publishedAfterYear; set => SetProperty(ref _publishedAfterYear, value); }
-
-        private string _publishedAfterMonth = "Any";
-        public string PublishedAfterMonth { get => _publishedAfterMonth; set => SetProperty(ref _publishedAfterMonth, value); }
+        public string MaxHearts { get; set => SetProperty(ref field, value); } = "0";
+        public string MaxPlays { get; set => SetProperty(ref field, value); } = "0";
+        public string ExcludedCreators { get; set => SetProperty(ref field, value); } = "";
+        public string ExcludedContributors { get; set => SetProperty(ref field, value); } = "";
+        public string ExcludedObjectContributors { get; set => SetProperty(ref field, value); } = "";
+        public string PublishedBeforeYear { get; set => SetProperty(ref field, value); } = "Any";
+        public string PublishedBeforeMonth { get; set => SetProperty(ref field, value); } = "Any";
+        public string PublishedAfterYear { get; set => SetProperty(ref field, value); } = "Any";
+        public string PublishedAfterMonth { get; set => SetProperty(ref field, value); } = "Any";
 
         public ObservableCollection<string> AvailableYears { get; } = new();
         public ObservableCollection<string> AvailableMonths { get; } = new();
 
-        private bool _excludeTeamPick;
-        public bool ExcludeTeamPick { get => _excludeTeamPick; set => SetProperty(ref _excludeTeamPick, value); }
+        public bool ExcludeTeamPick { get; set => SetProperty(ref field, value); }
 
-        private bool _excludeLocked;
         public bool ExcludeLocked 
         { 
-            get => _excludeLocked; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeLocked)); return; }
-                SetProperty(ref _excludeLocked, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private bool _excludeSubLevels;
         public bool ExcludeSubLevels 
         { 
-            get => _excludeSubLevels; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeSubLevels)); return; }
-                SetProperty(ref _excludeSubLevels, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private bool _excludeShareable;
         public bool ExcludeShareable 
         { 
-            get => _excludeShareable; 
+            get; 
             set
             {
                 if (!_hasExtendedSlotProperties && value) { ShowDatabaseOutdatedPrompt("extended level properties (Locked, Sub-level, Copyable)"); OnPropertyChanged(nameof(ExcludeShareable)); return; }
-                SetProperty(ref _excludeShareable, value);
+                SetProperty(ref field, value);
             } 
         }
 
-        private int _labelMatchMode = 0;
         public int LabelMatchMode
         {
-            get => _labelMatchMode;
+            get;
             set
             {
                 if (!_hasCommunityLabels && value != 1)
@@ -155,8 +112,7 @@ namespace LbpArchiveToolkit.ViewModels
                     OnPropertyChanged(nameof(LabelMatchMode));
                     return;
                 }
-
-                SetProperty(ref _labelMatchMode, value);
+                SetProperty(ref field, value);
             }
         }
 

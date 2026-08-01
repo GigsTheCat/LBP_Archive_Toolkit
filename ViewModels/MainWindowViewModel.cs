@@ -42,8 +42,7 @@ namespace LbpArchiveToolkit.ViewModels
         public string? ToolTip { get; set; }
         public double TiltAngle { get; set; }
         public bool IsLbp1Tag { get; set; }
-        private Visibility _visibility = Visibility.Visible;
-        public Visibility Visibility { get => _visibility; set => SetProperty(ref _visibility, value); }
+        public Visibility Visibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
     }
 
     public partial class MainWindowViewModel : ViewModelBase
@@ -70,24 +69,21 @@ namespace LbpArchiveToolkit.ViewModels
 
         public BulkObservableCollection<LevelItem> ResultsList { get; } = new();
 
-        private List<UserItem> _userResultsList = new();
-        public List<UserItem> UserResultsList { get => _userResultsList; set => SetProperty(ref _userResultsList, value); }
+        public List<UserItem> UserResultsList { get; set => SetProperty(ref field, value); } = new();
 
         public ObservableCollection<string> Genres { get; } = new() { "All Genres" };
         public ObservableCollection<TagItem> LevelTags { get; } = new();
 
         #region UI Properties
 
-        private string _searchText = "";
-        public string SearchText { get => _searchText; set => SetProperty(ref _searchText, value); }
+        public string SearchText { get; set => SetProperty(ref field, value); } = "";
 
-        private int _searchTypeIndex = 0;
         public int SearchTypeIndex
         {
-            get => _searchTypeIndex;
+            get;
             set
             {
-                if (SetProperty(ref _searchTypeIndex, value))
+                if (SetProperty(ref field, value))
                 {
                     OnPropertyChanged(nameof(IsLevelSearch));
                     OnPropertyChanged(nameof(LevelViewVisibility));
@@ -100,33 +96,21 @@ namespace LbpArchiveToolkit.ViewModels
                         SearchCommand.Execute(null);
                 }
             }
-        }
+        } = 0;
 
-        private int _gameIndex = 0;
-        public int GameIndex { get => _gameIndex; set => SetProperty(ref _gameIndex, value); }
+        public int GameIndex { get; set => SetProperty(ref field, value); } = 0;
+        public string SelectedGenre { get; set => SetProperty(ref field, value); } = "All Genres";
+        public int LimitIndex { get; set => SetProperty(ref field, value); } = 2;
+        public bool ExactMatch { get; set => SetProperty(ref field, value); }
+        public bool SearchDesc { get; set => SetProperty(ref field, value); }
+        public string StatusText { get; set => SetProperty(ref field, value); } = "Ready. Enter a keyword or set filters to begin.";
 
-        private string _selectedGenre = "All Genres";
-        public string SelectedGenre { get => _selectedGenre; set => SetProperty(ref _selectedGenre, value); }
-
-        private int _limitIndex = 2;
-        public int LimitIndex { get => _limitIndex; set => SetProperty(ref _limitIndex, value); }
-
-        private bool _exactMatch;
-        public bool ExactMatch { get => _exactMatch; set => SetProperty(ref _exactMatch, value); }
-
-        private bool _searchDesc;
-        public bool SearchDesc { get => _searchDesc; set => SetProperty(ref _searchDesc, value); }
-
-        private string _statusText = "Ready. Enter a keyword or set filters to begin.";
-        public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-
-        private bool _isSearching;
         public bool IsSearching
         {
-            get => _isSearching;
+            get;
             set
             {
-                SetProperty(ref _isSearching, value);
+                SetProperty(ref field, value);
                 OnPropertyChanged(nameof(SearchButtonVisibility));
                 OnPropertyChanged(nameof(SurpriseButtonVisibility));
                 OnPropertyChanged(nameof(CancelButtonVisibility));
@@ -136,17 +120,10 @@ namespace LbpArchiveToolkit.ViewModels
         public Visibility SurpriseButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;
 
-        private Visibility _isProgressVisible = Visibility.Hidden;
-        public Visibility IsProgressVisible { get => _isProgressVisible; set => SetProperty(ref _isProgressVisible, value); }
-
-        private bool _isProgressIndeterminate;
-        public bool IsProgressIndeterminate { get => _isProgressIndeterminate; set => SetProperty(ref _isProgressIndeterminate, value); }
-
-        private int _progressMaximum = 100;
-        public int ProgressMaximum { get => _progressMaximum; set => SetProperty(ref _progressMaximum, value); }
-
-        private int _progressValue = 0;
-        public int ProgressValue { get => _progressValue; set => SetProperty(ref _progressValue, value); }
+        public Visibility IsProgressVisible { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public bool IsProgressIndeterminate { get; set => SetProperty(ref field, value); }
+        public int ProgressMaximum { get; set => SetProperty(ref field, value); } = 100;
+        public int ProgressValue { get; set => SetProperty(ref field, value); } = 0;
 
         public bool IsLevelSearch => SearchTypeIndex == 0 || SearchTypeIndex == 2 || SearchTypeIndex == 3;
         public Visibility LevelViewVisibility => IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
@@ -162,67 +139,37 @@ namespace LbpArchiveToolkit.ViewModels
         public bool HasExtendedSlotProperties => _dbService.HasExtendedSlotProperties;
 
         // Level Details Properties
-        private LevelItem? _selectedLevel;
         public LevelItem? SelectedLevel
         {
-            get => _selectedLevel;
-            set { if (SetProperty(ref _selectedLevel, value)) UpdateLevelDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateLevelDetails(); }
         }
 
-        private Brush _iconEllipseStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3));
-        public Brush IconEllipseStroke { get => _iconEllipseStroke; set => SetProperty(ref _iconEllipseStroke, value); }
-
-        private Brush _iconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush IconEllipseFill { get => _iconEllipseFill; set => SetProperty(ref _iconEllipseFill, value); }
-
-        private Brush _originalIconFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
-
-        private Visibility _iconLockVisibility = Visibility.Hidden;
-        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
-
-        private double _iconScale = 1.0;
-        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
-
-        private Visibility _mmPickVisibility = Visibility.Hidden;
-        public Visibility MmPickVisibility { get => _mmPickVisibility; set => SetProperty(ref _mmPickVisibility, value); }
-
-        private Visibility _levelHeartOverlayVisibility = Visibility.Hidden;
-        public Visibility LevelHeartOverlayVisibility { get => _levelHeartOverlayVisibility; set => SetProperty(ref _levelHeartOverlayVisibility, value); }
-
-        private string _iconStatusText = "Select a level\nto view details";
-        public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
-
-        private string _heartLevelButtonText = "♥ HEART LEVEL";
-        public string HeartLevelButtonText { get => _heartLevelButtonText; set => SetProperty(ref _heartLevelButtonText, value); }
-
-        private Visibility _toggleTagsButtonVisibility = Visibility.Collapsed;
-        public Visibility ToggleTagsButtonVisibility { get => _toggleTagsButtonVisibility; set => SetProperty(ref _toggleTagsButtonVisibility, value); }
-
-        private string _toggleTagsButtonText = "SHOW TAGS";
-        public string ToggleTagsButtonText { get => _toggleTagsButtonText; set => SetProperty(ref _toggleTagsButtonText, value); }
+        public Brush IconEllipseStroke { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(255, 183, 3));
+        public Brush IconEllipseFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
+        public Visibility MmPickVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public Visibility LevelHeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
+        public string HeartLevelButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART LEVEL";
+        public Visibility ToggleTagsButtonVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public string ToggleTagsButtonText { get; set => SetProperty(ref field, value); } = "SHOW TAGS";
 
         private bool _showingLbp1Tags = false;
 
         // User Details Properties
-        private UserItem? _selectedUser;
         public UserItem? SelectedUser
         {
-            get => _selectedUser;
-            set { if (SetProperty(ref _selectedUser, value)) UpdateUserDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateUserDetails(); }
         }
 
-        private Brush _userIconRectFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush UserIconRectFill { get => _userIconRectFill; set => SetProperty(ref _userIconRectFill, value); }
-
-        private Visibility _userHeartOverlayVisibility = Visibility.Hidden;
-        public Visibility UserHeartOverlayVisibility { get => _userHeartOverlayVisibility; set => SetProperty(ref _userHeartOverlayVisibility, value); }
-
-        private string _userIconStatusText = "Select a creator\nto view details";
-        public string UserIconStatusText { get => _userIconStatusText; set => SetProperty(ref _userIconStatusText, value); }
-
-        private string _userHeartButtonText = "♥ HEART CREATOR";
-        public string UserHeartButtonText { get => _userHeartButtonText; set => SetProperty(ref _userHeartButtonText, value); }
+        public Brush UserIconRectFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Visibility UserHeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public string UserIconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
+        public string UserHeartButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART CREATOR";
 
         public string UserStatsText => SelectedUser != null ? $"Hearts: {SelectedUser.HeartCount}  |  Total Levels: {SelectedUser.TotalLevels}" : "";
         public string UserSummaryText => SelectedUser != null ? 

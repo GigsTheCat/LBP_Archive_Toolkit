@@ -739,11 +739,8 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static ushort BigEndianUInt16(BinaryReader br)
-        {
-            byte[] b = br.ReadBytes(2);
-            return (ushort)((b[0] << 8) | b[1]);
-        }
+        private static ushort BigEndianUInt16(BinaryReader br) => 
+            System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(br.ReadUInt16());
 
         public static byte[] CreateIconFromImage(string filePath)
         {

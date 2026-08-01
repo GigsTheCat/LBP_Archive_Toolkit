@@ -24,13 +24,12 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ObservableCollection<Playlist> Playlists { get; } = new();
 
-        private Playlist? _selectedPlaylist;
         public Playlist? SelectedPlaylist
         {
-            get => _selectedPlaylist;
+            get;
             set
             {
-                if (SetProperty(ref _selectedPlaylist, value))
+                if (SetProperty(ref field, value))
                 {
                     RefreshLevelsList();
                     OnPropertyChanged(nameof(PlaylistTitle));
@@ -42,39 +41,23 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ObservableCollection<LevelItem> LevelsInPlaylist { get; } = new();
 
-        private LevelItem? _selectedLevel;
         public LevelItem? SelectedLevel
         {
-            get => _selectedLevel;
-            set { if (SetProperty(ref _selectedLevel, value)) UpdateSelectionDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
         }
 
         private CancellationTokenSource? _iconCts;
         private long _currentIconRequestId = -1;
 
-        private string _levelTitle = "";
-        public string LevelTitle { get => _levelTitle; set => SetProperty(ref _levelTitle, value); }
-
-        private string _levelCreator = "";
-        public string LevelCreator { get => _levelCreator; set => SetProperty(ref _levelCreator, value); }
-
-        private string _levelDescription = "";
-        public string LevelDescription { get => _levelDescription; set => SetProperty(ref _levelDescription, value); }
-
-        private Brush _iconFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush IconFill { get => _iconFill; set => SetProperty(ref _iconFill, value); }
-
-        private Brush _originalIconFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
-
-        private string _iconStatusText = "Select a level\nto view details";
-        public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
-
-        private Visibility _iconLockVisibility = Visibility.Hidden;
-        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
-
-        private double _iconScale = 1.0;
-        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
+        public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
+        public string LevelCreator { get; set => SetProperty(ref field, value); } = "";
+        public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
+        public Brush IconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
+        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
 
         public ICommand CreateCommand { get; }
         public ICommand RenameCommand { get; }
@@ -101,8 +84,8 @@ namespace LbpArchiveToolkit.ViewModels
             RemoveLevelCommand = new RelayCommand(ExecuteRemoveLevel, CanExecuteRemoveLevel);
             ExtractLevelCommand = new RelayCommand(ExecuteExtractLevel, CanExecuteRemoveLevel);
 
-            _iconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            _originalIconFill = _iconFill;
+            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            OriginalIconFill = IconFill;
 
             LoadPlaylists();
         }

@@ -14,7 +14,7 @@ namespace LbpArchiveToolkit.ViewModels
     {
         private void UpdateLevelDetails()
         {
-            if (_selectedLevel == null)
+            if (SelectedLevel == null)
             {
                 IconEllipseStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3));
                 MmPickVisibility = Visibility.Hidden;
@@ -29,17 +29,17 @@ namespace LbpArchiveToolkit.ViewModels
                 return;
             }
 
-            MmPickVisibility = _selectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
-            IconEllipseStroke = _selectedLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
-            LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(_selectedLevel.Id) ? Visibility.Visible : Visibility.Hidden;
-            IconLockVisibility = _selectedLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
-            IconScale = _selectedLevel.IsSubLevel ? 0.85 : 1.0;
-            HeartLevelButtonText = HeartedLevelsManager.IsHearted(_selectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
+            MmPickVisibility = SelectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+            IconEllipseStroke = SelectedLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
+            LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? Visibility.Visible : Visibility.Hidden;
+            IconLockVisibility = SelectedLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
+            IconScale = SelectedLevel.IsSubLevel ? 0.85 : 1.0;
+            HeartLevelButtonText = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
 
             LevelTags.Clear();
-            bool hasAuthorLabels = _selectedLevel.Labels != null && _selectedLevel.Labels.Count > 0;
-            bool hasCommLabels = _selectedLevel.CommunityLabels != null && _selectedLevel.CommunityLabels.Count > 0 && HasCommunityLabels;
-            bool hasTags = _selectedLevel.Tags != null && _selectedLevel.Tags.Count > 0;
+            bool hasAuthorLabels = SelectedLevel.Labels != null && SelectedLevel.Labels.Count > 0;
+            bool hasCommLabels = SelectedLevel.CommunityLabels != null && SelectedLevel.CommunityLabels.Count > 0 && HasCommunityLabels;
+            bool hasTags = SelectedLevel.Tags != null && SelectedLevel.Tags.Count > 0;
 
             if (hasAuthorLabels || hasCommLabels || hasTags)
             {
@@ -48,7 +48,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasAuthorLabels)
                 {
-                    foreach (var label in _selectedLevel.Labels!.OrderBy(l => l))
+                    foreach (var label in SelectedLevel.Labels!.OrderBy(l => l))
                     {
                         addedLabels.Add(label);
                         string displayName = showAsterisk ? label + "*" : label;
@@ -59,7 +59,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasCommLabels)
                 {
-                    foreach (var label in _selectedLevel.CommunityLabels!.OrderBy(l => l))
+                    foreach (var label in SelectedLevel.CommunityLabels!.OrderBy(l => l))
                     {
                         if (addedLabels.Add(label))
                         {
@@ -70,7 +70,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasTags)
                 {
-                    foreach (var tag in _selectedLevel.Tags!.OrderBy(t => t))
+                    foreach (var tag in SelectedLevel.Tags!.OrderBy(t => t))
                         LevelTags.Add(new TagItem { Text = tag, TiltAngle = GetDeterministicTilt(tag), Visibility = Visibility.Collapsed, IsLbp1Tag = true });
                     ToggleTagsButtonVisibility = Visibility.Visible;
                     ToggleTagsButtonText = "SHOW TAGS";
@@ -79,14 +79,14 @@ namespace LbpArchiveToolkit.ViewModels
                 else ToggleTagsButtonVisibility = Visibility.Collapsed;
             }
             
-            _ = LoadIconAsync(_selectedLevel.IconHash);
+            _ = LoadIconAsync(SelectedLevel.IconHash);
             OnPropertyChanged(nameof(LevelCreatorText));
             OnPropertyChanged(nameof(LevelStatsText));
         }
 
         private void UpdateUserDetails()
         {
-            if (_selectedUser == null)
+            if (SelectedUser == null)
             {
                 UserIconRectFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
                 UserIconStatusText = "Select a creator\nto view details";
@@ -96,12 +96,12 @@ namespace LbpArchiveToolkit.ViewModels
                 return;
             }
 
-            UserHeartOverlayVisibility = HeartedCreatorsManager.IsHearted(_selectedUser.NpHandle) ? Visibility.Visible : Visibility.Hidden;
-            UserHeartButtonText = HeartedCreatorsManager.IsHearted(_selectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
+            UserHeartOverlayVisibility = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? Visibility.Visible : Visibility.Hidden;
+            UserHeartButtonText = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
             OnPropertyChanged(nameof(UserStatsText));
             OnPropertyChanged(nameof(UserSummaryText));
             
-            _ = LoadUserIconAsync(_selectedUser.IconHash, _selectedUser.NpHandle);
+            _ = LoadUserIconAsync(SelectedUser.IconHash, SelectedUser.NpHandle);
         }
 
         private void ToggleTags()
@@ -188,7 +188,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             if (brush != null) { 
                 OriginalIconFill = brush;
-                if (_selectedLevel != null && _selectedLevel.IsLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
+                if (SelectedLevel != null && SelectedLevel.IsLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
                 {
                     var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
                     grayscaleBmp.Freeze();

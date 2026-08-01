@@ -7,38 +7,17 @@ namespace LbpArchiveToolkit.ViewModels
 {
     public class CustomDialogViewModel : ViewModelBase
     {
-        private string _title = "";
-        public string Title { get => _title; set => SetProperty(ref _title, value); }
-
-        private string _message = "";
-        public string Message { get => _message; set => SetProperty(ref _message, value); }
-
-        private Visibility _yesNoVisibility = Visibility.Collapsed;
-        public Visibility YesNoVisibility { get => _yesNoVisibility; set => SetProperty(ref _yesNoVisibility, value); }
-
-        private Visibility _okVisibility = Visibility.Visible;
-        public Visibility OkVisibility { get => _okVisibility; set => SetProperty(ref _okVisibility, value); }
-
-        private Visibility _copyVisibility = Visibility.Collapsed;
-        public Visibility CopyVisibility { get => _copyVisibility; set => SetProperty(ref _copyVisibility, value); }
-
-        private string _copyButtonText = "COPY";
-        public string CopyButtonText { get => _copyButtonText; set => SetProperty(ref _copyButtonText, value); }
-
-        private Visibility _checkboxVisibility = Visibility.Collapsed;
-        public Visibility CheckboxVisibility { get => _checkboxVisibility; set => SetProperty(ref _checkboxVisibility, value); }
-
-        private string _checkboxText = "";
-        public string CheckboxText { get => _checkboxText; set => SetProperty(ref _checkboxText, value); }
-
-        private bool _isCheckboxChecked;
-        public bool IsCheckboxChecked { get => _isCheckboxChecked; set => SetProperty(ref _isCheckboxChecked, value); }
-
-        private Visibility _inputVisibility = Visibility.Collapsed;
-        public Visibility InputVisibility { get => _inputVisibility; set => SetProperty(ref _inputVisibility, value); }
-
-        private string _inputText = "";
-        public string InputText { get => _inputText; set => SetProperty(ref _inputText, value); }
+        public string Title { get; set => SetProperty(ref field, value); } = "";
+        public string Message { get; set => SetProperty(ref field, value); } = "";
+        public Visibility YesNoVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public Visibility OkVisibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
+        public Visibility CopyVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public string CopyButtonText { get; set => SetProperty(ref field, value); } = "COPY";
+        public Visibility CheckboxVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public string CheckboxText { get; set => SetProperty(ref field, value); } = "";
+        public bool IsCheckboxChecked { get; set => SetProperty(ref field, value); }
+        public Visibility InputVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public string InputText { get; set => SetProperty(ref field, value); } = "";
 
         public ICommand OkCommand { get; }
         public ICommand YesCommand { get; }

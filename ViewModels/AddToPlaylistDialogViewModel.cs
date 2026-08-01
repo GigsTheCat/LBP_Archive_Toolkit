@@ -11,11 +11,8 @@ namespace LbpArchiveToolkit.ViewModels
     {
         public ObservableCollection<Playlist> Playlists { get; } = new();
 
-        private Playlist? _selectedPlaylist;
-        public Playlist? SelectedPlaylist { get => _selectedPlaylist; set => SetProperty(ref _selectedPlaylist, value); }
-
-        private string _newPlaylistName = "";
-        public string NewPlaylistName { get => _newPlaylistName; set => SetProperty(ref _newPlaylistName, value); }
+        public Playlist? SelectedPlaylist { get; set => SetProperty(ref field, value); }
+        public string NewPlaylistName { get; set => SetProperty(ref field, value); } = "";
 
         public ICommand AddCommand { get; }
         public ICommand CancelCommand { get; }

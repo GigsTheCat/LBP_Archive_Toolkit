@@ -18,11 +18,8 @@ namespace LbpArchiveToolkit.ViewModels
     {
         public string? FolderName { get; set; }
         
-        private string? _levelName;
-        public string? LevelName { get => _levelName; set => SetProperty(ref _levelName, value); }
-        
-        private string? _description;
-        public string? Description { get => _description; set => SetProperty(ref _description, value); }
+        public string? LevelName { get; set => SetProperty(ref field, value); }
+        public string? Description { get; set => SetProperty(ref field, value); }
         
         public string? Creator { get; set; }
         public string? Game { get; set; }
@@ -43,36 +40,20 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ObservableCollection<BackupItemViewModel> BackupList { get; } = new();
 
-        private BackupItemViewModel? _selectedBackup;
         public BackupItemViewModel? SelectedBackup
         {
-            get => _selectedBackup;
-            set { if (SetProperty(ref _selectedBackup, value)) UpdateSelectionDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
         }
 
-        private string _statusText = "Ready.";
-        public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-
-        private string _levelTitle = "";
-        public string LevelTitle { get => _levelTitle; set => SetProperty(ref _levelTitle, value); }
-
-        private string _levelDescription = "";
-        public string LevelDescription { get => _levelDescription; set => SetProperty(ref _levelDescription, value); }
-
-        private Brush _iconFill;
-        public Brush IconFill { get => _iconFill; set => SetProperty(ref _iconFill, value); }
-
-        private Brush _originalIconFill;
-        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
-
-        private Visibility _iconLockVisibility = Visibility.Hidden;
-        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
-
-        private double _iconScale = 1.0;
-        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
-
-        private string _iconStatusText = "Select a backup\nto view details";
-        public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
+        public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
+        public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
+        public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
+        public Brush IconFill { get; set => SetProperty(ref field, value); } = null!;
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = null!;
+        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
+        public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a backup\nto view details";
 
         private CancellationTokenSource? _sltCts;
 
@@ -85,8 +66,8 @@ namespace LbpArchiveToolkit.ViewModels
         {
             _viewService = viewService;
             _backupDir = ConfigManager.BackupDirectory;
-            _iconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            _originalIconFill = _iconFill;
+            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            OriginalIconFill = IconFill;
 
             EditCommand = new RelayCommand(ExecuteEdit, CanExecuteEdit);
             DeleteCommand = new RelayCommand(ExecuteDelete, CanExecuteMultipleAction);

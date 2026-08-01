@@ -21,39 +21,21 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ObservableCollection<UserItem> HeartedList { get; } = new();
 
-        private UserItem? _selectedUser;
         public UserItem? SelectedUser
         {
-            get => _selectedUser;
-            set { if (SetProperty(ref _selectedUser, value)) UpdateSelectionDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
         }
 
-        private string _statusText = "Ready.";
-        public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-
-        private string _userNpHandle = "";
-        public string UserNpHandle { get => _userNpHandle; set => SetProperty(ref _userNpHandle, value); }
-
-        private string _userStats = "";
-        public string UserStats { get => _userStats; set => SetProperty(ref _userStats, value); }
-
-        private string _userSummary = "";
-        public string UserSummary { get => _userSummary; set => SetProperty(ref _userSummary, value); }
-
-        private Visibility _heartOverlayVisibility = Visibility.Hidden;
-        public Visibility HeartOverlayVisibility { get => _heartOverlayVisibility; set => SetProperty(ref _heartOverlayVisibility, value); }
-
-        private Brush _iconRectFill;
-        public Brush IconRectFill { get => _iconRectFill; set => SetProperty(ref _iconRectFill, value); }
-
-        private string _iconStatusText = "Select a creator\nto view details";
-        public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
-
-        private Visibility _viewContributionsVisibility = Visibility.Collapsed;
-        public Visibility ViewContributionsVisibility { get => _viewContributionsVisibility; set => SetProperty(ref _viewContributionsVisibility, value); }
-
-        private Visibility _viewObjectsVisibility = Visibility.Collapsed;
-        public Visibility ViewObjectsVisibility { get => _viewObjectsVisibility; set => SetProperty(ref _viewObjectsVisibility, value); }
+        public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
+        public string UserNpHandle { get; set => SetProperty(ref field, value); } = "";
+        public string UserStats { get; set => SetProperty(ref field, value); } = "";
+        public string UserSummary { get; set => SetProperty(ref field, value); } = "";
+        public Visibility HeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public Brush IconRectFill { get; set => SetProperty(ref field, value); } = null!;
+        public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
+        public Visibility ViewContributionsVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public Visibility ViewObjectsVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
 
         public ICommand RemoveCommand { get; }
         public ICommand ViewUserLevelsCommand { get; }
@@ -68,7 +50,7 @@ namespace LbpArchiveToolkit.ViewModels
             _viewService = viewService;
 
             // Initialize default brush
-            _iconRectFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            IconRectFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
 
             RemoveCommand = new RelayCommand(ExecuteRemove, CanExecuteAction);
             ViewUserLevelsCommand = new RelayCommand(ExecuteViewUserLevels, CanExecuteAction);

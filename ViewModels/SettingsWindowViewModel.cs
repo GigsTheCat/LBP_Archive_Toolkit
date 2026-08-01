@@ -22,40 +22,31 @@ namespace LbpArchiveToolkit.ViewModels
 
         // --- Properties ---
 
-        private string _databasePath = "";
         public string DatabasePath
         {
-            get => _databasePath;
+            get;
             set
             {
-                if (SetProperty(ref _databasePath, value))
+                if (SetProperty(ref field, value))
                 {
                     UpdateRamUsageText();
                     if (_isInitialized) CheckDbFeatures(value);
                 }
             }
-        }
+        } = "";
 
-        private string _backupDirectory = "";
-        public string BackupDirectory { get => _backupDirectory; set => SetProperty(ref _backupDirectory, value); }
-
-        private string _localArchivePath = "";
-        public string LocalArchivePath { get => _localArchivePath; set => SetProperty(ref _localArchivePath, value); }
-
-        private string _downloadServer = "bonsai";
-        public string DownloadServer { get => _downloadServer; set => SetProperty(ref _downloadServer, value); }
-
-        private string _maxParallelDownloads = "10";
-        public string MaxParallelDownloads { get => _maxParallelDownloads; set => SetProperty(ref _maxParallelDownloads, value); }
+        public string BackupDirectory { get; set => SetProperty(ref field, value); } = "";
+        public string LocalArchivePath { get; set => SetProperty(ref field, value); } = "";
+        public string DownloadServer { get; set => SetProperty(ref field, value); } = "bonsai";
+        public string MaxParallelDownloads { get; set => SetProperty(ref field, value); } = "10";
 
         public ObservableCollection<KeyValuePair<string, string>> AvailableThemes { get; } = new();
-        private KeyValuePair<string, string> _selectedTheme;
         public KeyValuePair<string, string> SelectedTheme
         {
-            get => _selectedTheme;
+            get;
             set
             {
-                if (SetProperty(ref _selectedTheme, value) && _isInitialized)
+                if (SetProperty(ref field, value) && _isInitialized)
                 {
                     ThemeManager.ApplyTheme(value.Key);
                 }
@@ -63,26 +54,14 @@ namespace LbpArchiveToolkit.ViewModels
         }
 
         public ObservableCollection<string> AvailableRegions { get; } = new() { "US (NTSC-U)", "EU (PAL)", "JP (NTSC-J)" };
-        private string _selectedRegion = "EU (PAL)";
-        public string SelectedRegion { get => _selectedRegion; set => SetProperty(ref _selectedRegion, value); }
-
-        private bool _forceLbp3Backups;
-        public bool ForceLbp3Backups { get => _forceLbp3Backups; set => SetProperty(ref _forceLbp3Backups, value); }
-
-        private bool _lbp2BetaToRetail;
-        public bool Lbp2BetaToRetail { get => _lbp2BetaToRetail; set => SetProperty(ref _lbp2BetaToRetail, value); }
-
-        private bool _useMemoryMappedIO;
-        public bool UseMemoryMappedIO { get => _useMemoryMappedIO; set => SetProperty(ref _useMemoryMappedIO, value); }
-
-        private bool _loadDbIntoRam;
-        public bool LoadDbIntoRam { get => _loadDbIntoRam; set => SetProperty(ref _loadDbIntoRam, value); }
-
-        private bool _showExtractionSuccessPrompt;
-        public bool ShowExtractionSuccessPrompt { get => _showExtractionSuccessPrompt; set => SetProperty(ref _showExtractionSuccessPrompt, value); }
-
-        private string _ramUsageText = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
-        public string RamUsageText { get => _ramUsageText; set => SetProperty(ref _ramUsageText, value); }
+        
+        public string SelectedRegion { get; set => SetProperty(ref field, value); } = "EU (PAL)";
+        public bool ForceLbp3Backups { get; set => SetProperty(ref field, value); }
+        public bool Lbp2BetaToRetail { get; set => SetProperty(ref field, value); }
+        public bool UseMemoryMappedIO { get; set => SetProperty(ref field, value); }
+        public bool LoadDbIntoRam { get; set => SetProperty(ref field, value); }
+        public bool ShowExtractionSuccessPrompt { get; set => SetProperty(ref field, value); }
+        public string RamUsageText { get; set => SetProperty(ref field, value); } = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
 
         // --- Commands ---
 
@@ -129,16 +108,14 @@ namespace LbpArchiveToolkit.ViewModels
                 AvailableThemes.Add(theme);
                 if (theme.Key == ConfigManager.Theme)
                 {
-                    _selectedTheme = theme;
-                    OnPropertyChanged(nameof(SelectedTheme));
+                    SelectedTheme = theme;
                 }
             }
 
             var matchingRegion = AvailableRegions.FirstOrDefault(r => r.StartsWith(ConfigManager.GameRegion));
             if (matchingRegion != null)
             {
-                _selectedRegion = matchingRegion;
-                OnPropertyChanged(nameof(SelectedRegion));
+                SelectedRegion = matchingRegion;
             }
 
             UpdateRamUsageText();

@@ -6,12 +6,7 @@ namespace LbpArchiveToolkit.ViewModels
 {
     public class AboutWindowViewModel : ViewModelBase
     {
-        private string _versionText = "Version Unknown";
-        public string VersionText
-        {
-            get => _versionText;
-            set => SetProperty(ref _versionText, value);
-        }
+        public string VersionText { get; set => SetProperty(ref field, value); } = "Version Unknown";
 
         public ICommand CloseCommand { get; }
 

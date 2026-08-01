@@ -6,8 +6,7 @@ namespace LbpArchiveToolkit.ViewModels
 {
     public class ImageCropDialogViewModel : ViewModelBase
     {
-        private ImageSource? _imageSource;
-        public ImageSource? ImageSource { get => _imageSource; set => SetProperty(ref _imageSource, value); }
+        public ImageSource? ImageSource { get; set => SetProperty(ref field, value); }
 
         public ICommand CancelCommand { get; }
         public ICommand ApplyCommand { get; }

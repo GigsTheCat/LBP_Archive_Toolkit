@@ -137,7 +137,7 @@ namespace LbpArchiveToolkit.Utils
             uint hashinateOffset = (uint)arc.Position;
             w.Write(new byte[0x14]);
             w.WriteUInt32BE((uint)entries.Count);
-            w.Write(Encoding.ASCII.GetBytes("FAR4"));
+            w.Write("FAR4"u8);
             w.Flush();
 
             if (!arc.TryGetBuffer(out ArraySegment<byte> buffer)) throw new InvalidOperationException("Could not get stream buffer.");

@@ -8,26 +8,13 @@ namespace LbpArchiveToolkit.ViewModels
     {
         public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
-        private int _progressMaximum = 1;
-        public int ProgressMaximum { get => _progressMaximum; set => SetProperty(ref _progressMaximum, value); }
-
-        private int _progressValue = 0;
-        public int ProgressValue { get => _progressValue; set => SetProperty(ref _progressValue, value); }
-
-        private string _statusText = "Preparing extraction...";
-        public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-
-        private string _subStatusText = "Initializing...";
-        public string SubStatusText { get => _subStatusText; set => SetProperty(ref _subStatusText, value); }
-
-        private bool _isErrorState = false;
-        public bool IsErrorState { get => _isErrorState; set => SetProperty(ref _isErrorState, value); }
-
-        private string _cancelButtonText = "CANCEL";
-        public string CancelButtonText { get => _cancelButtonText; set => SetProperty(ref _cancelButtonText, value); }
-
-        private bool _canCancel = true;
-        public bool CanCancel { get => _canCancel; set => SetProperty(ref _canCancel, value); }
+        public int ProgressMaximum { get; set => SetProperty(ref field, value); } = 1;
+        public int ProgressValue { get; set => SetProperty(ref field, value); } = 0;
+        public string StatusText { get; set => SetProperty(ref field, value); } = "Preparing extraction...";
+        public string SubStatusText { get; set => SetProperty(ref field, value); } = "Initializing...";
+        public bool IsErrorState { get; set => SetProperty(ref field, value); } = false;
+        public string CancelButtonText { get; set => SetProperty(ref field, value); } = "CANCEL";
+        public bool CanCancel { get; set => SetProperty(ref field, value); } = true;
 
         public ICommand CancelCommand { get; }
 

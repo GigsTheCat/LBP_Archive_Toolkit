@@ -20,48 +20,24 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ObservableCollection<LevelItem> HeartedList { get; } = new();
 
-        private LevelItem? _selectedLevel;
         public LevelItem? SelectedLevel
         {
-            get => _selectedLevel;
-            set { if (SetProperty(ref _selectedLevel, value)) UpdateSelectionDetails(); }
+            get;
+            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
         }
 
-        private string _statusText = "Ready.";
-        public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
-
-        private string _levelTitle = "";
-        public string LevelTitle { get => _levelTitle; set => SetProperty(ref _levelTitle, value); }
-
-        private string _levelDescription = "";
-        public string LevelDescription { get => _levelDescription; set => SetProperty(ref _levelDescription, value); }
-
-        private string _levelCreator = "";
-        public string LevelCreator { get => _levelCreator; set => SetProperty(ref _levelCreator, value); }
-
-        private Visibility _heartOverlayVisibility = Visibility.Hidden;
-        public Visibility HeartOverlayVisibility { get => _heartOverlayVisibility; set => SetProperty(ref _heartOverlayVisibility, value); }
-
-        private Visibility _mmPickVisibility = Visibility.Hidden;
-        public Visibility MmPickVisibility { get => _mmPickVisibility; set => SetProperty(ref _mmPickVisibility, value); }
-
-        private Brush _iconStroke;
-        public Brush IconStroke { get => _iconStroke; set => SetProperty(ref _iconStroke, value); }
-
-        private Brush _iconFill;
-        public Brush IconFill { get => _iconFill; set => SetProperty(ref _iconFill, value); }
-
-        private Brush _originalIconFill;
-        public Brush OriginalIconFill { get => _originalIconFill; set => SetProperty(ref _originalIconFill, value); }
-
-        private Visibility _iconLockVisibility = Visibility.Hidden;
-        public Visibility IconLockVisibility { get => _iconLockVisibility; set => SetProperty(ref _iconLockVisibility, value); }
-
-        private double _iconScale = 1.0;
-        public double IconScale { get => _iconScale; set => SetProperty(ref _iconScale, value); }
-
-        private string _iconStatusText = "Select a level\nto view details";
-        public string IconStatusText { get => _iconStatusText; set => SetProperty(ref _iconStatusText, value); }
+        public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
+        public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
+        public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
+        public string LevelCreator { get; set => SetProperty(ref field, value); } = "";
+        public Visibility HeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public Visibility MmPickVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public Brush IconStroke { get; set => SetProperty(ref field, value); } = null!;
+        public Brush IconFill { get; set => SetProperty(ref field, value); } = null!;
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = null!;
+        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
+        public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
 
         public ICommand RemoveCommand { get; }
         public ICommand ExtractCommand { get; }
@@ -71,9 +47,9 @@ namespace LbpArchiveToolkit.ViewModels
             _viewService = viewService;
 
             // Initialize default brushes
-            _iconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
-            _iconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            _originalIconFill = _iconFill;
+            IconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
+            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            OriginalIconFill = IconFill;
 
             RemoveCommand = new RelayCommand(ExecuteRemove, CanExecuteAction);
             ExtractCommand = new RelayCommand(ExecuteExtract, CanExecuteAction);
