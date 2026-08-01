@@ -134,12 +134,17 @@ namespace LbpArchiveToolkit.ViewModels
                 _viewService.OpenHeartedCreators();
                 RefreshHeartStates();
             });
-            OpenPlaylistsCommand = new RelayCommand(_ => _viewService.OpenPlaylists());
+            OpenPlaylistsCommand = new RelayCommand(_ => 
+            {
+                _viewService.OpenPlaylists();
+                RefreshHeartStates();
+            });
             AddToPlaylistCommand = new RelayCommand(_ => 
             {
                 if (SelectedLevel != null)
                 {
                     _viewService.ShowAddToPlaylistDialog(SelectedLevel);
+                    RefreshHeartStates();
                 }
             }, _ => SelectedLevel != null);
             OpenDownloadsCommand = new RelayCommand(_ => _viewService.OpenDownloads());

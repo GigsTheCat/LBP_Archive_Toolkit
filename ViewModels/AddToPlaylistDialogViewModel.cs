@@ -48,7 +48,7 @@ namespace LbpArchiveToolkit.ViewModels
                 newPlaylist.Levels.Add(_level);
                 PlaylistsManager.AddPlaylist(newPlaylist);
                 
-                _viewService.ShowToast($"Added to '{newPlaylist.Name}'", "Mouse");
+                _viewService.Alert($"Added to '{newPlaylist.Name}'", "Success");
                 RequestClose?.Invoke(true);
             }
             else if (SelectedPlaylist != null)
@@ -58,7 +58,7 @@ namespace LbpArchiveToolkit.ViewModels
                     SelectedPlaylist.Levels.Add(_level);
                     PlaylistsManager.Save();
                     
-                    _viewService.ShowToast($"Added to '{SelectedPlaylist.Name}'", "Mouse");
+                    _viewService.Alert($"Added to '{SelectedPlaylist.Name}'", "Success");
                     RequestClose?.Invoke(true);
                 }
                 else

@@ -163,9 +163,12 @@ namespace LbpArchiveToolkit.ViewModels
         {
             bool isSaved = _savedLevels.Contains(lvl.Id);
             bool isHearted = HeartedLevelsManager.IsHearted(lvl.Id);
+            bool isPlaylisted = PlaylistsManager.Playlists.Any(p => p.Levels.Any(l => l.Id == lvl.Id));
+
             string str = "";
             if (isSaved) str += "✓";
             if (isHearted) str += (str.Length > 0 ? " ♥" : "♥");
+            if (isPlaylisted) str += (str.Length > 0 ? " ▶" : "▶");
             lvl.Saved = str;
         }
 

@@ -181,7 +181,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                     await Task.Run(async () =>
                     {
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
                         {
                             await Application.Current.Dispatcher.InvokeAsync(() =>
                             {
@@ -283,7 +283,7 @@ namespace LbpArchiveToolkit.ViewModels
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
-                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, false, token).ConfigureAwait(false))
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, false, token).ConfigureAwait(false))
                 {
                     buffer.Add(lvl);
                     count++;
@@ -498,7 +498,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 await Task.Run(async () =>
                 {
-                    await foreach (var lvl in _dbService.SearchLevelsAsync(selectedUser.NpHandle, true, false, 0, "All Genres", "All", _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), new AdvancedSearchCriteria(), progressReporter).ConfigureAwait(false))
+                    await foreach (var lvl in _dbService.SearchLevelsAsync(selectedUser.NpHandle, true, false, 0, "All Genres", "All", _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), new AdvancedSearchCriteria(), progressReporter).ConfigureAwait(false))
                         creatorLevels.Add(lvl);
                 });
 

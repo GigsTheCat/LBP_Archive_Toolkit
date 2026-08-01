@@ -180,7 +180,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -581,7 +581,12 @@ namespace LbpArchiveToolkit.Services
 
                 bool isSaved = savedLevels.Contains(id);
                 bool isHearted = heartedLevels.Contains(id);
-                string savedStr = isSaved ? (isHearted ? "✓ ♥" : "✓") : (isHearted ? "♥" : "");
+                bool isPlaylisted = playlistLevels.Contains(id);
+
+                string savedStr = "";
+                if (isSaved) savedStr += "✓";
+                if (isHearted) savedStr += (savedStr.Length > 0 ? " ♥" : "♥");
+                if (isPlaylisted) savedStr += (savedStr.Length > 0 ? " ▶" : "▶");
 
                 string creator = "Unknown";
                 if (!reader.IsDBNull(1))
