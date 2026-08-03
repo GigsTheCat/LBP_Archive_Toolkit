@@ -261,7 +261,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             if (_currentSearch != null)
             {
-                if (IsLevelSearch)
+                if (_currentSearch.SearchTypeIndex == 0 || _currentSearch.SearchTypeIndex == 2 || _currentSearch.SearchTypeIndex == 3 || _currentSearch.SearchTypeIndex == 4 || _currentSearch.SearchTypeIndex == 5)
                     _currentSearch.SelectedItem = SelectedLevel;
                 else
                     _currentSearch.SelectedUser = SelectedUser;

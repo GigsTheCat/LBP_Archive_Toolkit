@@ -86,9 +86,11 @@ namespace LbpArchiveToolkit.ViewModels
                 }
             }
             
+            long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
+
             ObjectOriginVisibility = Visibility.Collapsed;
-            _ = LoadIconAsync(SelectedLevel.IconHash);
-            _ = CheckIfObjectOriginAsync(SelectedLevel.Id, _currentIconRequestId);
+            _ = LoadIconAsync(SelectedLevel.IconHash, currentRequestId);
+            _ = CheckIfObjectOriginAsync(SelectedLevel.Id, currentRequestId);
             
             OnPropertyChanged(nameof(LevelCreatorText));
             OnPropertyChanged(nameof(LevelStatsText));
@@ -119,12 +121,14 @@ namespace LbpArchiveToolkit.ViewModels
                 return;
             }
 
+            long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
+
             UserHeartOverlayVisibility = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? Visibility.Visible : Visibility.Hidden;
             UserHeartButtonText = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
             OnPropertyChanged(nameof(UserStatsText));
             OnPropertyChanged(nameof(UserSummaryText));
             
-            _ = LoadUserIconAsync(SelectedUser.IconHash, SelectedUser.NpHandle);
+            _ = LoadUserIconAsync(SelectedUser.IconHash, SelectedUser.NpHandle, currentRequestId);
         }
 
         private void ToggleTags()
@@ -195,14 +199,13 @@ namespace LbpArchiveToolkit.ViewModels
             lvl.Saved = str;
         }
 
-        private async Task LoadIconAsync(string? hash)
+        private async Task LoadIconAsync(string? hash, long expectedRequestId)
         {
             IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
             OriginalIconFill = IconEllipseFill;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { IconStatusText = "No Icon Available"; return; }
 
             IconStatusText = "Loading Icon...";
-            long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
             _iconCts?.Cancel();
             _iconCts = new CancellationTokenSource();
 
@@ -225,13 +228,12 @@ namespace LbpArchiveToolkit.ViewModels
             else IconStatusText = "Icon offline\nor missing.";
         }
 
-        private async Task LoadUserIconAsync(string? hash, string npHandle)
+        private async Task LoadUserIconAsync(string? hash, string npHandle, long expectedRequestId)
         {
             UserIconRectFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { UserIconStatusText = "No Icon Available"; return; }
 
             UserIconStatusText = "Loading Icon...";
-            long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
             _iconCts?.Cancel();
             _iconCts = new CancellationTokenSource();
 

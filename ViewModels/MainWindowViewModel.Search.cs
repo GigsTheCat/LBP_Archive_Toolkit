@@ -34,7 +34,7 @@ namespace LbpArchiveToolkit.ViewModels
             var current = _currentSearch;
             if (current != null)
             {
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3 || current.SearchTypeIndex == 4 || current.SearchTypeIndex == 5)
                     current.SelectedItem = SelectedLevel;
                 else
                     current.SelectedUser = SelectedUser;
@@ -151,7 +151,7 @@ namespace LbpArchiveToolkit.ViewModels
             var current = _currentSearch;
             if (current != null)
             {
-                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3)
+                if (current.SearchTypeIndex == 0 || current.SearchTypeIndex == 2 || current.SearchTypeIndex == 3 || current.SearchTypeIndex == 4 || current.SearchTypeIndex == 5)
                     current.SelectedItem = SelectedLevel;
                 else
                     current.SelectedUser = SelectedUser;
@@ -465,7 +465,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 string? limitFilter = LimitIndex == 4 ? "All" : (LimitIndex == 3 ? "1000" : (LimitIndex == 2 ? "500" : (LimitIndex == 1 ? "200" : "100")));
                 
-                if (state.IsSurpriseMe && state.SelectedItem != null && (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2 || state.SearchTypeIndex == 3))
+                if (state.IsSurpriseMe && state.SelectedItem != null && (state.SearchTypeIndex == 0 || state.SearchTypeIndex == 2 || state.SearchTypeIndex == 3 || state.SearchTypeIndex == 4 || state.SearchTypeIndex == 5))
                 {
                     ResultsList.Add(state.SelectedItem);
                     UpdateLevelSavedString(state.SelectedItem);
