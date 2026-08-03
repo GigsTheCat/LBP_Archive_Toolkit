@@ -22,6 +22,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand CopyHashCommand { get; private set; } = null!;
         public ICommand CopyLevelNameCommand { get; private set; } = null!;
         public ICommand ShowContributorsCommand { get; private set; } = null!;
+        public ICommand ShowObjectUsagesCommand { get; private set; } = null!;
         
         public ICommand SearchCreatorCommand { get; private set; } = null!;
         public ICommand HeartUserCommand { get; private set; } = null!;
@@ -90,6 +91,7 @@ namespace LbpArchiveToolkit.ViewModels
             });
 
             ShowContributorsCommand = new RelayCommand(_ => _ = ShowContributorsAsync(), _ => SelectedLevel != null);
+            ShowObjectUsagesCommand = new RelayCommand(_ => _ = ShowObjectUsagesAsync(), _ => SelectedLevel != null);
             
             SearchCreatorCommand = new RelayCommand(param => 
             {

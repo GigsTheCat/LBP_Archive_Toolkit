@@ -23,6 +23,7 @@ namespace LbpArchiveToolkit.ViewModels
                 IconScale = 1.0;
                 LevelTags.Clear();
                 ToggleTagsButtonVisibility = Visibility.Collapsed;
+                ObjectOriginVisibility = Visibility.Collapsed;
                 IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
                 OriginalIconFill = IconEllipseFill;
                 IconStatusText = "Select a level\nto view details";
@@ -85,9 +86,25 @@ namespace LbpArchiveToolkit.ViewModels
                 }
             }
             
+            ObjectOriginVisibility = Visibility.Collapsed;
             _ = LoadIconAsync(SelectedLevel.IconHash);
+            _ = CheckIfObjectOriginAsync(SelectedLevel.Id, _currentIconRequestId);
+            
             OnPropertyChanged(nameof(LevelCreatorText));
             OnPropertyChanged(nameof(LevelStatsText));
+        }
+
+        private async Task CheckIfObjectOriginAsync(long slotId, long expectedRequestId)
+        {
+            try
+            {
+                bool isOrigin = await _dbService.IsObjectOriginAsync(slotId);
+                if (_currentIconRequestId == expectedRequestId)
+                {
+                    ObjectOriginVisibility = isOrigin ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            catch { }
         }
 
         private void UpdateUserDetails()
@@ -233,11 +250,28 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     var contributors = await _dbService.GetContributorsAsync(SelectedLevel.Id);
                     var objectContributors = await _dbService.GetObjectContributorsAsync(SelectedLevel.Id);
-                    _viewService.ShowContributorsDialog(contributors, objectContributors, SelectedLevel.Creator ?? "Unknown", InitiateUserSearch);
+                    var objectOrigins = await _dbService.GetObjectOriginsAsync(SelectedLevel.Id);
+                    _viewService.ShowContributorsDialog(contributors, objectContributors, objectOrigins, SelectedLevel.Creator ?? "Unknown", InitiateUserSearch, InitiateLevelSearch);
                 }
                 catch (Exception ex)
                 {
                     _viewService.Alert($"Error fetching contributors: {ex.Message}", "Error");
+                }
+            }
+        }
+
+        private async Task ShowObjectUsagesAsync()
+        {
+            if (SelectedLevel != null)
+            {
+                try
+                {
+                    var levels = await _dbService.GetLevelsUsingObjectsFromAsync(SelectedLevel.Id);
+                    _viewService.ShowObjectUsagesDialog(levels, SelectedLevel.LevelName ?? "Unknown", InitiateLevelSearch);
+                }
+                catch (Exception ex)
+                {
+                    _viewService.Alert($"Error fetching object usages: {ex.Message}", "Error");
                 }
             }
         }

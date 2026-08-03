@@ -264,9 +264,11 @@
                                     <ComboBoxItem Content="Creators"/>
                                     <ComboBoxItem x:Name="cbiContributions" Content="Contributions" Visibility="{Binding HasContributorsVisibility}"/>
                                     <ComboBoxItem x:Name="cbiObjects" Content="Objects By" Visibility="{Binding HasObjectContributorsVisibility}"/>
+                                    <ComboBoxItem Content="Level ID"/>
+                                    <ComboBoxItem Content="Level Hash"/>
                                 </ComboBox>
 
-                                <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LevelViewVisibility}">
+                                <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LevelFiltersVisibility}">
                                     <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="cmbGame" SelectedIndex="{Binding GameIndex}" Width="110" Margin="0,0,8,5">
                                         <ComboBoxItem Content="All Games"/>
@@ -279,16 +281,18 @@
                                     <ComboBox x:Name="cmbGenre" ItemsSource="{Binding Genres}" SelectedItem="{Binding SelectedGenre}" Width="150" Margin="0,0,8,5" />
                                 </StackPanel>
 
-                                <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbLimit" SelectedIndex="{Binding LimitIndex}" Width="75" Margin="0,0,15,5">
-                                    <ComboBoxItem Content="100"/>
-                                    <ComboBoxItem Content="200"/>
-                                    <ComboBoxItem Content="500"/>
-                                    <ComboBoxItem Content="1000"/>
-                                    <ComboBoxItem Content="All"/>
-                                </ComboBox>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LimitVisibility}">
+                                    <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cmbLimit" SelectedIndex="{Binding LimitIndex}" Width="75" Margin="0,0,15,5">
+                                        <ComboBoxItem Content="100"/>
+                                        <ComboBoxItem Content="200"/>
+                                        <ComboBoxItem Content="500"/>
+                                        <ComboBoxItem Content="1000"/>
+                                        <ComboBoxItem Content="All"/>
+                                    </ComboBox>
+                                </StackPanel>
 
-                                <CheckBox x:Name="chkExact" Content="Exact Phrase" IsChecked="{Binding ExactMatch}" Margin="0,0,15,5"/>
+                                <CheckBox x:Name="chkExact" Content="Exact Phrase" IsChecked="{Binding ExactMatch}" Margin="0,0,15,5" Visibility="{Binding ExactMatchVisibility}"/>
                                 <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" IsChecked="{Binding SearchDesc}" Margin="0,0,15,5" Visibility="{Binding SearchDescVisibility}"/>
                                 <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Visibility="{Binding AdvancedButtonVisibility}" Command="{Binding OpenAdvancedSearchCommand}"/>
                             </WrapPanel>
@@ -506,6 +510,7 @@
                                     <Button Content="ADD TO PLAYLIST" Command="{Binding AddToPlaylistCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnCopyHash" Content="COPY HASH" Command="{Binding CopyHashCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button Content="CONTRIBUTORS" Command="{Binding ShowContributorsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="🎁 OBJECT USAGES" Command="{Binding ShowObjectUsagesCommand}" Visibility="{Binding ObjectOriginVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Command="{Binding ExtractSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgResults}" Style="{DynamicResource BtnExtract}" />
                                 </StackPanel>
                             </Grid>

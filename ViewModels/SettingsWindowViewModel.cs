@@ -161,7 +161,10 @@ namespace LbpArchiveToolkit.ViewModels
                 using var cmdCompletion = new SqliteCommand("SELECT count(*) FROM pragma_table_info('slot') WHERE name='completionCount' OR name='completions'", conn);
                 bool hasCompletion = Convert.ToInt32(cmdCompletion.ExecuteScalar()) > 0;
 
-                if (!hasFts || !hasContrib || !hasCompletion)
+                using var cmdObjOrigins = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='object_origins'", conn);
+                bool hasObjOrigins = Convert.ToInt32(cmdObjOrigins.ExecuteScalar()) > 0;
+
+                if (!hasFts || !hasContrib || !hasCompletion || !hasObjOrigins)
                 {
                     _promptedForDb = true;
 
@@ -169,13 +172,14 @@ namespace LbpArchiveToolkit.ViewModels
                     if (!hasFts) missing.Add("• FTS5 Hardware Acceleration (Slower searches)");
                     if (!hasContrib) missing.Add("• Contributor Data (Contributor features disabled)");
                     if (!hasCompletion) missing.Add("• Level Completion Statistics (Completion counts won't be shown)");
+                    if (!hasObjOrigins) missing.Add("• Object Origins (Object usage lookups disabled)");
 
                     string msg = $"The selected database is an older version and lacks the following features:\n\n{string.Join("\n", missing)}\n\nWould you like to download the newer version from archive.org to enable these features?";
 
                     bool download = _viewService.Confirm(msg, "Outdated Database");
                     if (download)
                     {
-                        Process.Start(new ProcessStartInfo("https://archive.org/download/fastdry") { UseShellExecute = true });
+                        Process.Start(new ProcessStartInfo("https://archive.org/download/ultimatefastdry") { UseShellExecute = true });
                     }
                 }
             }

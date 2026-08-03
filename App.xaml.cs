@@ -16,7 +16,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        const string mutexName = "LbpArchiveToolkit_SingleInstanceMutex";
+        const string mutexName = @"Global\LbpArchiveToolkit_SingleInstanceMutex";
         
         _instanceMutex = new Mutex(true, mutexName, out bool createdNew);
 

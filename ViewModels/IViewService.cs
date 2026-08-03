@@ -11,7 +11,8 @@ namespace LbpArchiveToolkit.ViewModels
         void ShowSettingsDialog();
         (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current, bool hasCommunityLabels, bool hasExtendedSlotProperties);
         void ShowToast(string message, string targetElementName);
-        void ShowContributorsDialog(List<string> contributors, List<string> objectContributors, string levelCreator, System.Action<string> onCreatorClicked);
+        void ShowContributorsDialog(List<string> contributors, List<string> objectContributors, List<(long id, string name)> objectOrigins, string levelCreator, System.Action<string> onCreatorClicked, System.Action<long> onLevelClicked);
+        void ShowObjectUsagesDialog(List<(long id, string name)> levels, string originLevelName, System.Action<long> onLevelClicked);
         bool Confirm(string message, string title);
         void Alert(string message, string title);
         

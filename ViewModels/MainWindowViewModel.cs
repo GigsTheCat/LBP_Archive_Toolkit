@@ -91,8 +91,11 @@ namespace LbpArchiveToolkit.ViewModels
                     OnPropertyChanged(nameof(SearchDescVisibility));
                     OnPropertyChanged(nameof(AdvancedButtonVisibility));
                     OnPropertyChanged(nameof(SurpriseButtonVisibility));
+                    OnPropertyChanged(nameof(LevelFiltersVisibility));
+                    OnPropertyChanged(nameof(LimitVisibility));
+                    OnPropertyChanged(nameof(ExactMatchVisibility));
                     
-                    if (!_isApplyingState && !string.IsNullOrWhiteSpace(SearchText))
+                    if (!_isApplyingState && !string.IsNullOrWhiteSpace(SearchText) && value != 4 && value != 5)
                         SearchCommand.Execute(null);
                 }
             }
@@ -117,7 +120,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
         public Visibility SearchButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility SurpriseButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility SurpriseButtonVisibility => (IsSearching || SearchTypeIndex == 4 || SearchTypeIndex == 5) ? Visibility.Collapsed : Visibility.Visible;
         public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility IsProgressVisible { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
@@ -125,11 +128,14 @@ namespace LbpArchiveToolkit.ViewModels
         public int ProgressMaximum { get; set => SetProperty(ref field, value); } = 100;
         public int ProgressValue { get; set => SetProperty(ref field, value); } = 0;
 
-        public bool IsLevelSearch => SearchTypeIndex == 0 || SearchTypeIndex == 2 || SearchTypeIndex == 3;
+        public bool IsLevelSearch => SearchTypeIndex == 0 || SearchTypeIndex == 2 || SearchTypeIndex == 3 || SearchTypeIndex == 4 || SearchTypeIndex == 5;
         public Visibility LevelViewVisibility => IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
         public Visibility UserViewVisibility => !IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility SearchDescVisibility => (IsLevelSearch && SearchTypeIndex != 2 && SearchTypeIndex != 3) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility AdvancedButtonVisibility => IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility SearchDescVisibility => (SearchTypeIndex == 0) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility AdvancedButtonVisibility => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility LevelFiltersVisibility => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility LimitVisibility => (SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility ExactMatchVisibility => (SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
 
         // DB Dependent Visibilities
         public Visibility HasContributorsVisibility => _dbService.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
@@ -156,6 +162,7 @@ namespace LbpArchiveToolkit.ViewModels
         public string HeartLevelButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART LEVEL";
         public Visibility ToggleTagsButtonVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
         public string ToggleTagsButtonText { get; set => SetProperty(ref field, value); } = "SHOW TAGS";
+        public Visibility ObjectOriginVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
 
         private bool _showingLbp1Tags = false;
 

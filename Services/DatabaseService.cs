@@ -25,6 +25,7 @@ namespace LbpArchiveToolkit.Services
         private bool _hasContribFtsTable = false;
         private bool _hasObjectContribsTable = false;
         private bool _hasObjectContribFtsTable = false;
+        private bool _hasObjectOriginsTable = false;
 
         public bool HasContributorsTable
         {
@@ -180,7 +181,7 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
-        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
+        public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool searchById = false, bool searchByHash = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
 
@@ -225,11 +226,15 @@ namespace LbpArchiveToolkit.Services
             var parameters = new List<SqliteParameter>();
 
             bool hasKeyword = !string.IsNullOrWhiteSpace(keyword);
+            long searchIdVal = 0;
+            bool isIdSearch = searchById && hasKeyword && long.TryParse(keyword.Trim(), out searchIdVal);
+            bool isHashSearch = searchByHash && hasKeyword;
+
             bool hasTagsFilter = advanced.RequiredLabels.Count > 0 || advanced.RequiredTags.Count > 0 || advanced.IsTeamPick;
             bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable && !hasKeyword;
-            bool searchContribsActive = searchContributions && hasKeyword;
-            bool searchObjectsActive = searchObjects && hasKeyword;
-            bool isFtsContext = (_hasFtsTable && (hasKeyword || useFtsForTags)) || searchContribsActive || searchObjectsActive;
+            bool searchContribsActive = searchContributions && hasKeyword && !isIdSearch && !isHashSearch;
+            bool searchObjectsActive = searchObjects && hasKeyword && !isIdSearch && !isHashSearch;
+            bool isFtsContext = (_hasFtsTable && ((hasKeyword && !isIdSearch && !isHashSearch) || useFtsForTags)) || searchContribsActive || searchObjectsActive;
             string pfx = isFtsContext ? "s." : "";
             string SafeCol(string col) => col == "NULL" ? "NULL" : $"{pfx}{col}";
 
@@ -273,7 +278,30 @@ namespace LbpArchiveToolkit.Services
                 if (hasKeyword)
                 {
                     queryBuilder.Append("AND ");
-                    if (searchContribsActive)
+                    if (isIdSearch)
+                    {
+                        queryBuilder.Append($"s.id = @searchIdVal ");
+                        parameters.Add(new SqliteParameter("@searchIdVal", searchIdVal));
+                    }
+                    else if (isHashSearch && _colHash != "NULL")
+                    {
+                        string hexStr = keyword.Trim();
+                        byte[]? hashBytes = null;
+                        try { if (hexStr.Length == 40) hashBytes = Convert.FromHexString(hexStr); } catch { }
+
+                        if (hashBytes != null)
+                        {
+                            queryBuilder.Append($"(s.{_colHash} = @searchHashVal OR s.{_colHash} = @searchHashStr) ");
+                            parameters.Add(new SqliteParameter("@searchHashVal", hashBytes));
+                            parameters.Add(new SqliteParameter("@searchHashStr", hexStr.ToLowerInvariant()));
+                        }
+                        else
+                        {
+                            queryBuilder.Append($"s.{_colHash} = @searchHashVal ");
+                            parameters.Add(new SqliteParameter("@searchHashVal", hexStr.ToLowerInvariant()));
+                        }
+                    }
+                    else if (searchContribsActive)
                     {
                         if (_hasContribFtsTable)
                             BuildContribFtsSearchCondition(queryBuilder, parameters, keyword, exact);
@@ -321,7 +349,30 @@ namespace LbpArchiveToolkit.Services
             else
             {
                 queryBuilder.Append("WHERE 1=1 ");
-                if (hasKeyword)
+                if (isIdSearch)
+                {
+                    queryBuilder.Append($"AND {pfx}id = @searchIdVal ");
+                    parameters.Add(new SqliteParameter("@searchIdVal", searchIdVal));
+                }
+                else if (isHashSearch && _colHash != "NULL")
+                {
+                    string hexStr = keyword.Trim();
+                    byte[]? hashBytes = null;
+                    try { if (hexStr.Length == 40) hashBytes = Convert.FromHexString(hexStr); } catch { }
+
+                    if (hashBytes != null)
+                    {
+                        queryBuilder.Append($"AND ({pfx}{_colHash} = @searchHashVal OR {pfx}{_colHash} = @searchHashStr) ");
+                        parameters.Add(new SqliteParameter("@searchHashVal", hashBytes));
+                        parameters.Add(new SqliteParameter("@searchHashStr", hexStr.ToLowerInvariant()));
+                    }
+                    else
+                    {
+                        queryBuilder.Append($"AND {pfx}{_colHash} = @searchHashVal ");
+                        parameters.Add(new SqliteParameter("@searchHashVal", hexStr.ToLowerInvariant()));
+                    }
+                }
+                else if (hasKeyword)
                 {
                     queryBuilder.Append("AND ");
                     BuildSearchCondition(queryBuilder, parameters, keyword, exact, searchDesc);
@@ -415,7 +466,7 @@ namespace LbpArchiveToolkit.Services
                     string baseQuery = queryBuilder.ToString();
                     string limitClause = "";
 
-                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive && !isIdSearch && !isHashSearch)
                         limitClause = " ORDER BY f.rank LIMIT 20000";
                     else if (_colHeart != "NULL")
                         limitClause = $" ORDER BY {SafeCol(_colHeart)} DESC LIMIT 20000";
@@ -428,7 +479,7 @@ namespace LbpArchiveToolkit.Services
                 else
                 {
                     // If C# filtering is needed, we must pass the 20k pool back to C# to be randomized there.
-                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+                    if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive && !isIdSearch && !isHashSearch)
                         queryBuilder.Append(" ORDER BY f.rank LIMIT 20000");
                     else if (_colHeart != "NULL")
                         queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC LIMIT 20000");
@@ -438,7 +489,7 @@ namespace LbpArchiveToolkit.Services
             }
             else
             {
-                if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive)
+                if (_hasFtsTable && hasKeyword && !searchContribsActive && !searchObjectsActive && !isIdSearch && !isHashSearch)
                 {
                     if (isAllLimit)
                     {
@@ -458,7 +509,15 @@ namespace LbpArchiveToolkit.Services
                     queryBuilder.Append($" ORDER BY {SafeCol(_colHeart)} DESC");
                 }
 
-                if (!isAllLimit && int.TryParse(limitFilter, out parsedLimit))
+                if (isHashSearch || isIdSearch)
+                {
+                    parsedLimit = 1;
+                    if (!needsCSharpFiltering)
+                    {
+                        queryBuilder.Append(" LIMIT 1");
+                    }
+                }
+                else if (!isAllLimit && int.TryParse(limitFilter, out parsedLimit))
                 {
                     if (!needsCSharpFiltering)
                     {
@@ -842,6 +901,65 @@ namespace LbpArchiveToolkit.Services
             return list;
         }
 
+        public async Task<bool> IsObjectOriginAsync(long originSlotId, CancellationToken token = default)
+        {
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            if (!_hasObjectOriginsTable) return false;
+
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            ApplyConnectionOptimizations(conn);
+
+            using var cmd = new SqliteCommand("SELECT 1 FROM object_origins WHERE origin_slot_id = @id LIMIT 1", conn);
+            cmd.Parameters.AddWithValue("@id", originSlotId);
+
+            var result = await cmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+            return result != null;
+        }
+
+        public async Task<List<(long id, string name)>> GetLevelsUsingObjectsFromAsync(long originSlotId, CancellationToken token = default)
+        {
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            var list = new List<(long id, string name)>();
+            if (!_hasObjectOriginsTable) return list;
+
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            ApplyConnectionOptimizations(conn);
+
+            // Limit to 500 to prevent massive text rendering from crashing the UI
+            using var cmd = new SqliteCommand("SELECT s.id, s.name FROM object_origins oo JOIN slot s ON oo.slot_id = s.id WHERE oo.origin_slot_id = @id ORDER BY oo.object_count DESC LIMIT 500", conn);
+            cmd.Parameters.AddWithValue("@id", originSlotId);
+
+            using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                list.Add((reader.GetInt64(0), reader.IsDBNull(1) ? "Unknown" : reader.GetString(1)));
+            }
+            return list;
+        }
+
+        public async Task<List<(long id, string name)>> GetObjectOriginsAsync(long slotId, CancellationToken token = default)
+        {
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            var list = new List<(long id, string name)>();
+            if (!_hasObjectOriginsTable) return list;
+
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            ApplyConnectionOptimizations(conn);
+
+            using var cmd = new SqliteCommand("SELECT s.id, s.name FROM object_origins oo JOIN slot s ON oo.origin_slot_id = s.id WHERE oo.slot_id = @id ORDER BY oo.object_count DESC", conn);
+            cmd.Parameters.AddWithValue("@id", slotId);
+
+            using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                list.Add((reader.GetInt64(0), reader.IsDBNull(1) ? "Unknown" : reader.GetString(1)));
+            }
+            return list;
+        }
+
         public Task<HashSet<string>> GetGenresAsync()
         {
             // Instantly return the statically known genres to avoid the 1-2 second startup delay
@@ -1132,7 +1250,7 @@ namespace LbpArchiveToolkit.Services
                     while (readerInfo.Read()) columns.Add(readerInfo.GetString(1));
                 }
 
-                using (var cmdTables = new SqliteCommand("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('slot_fts', 'slot_tags_fts', 'level_contributors', 'level_contributors_fts', 'object_contributors', 'object_contributors_fts')", conn))
+                using (var cmdTables = new SqliteCommand("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('slot_fts', 'slot_tags_fts', 'level_contributors', 'level_contributors_fts', 'object_contributors', 'object_contributors_fts', 'object_origins')", conn))
                 using (var reader = cmdTables.ExecuteReader())
                 {
                     var tables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1144,6 +1262,7 @@ namespace LbpArchiveToolkit.Services
                     _hasContribFtsTable = tables.Contains("level_contributors_fts");
                     _hasObjectContribsTable = tables.Contains("object_contributors");
                     _hasObjectContribFtsTable = tables.Contains("object_contributors_fts");
+                    _hasObjectOriginsTable = tables.Contains("object_origins");
                 }
 
                 _colGame = GetDbColumn(columns, "gameVersion", "game");

@@ -1,7 +1,7 @@
 <Window x:Class="LbpArchiveToolkit.DownloadsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Downloads" Height="500" Width="600"
+        Title="Downloads" Height="600" Width="600"
         WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" WindowStyle="None" BorderThickness="0" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent">
@@ -69,7 +69,7 @@
                     </Border>
 
                     <!-- Full Fast DB -->
-                    <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="15">
+                    <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,0,0,15">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -77,9 +77,24 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,15,0">
                                 <TextBlock Text="Full Fast Database (15 GB)" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="16"/>
-                                <TextBlock Text="Includes FTS5 + Level &amp; Object Contributors. All features available." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                <TextBlock Text="Includes FTS5 + Level &amp; Object Contributors." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
                             </StackPanel>
                             <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Command="{Binding DownloadFullFastDbCommand}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Ultimate DB -->
+                    <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" Padding="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="Ultimate Database (20 GB)" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" FontSize="16"/>
+                                <TextBlock Text="Includes FTS5 + Level &amp; Object Contributors + Object Origins. All features available." Foreground="{DynamicResource FgPrimary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="DOWNLOAD" Style="{StaticResource BtnExtract}" VerticalAlignment="Center" Command="{Binding DownloadUltimateDbCommand}"/>
                         </Grid>
                     </Border>
 

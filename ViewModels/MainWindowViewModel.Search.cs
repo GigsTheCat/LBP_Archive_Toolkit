@@ -60,7 +60,9 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     bool searchContribs = SearchTypeIndex == 2;
                     bool searchObjects = SearchTypeIndex == 3;
-                    await PerformLevelSearchAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs, searchObjects);
+                    bool searchById = SearchTypeIndex == 4;
+                    bool searchByHash = SearchTypeIndex == 5;
+                    await PerformLevelSearchAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs, searchObjects, searchById, searchByHash);
 
                     var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
                     SelectedLevel = view.Cast<LevelItem>().FirstOrDefault();
@@ -185,7 +187,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                     await Task.Run(async () =>
                     {
-                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, candidateLimit, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, true, searchToken).ConfigureAwait(false))
+                        await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, candidateLimit, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), _advancedCriteria, progressReporter, SearchTypeIndex == 2, SearchTypeIndex == 3, SearchTypeIndex == 4, SearchTypeIndex == 5, true, searchToken).ConfigureAwait(false))
                         {
                             candidates.Add(lvl);
                         }
@@ -274,7 +276,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions, bool searchObjects)
+        private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions, bool searchObjects, bool searchById, bool searchByHash)
         {
             var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
             view.SortDescriptions.Clear();
@@ -291,7 +293,7 @@ namespace LbpArchiveToolkit.ViewModels
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
-                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, false, token).ConfigureAwait(false))
+                await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, searchById, searchByHash, false, token).ConfigureAwait(false))
                 {
                     buffer.Add(lvl);
                     count++;
@@ -374,6 +376,19 @@ namespace LbpArchiveToolkit.ViewModels
             SelectedGenre = "All Genres";
             _advancedCriteria = new AdvancedSearchCriteria();
             if (SearchTypeIndex == 3) SearchCommand.Execute(null); else SearchTypeIndex = 3;
+        }
+
+        public void InitiateLevelSearch(long levelId)
+        {
+            SearchText = levelId.ToString();
+            ExactMatch = false;
+            SearchDesc = false;
+            GameIndex = 0;
+            SelectedGenre = "All Genres";
+            _advancedCriteria = new AdvancedSearchCriteria();
+            
+            SearchTypeIndex = 4;
+            SearchCommand.Execute(null);
         }
 
         private void NavigateBack()
@@ -465,7 +480,7 @@ namespace LbpArchiveToolkit.ViewModels
                 }
                 else if (IsLevelSearch)
                 {
-                    await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, state.Genre, limitFilter, state.AdvancedCriteria, _searchCts.Token, "Restored", state.SearchTypeIndex == 2, state.SearchTypeIndex == 3);
+                    await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, state.Genre, limitFilter, state.AdvancedCriteria, _searchCts.Token, "Restored", state.SearchTypeIndex == 2, state.SearchTypeIndex == 3, state.SearchTypeIndex == 4, state.SearchTypeIndex == 5);
                     var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
                     var viewFirst = view.Cast<LevelItem>().FirstOrDefault();
                     SelectedLevel = state.SelectedItem != null ? ResultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id) ?? viewFirst : viewFirst;

@@ -300,15 +300,20 @@ namespace LbpArchiveToolkit
             catch (TaskCanceledException) { }
         }
 
-        public void ShowContributorsDialog(List<string> contributors, List<string> objectContributors, string levelCreator, Action<string> onCreatorClicked)
+        public void ShowContributorsDialog(List<string> contributors, List<string> objectContributors, List<(long id, string name)> objectOrigins, string levelCreator, Action<string> onCreatorClicked, Action<long> onLevelClicked)
         {
-            if (contributors.Count == 0 && objectContributors.Count == 0)
+            if (contributors.Count == 0 && objectContributors.Count == 0 && objectOrigins.Count == 0)
             {
-                Alert("No contributors were found for this level.", "Contributors");
+                Alert("No contributors or object origins were found for this level.", "Contributors");
                 return;
             }
 
             var dialog = new CustomDialog("", "Contributors", false) { Owner = this };
+            
+            // Expand the generic dialog for the contributors view
+            dialog.Width = 650;
+            dialog.scrollMessage.MaxHeight = 600;
+
             dialog.txtMessage.Inlines.Clear();
             dialog.txtMessage.Inlines.Add(new Run("Note: May include creators who have changed their names or have no levels in the archive.\n\n") { FontSize = 12, Foreground = (Brush)FindResource("FgSecondary") });
 
@@ -328,12 +333,60 @@ namespace LbpArchiveToolkit
                 }
             }
 
+            void PopulateLevelLinks(string header, List<(long id, string name)> levels)
+            {
+                dialog.txtMessage.Inlines.Add(new Run(header + "\n") { FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("LbpOrange") });
+                foreach (var l in levels)
+                {
+                    var link = new Hyperlink(new Run("• " + l.name)) { Foreground = (Brush)FindResource("LbpEmerald"), Cursor = Cursors.Hand, TextDecorations = null };
+                    link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
+                    link.MouseLeave += (s, ev) => link.TextDecorations = null;
+                    long id = l.id;
+                    link.Click += (s, ev) => { dialog.Close(); onLevelClicked(id); };
+                    dialog.txtMessage.Inlines.Add(link);
+                    dialog.txtMessage.Inlines.Add(new Run("\n"));
+                }
+            }
+
             if (contributors.Count > 0)
             {
                 PopulateLinks("Level Contributors:", contributors);
-                if (objectContributors.Count > 0) dialog.txtMessage.Inlines.Add(new Run("\n"));
+                if (objectContributors.Count > 0 || objectOrigins.Count > 0) dialog.txtMessage.Inlines.Add(new Run("\n"));
             }
-            if (objectContributors.Count > 0) PopulateLinks("Object Contributors:", objectContributors);
+            if (objectContributors.Count > 0)
+            {
+                PopulateLinks("Object Contributors:", objectContributors);
+                if (objectOrigins.Count > 0) dialog.txtMessage.Inlines.Add(new Run("\n"));
+            }
+            if (objectOrigins.Count > 0)
+            {
+                PopulateLevelLinks("Uses objects from these levels:", objectOrigins);
+            }
+
+            dialog.ShowDialog();
+        }
+
+        public void ShowObjectUsagesDialog(List<(long id, string name)> levels, string originLevelName, Action<long> onLevelClicked)
+        {
+            var dialog = new CustomDialog("", "Object Usages", false) { Owner = this };
+            
+            // Expand the generic dialog for the usages view
+            dialog.Width = 650;
+            dialog.scrollMessage.MaxHeight = 600;
+
+            dialog.txtMessage.Inlines.Clear();
+            dialog.txtMessage.Inlines.Add(new Run($"This is the possible origin for objects used in the following levels:\n\n") { FontSize = 14, Foreground = (Brush)FindResource("FgPrimary") });
+
+            foreach (var l in levels)
+            {
+                var link = new Hyperlink(new Run("• " + l.name)) { Foreground = (Brush)FindResource("LbpEmerald"), Cursor = Cursors.Hand, TextDecorations = null };
+                link.MouseEnter += (s, ev) => link.TextDecorations = TextDecorations.Underline;
+                link.MouseLeave += (s, ev) => link.TextDecorations = null;
+                long id = l.id;
+                link.Click += (s, ev) => { dialog.Close(); onLevelClicked(id); };
+                dialog.txtMessage.Inlines.Add(link);
+                dialog.txtMessage.Inlines.Add(new Run("\n"));
+            }
 
             dialog.ShowDialog();
         }
