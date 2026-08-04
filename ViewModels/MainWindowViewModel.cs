@@ -106,7 +106,13 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (_isApplyingState || !ConfigManager.EnableAutocomplete) return;
 
-            _autocompleteCts?.Cancel();
+            if (_autocompleteCts != null)
+            {
+                _autocompleteCts.Cancel();
+                _autocompleteCts.Dispose();
+                _autocompleteCts = null;
+            }
+            
             AutocompleteSuggestions.Clear();
             IsAutocompleteOpen = false;
 
@@ -317,8 +323,9 @@ namespace LbpArchiveToolkit.ViewModels
 
         public void SaveState()
         {
-            _searchCts?.Cancel();
-            _iconCts?.Cancel();
+            if (_searchCts != null) { _searchCts.Cancel(); _searchCts.Dispose(); }
+            if (_iconCts != null) { _iconCts.Cancel(); _iconCts.Dispose(); }
+            if (_autocompleteCts != null) { _autocompleteCts.Cancel(); _autocompleteCts.Dispose(); }
 
             if (_currentSearch != null)
             {

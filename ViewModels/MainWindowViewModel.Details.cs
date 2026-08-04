@@ -206,7 +206,11 @@ namespace LbpArchiveToolkit.ViewModels
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { IconStatusText = "No Icon Available"; return; }
 
             IconStatusText = "Loading Icon...";
-            _iconCts?.Cancel();
+            if (_iconCts != null)
+            {
+                _iconCts.Cancel();
+                _iconCts.Dispose();
+            }
             _iconCts = new CancellationTokenSource();
 
             var brush = await IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, _iconCts.Token);
@@ -234,7 +238,11 @@ namespace LbpArchiveToolkit.ViewModels
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { UserIconStatusText = "No Icon Available"; return; }
 
             UserIconStatusText = "Loading Icon...";
-            _iconCts?.Cancel();
+            if (_iconCts != null)
+            {
+                _iconCts.Cancel();
+                _iconCts.Dispose();
+            }
             _iconCts = new CancellationTokenSource();
 
             var brush = await IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, _iconCts.Token);

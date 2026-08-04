@@ -47,7 +47,11 @@ namespace LbpArchiveToolkit.ViewModels
             _forwardHistory.Clear();
             CommandManager.InvalidateRequerySuggested();
 
-            _searchCts?.Cancel();
+            if (_searchCts != null)
+            {
+                _searchCts.Cancel();
+                _searchCts.Dispose();
+            }
             _searchCts = new CancellationTokenSource();
             var searchToken = _searchCts.Token;
 
@@ -164,7 +168,11 @@ namespace LbpArchiveToolkit.ViewModels
             _forwardHistory.Clear();
             CommandManager.InvalidateRequerySuggested();
 
-            _searchCts?.Cancel();
+            if (_searchCts != null)
+            {
+                _searchCts.Cancel();
+                _searchCts.Dispose();
+            }
             _searchCts = new CancellationTokenSource();
             var searchToken = _searchCts.Token;
 
@@ -462,7 +470,11 @@ namespace LbpArchiveToolkit.ViewModels
             ResultsList.Clear();
             UserResultsList = new List<UserItem>();
 
-            _searchCts?.Cancel();
+            if (_searchCts != null)
+            {
+                _searchCts.Cancel();
+                _searchCts.Dispose();
+            }
             _searchCts = new CancellationTokenSource();
 
             try

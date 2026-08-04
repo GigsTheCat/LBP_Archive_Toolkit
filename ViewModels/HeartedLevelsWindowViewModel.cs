@@ -93,7 +93,11 @@ namespace LbpArchiveToolkit.ViewModels
                 IconScale = selected.IsSubLevel ? 0.85 : 1.0;
 
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
-                _iconCts?.Cancel();
+                if (_iconCts != null)
+                {
+                    _iconCts.Cancel();
+                    _iconCts.Dispose();
+                }
                 _iconCts = new CancellationTokenSource();
 
                 await LoadIconAsync(selected.IconHash, _iconCts.Token, expectedRequestId, selected.IsLocked);

@@ -115,11 +115,12 @@ namespace LbpArchiveToolkit.Services
             return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite }.ConnectionString;
         }
 
-        private void ApplyConnectionOptimizations(SqliteConnection conn)
+        private void ApplyConnectionOptimizations(SqliteConnection conn, bool isLightweight = false)
         {
             try
             {
-                string pragmaCmd = "PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
+                string cacheSize = isLightweight ? "-2000" : "-64000";
+                string pragmaCmd = $"PRAGMA journal_mode = WAL; PRAGMA temp_store = MEMORY; PRAGMA cache_size = {cacheSize};";
                 if (LbpArchiveToolkit.Configuration.ConfigManager.UseMemoryMappedIO)
                 {
                     pragmaCmd += " PRAGMA mmap_size = 32212254720;";
@@ -868,7 +869,7 @@ namespace LbpArchiveToolkit.Services
 
             using var conn = new SqliteConnection(GetConnectionString());
             await conn.OpenAsync(token).ConfigureAwait(false);
-            ApplyConnectionOptimizations(conn);
+            ApplyConnectionOptimizations(conn, true);
 
             string query;
             if (isUserSearch)

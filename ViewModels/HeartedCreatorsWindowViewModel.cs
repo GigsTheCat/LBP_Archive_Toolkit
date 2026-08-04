@@ -101,7 +101,11 @@ namespace LbpArchiveToolkit.ViewModels
                 HeartOverlayVisibility = Visibility.Visible;
 
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
-                _iconCts?.Cancel();
+                if (_iconCts != null)
+                {
+                    _iconCts.Cancel();
+                    _iconCts.Dispose();
+                }
                 _iconCts = new CancellationTokenSource();
 
                 await LoadUserIconAsync(selected.IconHash, _iconCts.Token, expectedRequestId);
