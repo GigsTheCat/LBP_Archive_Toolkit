@@ -95,7 +95,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
         } = "";
 
-        public ObservableCollection<AutocompleteSuggestion> AutocompleteSuggestions { get; } = new();
+        public BulkObservableCollection<AutocompleteSuggestion> AutocompleteSuggestions { get; } = new();
         public bool IsAutocompleteOpen { get; set => SetProperty(ref field, value); }
 
         private CancellationTokenSource? _autocompleteCts;
@@ -118,23 +118,20 @@ namespace LbpArchiveToolkit.ViewModels
 
             try
             {
-                await Task.Delay(300, token); // Debounce to prevent rapid-fire queries
-                var suggestions = await _dbService.GetAutocompleteSuggestionsAsync(query, SearchTypeIndex == 1, token);
+                await Task.Delay(300, token).ConfigureAwait(false); // Debounce to prevent rapid-fire queries
+                var suggestions = await _dbService.GetAutocompleteSuggestionsAsync(query, SearchTypeIndex == 1, token).ConfigureAwait(false);
                 
                 if (!token.IsCancellationRequested && suggestions.Count > 0)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         AutocompleteSuggestions.Clear();
-                        foreach (var s in suggestions) 
-                        {
-                            AutocompleteSuggestions.Add(new AutocompleteSuggestion 
-                            { 
-                                DisplayText = s.DisplayText, 
-                                QueryText = s.QueryText, 
-                                SearchTypeIndex = s.SearchTypeIndex 
-                            });
-                        }
+                        AutocompleteSuggestions.AddRange(suggestions.Select(s => new AutocompleteSuggestion 
+                        { 
+                            DisplayText = s.DisplayText, 
+                            QueryText = s.QueryText, 
+                            SearchTypeIndex = s.SearchTypeIndex 
+                        }));
                         IsAutocompleteOpen = true;
                     });
                 }

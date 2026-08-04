@@ -263,31 +263,32 @@
                                            AllowsTransparency="True" 
                                            PopupAnimation="Fade"
                                            Width="{Binding ActualWidth, ElementName=searchBorder}">
-                                        <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="12" Margin="0,4,0,0" Padding="0,4">
+                                        <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="12" Margin="0,4,0,0" Padding="2,4">
                                             <Border.Effect>
                                                 <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.5" Direction="270" Color="Black"/>
                                             </Border.Effect>
                                             <ItemsControl ItemsSource="{Binding AutocompleteSuggestions}">
                                                 <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Content="{Binding DisplayText}" 
-                                                            Command="{Binding DataContext.AutocompleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Popup}}" 
-                                                            CommandParameter="{Binding}" 
-                                                            Background="Transparent" 
-                                                            Foreground="{DynamicResource FgPrimary}" 
-                                                            BorderThickness="0" 
-                                                            HorizontalContentAlignment="Left" 
-                                                            Padding="15,8" 
-                                                            Cursor="Hand"
-                                                            FontWeight="SemiBold">
+                                                    <DataTemplate>
+                                                        <Button Content="{Binding DisplayText}" 
+                                                                Command="{Binding DataContext.AutocompleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Popup}}" 
+                                                                CommandParameter="{Binding}" 
+                                                                Foreground="{DynamicResource FgPrimary}" 
+                                                                BorderThickness="0" 
+                                                                HorizontalContentAlignment="Left" 
+                                                                Padding="12,6" 
+                                                                Margin="2,1"
+                                                                Cursor="Hand"
+                                                                FontWeight="SemiBold">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                                                        <ContentPresenter/>
+                                                                    <Border x:Name="border" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                                                                     </Border>
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                                                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                                                                            <Setter Property="Foreground" Value="#FFFFFF"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
                                                                 </ControlTemplate>
