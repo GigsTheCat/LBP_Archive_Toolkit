@@ -45,13 +45,19 @@ namespace LbpArchiveToolkit.ViewModels
         public Visibility Visibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
     }
 
-    public class AutocompleteSuggestion
+    public class AutocompleteSuggestion : ViewModelBase
     {
-        public string DisplayText { get; set; } = "";
-        public string QueryText { get; set; } = "";
-        public int SearchTypeIndex { get; set; }
+        public string DisplayText { get => field; set => SetProperty(ref field, value); } = "";
+        public string QueryText { get => field; set => SetProperty(ref field, value); } = "";
+        public int SearchTypeIndex { get => field; set => SetProperty(ref field, value); }
         
         public string? CreatorTooltipName => SearchTypeIndex == 1 ? QueryText : null;
+
+        protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+        {
+            base.OnPropertyChanged(propertyName);
+            if (propertyName is nameof(QueryText) or nameof(SearchTypeIndex)) OnPropertyChanged(nameof(CreatorTooltipName));
+        }
     }
 
     public partial class MainWindowViewModel : ViewModelBase
@@ -101,6 +107,7 @@ namespace LbpArchiveToolkit.ViewModels
         public bool IsAutocompleteOpen { get; set => SetProperty(ref field, value); }
 
         private CancellationTokenSource? _autocompleteCts;
+        private readonly List<DatabaseService.AutoCompleteResult> _suggestionBuffer = new(10);
 
         private async Task TriggerAutocompleteAsync(string query)
         {
@@ -113,7 +120,6 @@ namespace LbpArchiveToolkit.ViewModels
                 _autocompleteCts = null;
             }
             
-            AutocompleteSuggestions.Clear();
             IsAutocompleteOpen = false;
 
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2) return;
@@ -127,19 +133,41 @@ namespace LbpArchiveToolkit.ViewModels
             try
             {
                 await Task.Delay(300, token).ConfigureAwait(false); // Debounce to prevent rapid-fire queries
-                var suggestions = await _dbService.GetAutocompleteSuggestionsAsync(query, SearchTypeIndex == 1, token).ConfigureAwait(false);
                 
-                if (!token.IsCancellationRequested && suggestions.Count > 0)
+                await _dbService.GetAutocompleteSuggestionsAsync(query, SearchTypeIndex == 1, _suggestionBuffer, token).ConfigureAwait(false);
+                
+                if (!token.IsCancellationRequested && _suggestionBuffer.Count > 0)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        AutocompleteSuggestions.Clear();
-                        AutocompleteSuggestions.AddRange(suggestions.Select(s => new AutocompleteSuggestion 
-                        { 
-                            DisplayText = s.DisplayText, 
-                            QueryText = s.QueryText, 
-                            SearchTypeIndex = s.SearchTypeIndex 
-                        }));
+                        // Object Pooling: Update existing items instead of clearing/re-adding
+                        for (int i = 0; i < _suggestionBuffer.Count; i++)
+                        {
+                            var result = _suggestionBuffer[i];
+                            if (i < AutocompleteSuggestions.Count)
+                            {
+                                var existingItem = AutocompleteSuggestions[i];
+                                existingItem.DisplayText = result.DisplayText;
+                                existingItem.QueryText = result.QueryText;
+                                existingItem.SearchTypeIndex = result.SearchTypeIndex;
+                            }
+                            else
+                            {
+                                AutocompleteSuggestions.Add(new AutocompleteSuggestion 
+                                { 
+                                    DisplayText = result.DisplayText, 
+                                    QueryText = result.QueryText, 
+                                    SearchTypeIndex = result.SearchTypeIndex 
+                                });
+                            }
+                        }
+
+                        // Trim excess pooled items if the new result size is smaller
+                        while (AutocompleteSuggestions.Count > _suggestionBuffer.Count)
+                        {
+                            AutocompleteSuggestions.RemoveAt(AutocompleteSuggestions.Count - 1);
+                        }
+
                         IsAutocompleteOpen = true;
                     });
                 }

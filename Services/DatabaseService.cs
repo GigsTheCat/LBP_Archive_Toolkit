@@ -182,6 +182,20 @@ namespace LbpArchiveToolkit.Services
 
         #region Public API
 
+        public readonly struct AutoCompleteResult
+        {
+            public readonly string DisplayText;
+            public readonly string QueryText;
+            public readonly int SearchTypeIndex;
+
+            public AutoCompleteResult(string display, string query, int type)
+            {
+                DisplayText = display;
+                QueryText = query;
+                SearchTypeIndex = type;
+            }
+        }
+
         public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool searchById = false, bool searchByHash = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
@@ -860,10 +874,10 @@ namespace LbpArchiveToolkit.Services
             "UniquePlatformer", "VehicleShooter"
         ];
 
-        public async Task<List<(string DisplayText, string QueryText, int SearchTypeIndex)>> GetAutocompleteSuggestionsAsync(string prefix, bool isUserSearch, CancellationToken token = default)
+        public async ValueTask GetAutocompleteSuggestionsAsync(string prefix, bool isUserSearch, List<AutoCompleteResult> buffer, CancellationToken token = default)
         {
-            var results = new List<(string, string, int)>();
-            if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2) return results;
+            buffer.Clear();
+            if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2) return;
 
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
 
@@ -874,33 +888,32 @@ namespace LbpArchiveToolkit.Services
             string query;
             if (isUserSearch)
             {
-                query = "SELECT npHandle FROM user WHERE npHandle LIKE @prefix ORDER BY heartCount DESC LIMIT 10";
+                query = "SELECT npHandle FROM user WHERE npHandle LIKE @prefix GROUP BY npHandle ORDER BY MAX(heartCount) DESC LIMIT 10";
             }
             else
             {
                 // Prefer sorting by Hearts, fallback to Plays if Hearts aren't mapped
                 string orderBy = "";
-                if (_colHeart != "NULL") orderBy = $"ORDER BY s.{_colHeart} DESC";
-                else if (_colPlay != "NULL") orderBy = $"ORDER BY s.{_colPlay} DESC";
+                if (_colHeart != "NULL") orderBy = $"ORDER BY MAX(s.{_colHeart}) DESC";
+                else if (_colPlay != "NULL") orderBy = $"ORDER BY MAX(s.{_colPlay}) DESC";
 
                 if (_hasFtsTable)
                 {
                     // FTS5 prefix matching reduces the pool instantly, allowing the ORDER BY clause 
                     // to sort a tiny subset in memory without any performance penalty.
-                    query = $"SELECT s.id, s.name, s.npHandle FROM slot s INNER JOIN slot_fts f ON s.id = f.id WHERE f.name MATCH '^\"' || @safePrefix || '\"*' {orderBy} LIMIT 10";
+                    query = $"SELECT MIN(s.id), s.name, s.npHandle FROM slot s INNER JOIN slot_fts f ON s.id = f.id WHERE f.name MATCH '^\"' || @safePrefix || '\"*' GROUP BY s.name, s.npHandle {orderBy} LIMIT 10";
                 }
                 else
                 {
-                    query = $"SELECT s.id, s.name, s.npHandle FROM slot s WHERE s.name LIKE @prefix {orderBy} LIMIT 10";
+                    query = $"SELECT MIN(s.id), s.name, s.npHandle FROM slot s WHERE s.name LIKE @prefix GROUP BY s.name, s.npHandle {orderBy} LIMIT 10";
                 }
             }
 
             using var cmd = new SqliteCommand(query, conn);
             cmd.Parameters.AddWithValue("@prefix", prefix + "%");
-            cmd.Parameters.AddWithValue("@safePrefix", FtsSanitizerRegex().Replace(prefix, ""));
+            cmd.Parameters.AddWithValue("@safePrefix", SanitizeFts(prefix));
 
             using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
-            var seen = new HashSet<string>();
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
                 if (isUserSearch)
@@ -908,10 +921,7 @@ namespace LbpArchiveToolkit.Services
                     if (!reader.IsDBNull(0))
                     {
                         string name = reader.GetString(0);
-                        if (seen.Add(name))
-                        {
-                            results.Add((name, name, 1));
-                        }
+                        buffer.Add(new AutoCompleteResult(name, name, 1));
                     }
                 }
                 else
@@ -920,15 +930,10 @@ namespace LbpArchiveToolkit.Services
                     string name = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1);
                     string creator = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2);
                     
-                    string display = $"{name} (by {creator})";
-                    if (seen.Add(display))
-                    {
-                        // 4 is the SearchTypeIndex for "Level ID"
-                        results.Add((display, id.ToString(), 4));
-                    }
+                    // 4 is the SearchTypeIndex for "Level ID"
+                    buffer.Add(new AutoCompleteResult($"{name} (by {creator})", id.ToString(), 4));
                 }
             }
-            return results;
         }
 
         public async Task<List<string>> GetContributorsAsync(long slotId, CancellationToken token = default)
@@ -1042,8 +1047,25 @@ namespace LbpArchiveToolkit.Services
 
         #region SQL Query Builders
 
-        [System.Text.RegularExpressions.GeneratedRegex(@"[\^\*\(\)\[\]\{\}\:\;\+\'\""]")]
-        private static partial System.Text.RegularExpressions.Regex FtsSanitizerRegex();
+        private static readonly System.Buffers.SearchValues<char> _ftsBadChars = System.Buffers.SearchValues.Create("^*()[]{}:;+'\"");
+
+        private static string SanitizeFts(string input)
+        {
+            // Fast path: No bad chars? Return the exact same string reference.
+            if (input.AsSpan().IndexOfAny(_ftsBadChars) == -1) 
+                return input;
+
+            int badCount = 0;
+            foreach (char c in input) 
+                if (_ftsBadChars.Contains(c)) badCount++;
+
+            // Zero-allocation string creation
+            return string.Create(input.Length - badCount, input, (span, state) => {
+                int i = 0;
+                foreach (char c in state) 
+                    if (!_ftsBadChars.Contains(c)) span[i++] = c;
+            });
+        }
 
         private void BuildSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
@@ -1073,7 +1095,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact, bool searchDesc)
         {
             string matchTerm = "";
-            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
+            string Sanitize(string s) => SanitizeFts(s);
 
             if (exact)
             {
@@ -1101,7 +1123,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildContribFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
         {
             string matchTerm = "";
-            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
+            string Sanitize(string s) => SanitizeFts(s);
 
             if (exact)
             {
@@ -1142,7 +1164,7 @@ namespace LbpArchiveToolkit.Services
         private void BuildObjectFtsSearchCondition(StringBuilder query, List<SqliteParameter> parameters, string keyword, bool exact)
         {
             string matchTerm = "";
-            string Sanitize(string s) => FtsSanitizerRegex().Replace(s, "");
+            string Sanitize(string s) => SanitizeFts(s);
 
             if (exact)
             {
