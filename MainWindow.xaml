@@ -271,6 +271,7 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Button Content="{Binding DisplayText}" 
+                                                                utils:CreatorPreviewBehavior.CreatorName="{Binding CreatorTooltipName}"
                                                                 Command="{Binding DataContext.AutocompleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Popup}}" 
                                                                 CommandParameter="{Binding}" 
                                                                 Foreground="{DynamicResource FgPrimary}" 

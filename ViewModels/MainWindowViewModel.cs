@@ -50,6 +50,8 @@ namespace LbpArchiveToolkit.ViewModels
         public string DisplayText { get; set; } = "";
         public string QueryText { get; set; } = "";
         public int SearchTypeIndex { get; set; }
+        
+        public string? CreatorTooltipName => SearchTypeIndex == 1 ? QueryText : null;
     }
 
     public partial class MainWindowViewModel : ViewModelBase
