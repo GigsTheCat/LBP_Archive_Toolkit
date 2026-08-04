@@ -158,9 +158,6 @@ namespace LbpArchiveToolkit.ViewModels
                     OnPropertyChanged(nameof(LevelFiltersVisibility));
                     OnPropertyChanged(nameof(LimitVisibility));
                     OnPropertyChanged(nameof(ExactMatchVisibility));
-                    
-                    if (!_isApplyingState && !string.IsNullOrWhiteSpace(SearchText) && value != 4 && value != 5)
-                        SearchCommand.Execute(null);
                 }
             }
         } = 0;

@@ -342,7 +342,8 @@ namespace LbpArchiveToolkit.ViewModels
             GameIndex = 0;
             SelectedGenre = "All Genres";
             _advancedCriteria = new AdvancedSearchCriteria();
-            if (SearchTypeIndex == 0) SearchCommand.Execute(null); else SearchTypeIndex = 0;
+            SearchTypeIndex = 0;
+            SearchCommand.Execute(null);
         }
 
         public void InitiateUserSearch(string npHandle)
@@ -353,7 +354,8 @@ namespace LbpArchiveToolkit.ViewModels
             GameIndex = 0;
             SelectedGenre = "All Genres";
             _advancedCriteria = new AdvancedSearchCriteria();
-            if (SearchTypeIndex == 1) SearchCommand.Execute(null); else SearchTypeIndex = 1;
+            SearchTypeIndex = 1;
+            SearchCommand.Execute(null);
         }
 
         public void InitiateContributionsSearch(string npHandle)
@@ -364,7 +366,8 @@ namespace LbpArchiveToolkit.ViewModels
             GameIndex = 0;
             SelectedGenre = "All Genres";
             _advancedCriteria = new AdvancedSearchCriteria();
-            if (SearchTypeIndex == 2) SearchCommand.Execute(null); else SearchTypeIndex = 2;
+            SearchTypeIndex = 2;
+            SearchCommand.Execute(null);
         }
 
         public void InitiateObjectsSearch(string npHandle)
@@ -375,7 +378,8 @@ namespace LbpArchiveToolkit.ViewModels
             GameIndex = 0;
             SelectedGenre = "All Genres";
             _advancedCriteria = new AdvancedSearchCriteria();
-            if (SearchTypeIndex == 3) SearchCommand.Execute(null); else SearchTypeIndex = 3;
+            SearchTypeIndex = 3;
+            SearchCommand.Execute(null);
         }
 
         public void InitiateLevelSearch(long levelId)
