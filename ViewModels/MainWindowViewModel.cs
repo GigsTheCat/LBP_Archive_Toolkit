@@ -45,6 +45,13 @@ namespace LbpArchiveToolkit.ViewModels
         public Visibility Visibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
     }
 
+    public class AutocompleteSuggestion
+    {
+        public string DisplayText { get; set; } = "";
+        public string QueryText { get; set; } = "";
+        public int SearchTypeIndex { get; set; }
+    }
+
     public partial class MainWindowViewModel : ViewModelBase
     {
         private readonly IViewService _viewService;
@@ -76,7 +83,65 @@ namespace LbpArchiveToolkit.ViewModels
 
         #region UI Properties
 
-        public string SearchText { get; set => SetProperty(ref field, value); } = "";
+        public string SearchText 
+        { 
+            get => field; 
+            set 
+            {
+                if (SetProperty(ref field, value))
+                {
+                    _ = TriggerAutocompleteAsync(value);
+                }
+            }
+        } = "";
+
+        public ObservableCollection<AutocompleteSuggestion> AutocompleteSuggestions { get; } = new();
+        public bool IsAutocompleteOpen { get; set => SetProperty(ref field, value); }
+
+        private CancellationTokenSource? _autocompleteCts;
+
+        private async Task TriggerAutocompleteAsync(string query)
+        {
+            if (_isApplyingState || !ConfigManager.EnableAutocomplete) return;
+
+            _autocompleteCts?.Cancel();
+            AutocompleteSuggestions.Clear();
+            IsAutocompleteOpen = false;
+
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2) return;
+            
+            // Only trigger autocomplete for standard Level (0) and Creator (1) searches
+            if (SearchTypeIndex != 0 && SearchTypeIndex != 1) return;
+
+            _autocompleteCts = new CancellationTokenSource();
+            var token = _autocompleteCts.Token;
+
+            try
+            {
+                await Task.Delay(300, token); // Debounce to prevent rapid-fire queries
+                var suggestions = await _dbService.GetAutocompleteSuggestionsAsync(query, SearchTypeIndex == 1, token);
+                
+                if (!token.IsCancellationRequested && suggestions.Count > 0)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        AutocompleteSuggestions.Clear();
+                        foreach (var s in suggestions) 
+                        {
+                            AutocompleteSuggestions.Add(new AutocompleteSuggestion 
+                            { 
+                                DisplayText = s.DisplayText, 
+                                QueryText = s.QueryText, 
+                                SearchTypeIndex = s.SearchTypeIndex 
+                            });
+                        }
+                        IsAutocompleteOpen = true;
+                    });
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch { }
+        }
 
         public int SearchTypeIndex
         {

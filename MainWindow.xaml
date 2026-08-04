@@ -241,20 +241,64 @@
                                 <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="10,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding SearchButtonVisibility}" Command="{Binding SearchCommand}"/>
                                 <Button x:Name="btnSurprise" Content="🎲" DockPanel.Dock="Right" Width="40" Height="40" Margin="15,0,0,0" Padding="0" FontSize="20" Style="{DynamicResource BtnSecondary}" ToolTip="Surprise Me! (Random)" Visibility="{Binding SurpriseButtonVisibility}" Command="{Binding SurpriseMeCommand}"/>
                                 
-                                <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
-                                    <TextBox x:Name="txtSearch" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15">
-                                        <TextBox.InputBindings>
-                                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
-                                        </TextBox.InputBindings>
-                                        <TextBox.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Command="Cut" Header="Cut" />
-                                                <MenuItem Command="Copy" Header="Copy" />
-                                                <MenuItem Command="Paste" Header="Paste" />
-                                            </ContextMenu>
-                                        </TextBox.ContextMenu>
-                                    </TextBox>
-                                </Border>
+                                <Grid>
+                                    <Border x:Name="searchBorder" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
+                                        <TextBox x:Name="txtSearch" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{DynamicResource FgPrimary}" BorderThickness="0" VerticalContentAlignment="Center" FontSize="15">
+                                            <TextBox.InputBindings>
+                                                <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                                            </TextBox.InputBindings>
+                                            <TextBox.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Command="Cut" Header="Cut" />
+                                                    <MenuItem Command="Copy" Header="Copy" />
+                                                    <MenuItem Command="Paste" Header="Paste" />
+                                                </ContextMenu>
+                                            </TextBox.ContextMenu>
+                                        </TextBox>
+                                    </Border>
+                                    
+                                    <Popup PlacementTarget="{Binding ElementName=searchBorder}" 
+                                           IsOpen="{Binding IsAutocompleteOpen}" 
+                                           StaysOpen="False" 
+                                           AllowsTransparency="True" 
+                                           PopupAnimation="Fade"
+                                           Width="{Binding ActualWidth, ElementName=searchBorder}">
+                                        <Border Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="12" Margin="0,4,0,0" Padding="0,4">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.5" Direction="270" Color="Black"/>
+                                            </Border.Effect>
+                                            <ItemsControl ItemsSource="{Binding AutocompleteSuggestions}">
+                                                <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding DisplayText}" 
+                                                            Command="{Binding DataContext.AutocompleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Popup}}" 
+                                                            CommandParameter="{Binding}" 
+                                                            Background="Transparent" 
+                                                            Foreground="{DynamicResource FgPrimary}" 
+                                                            BorderThickness="0" 
+                                                            HorizontalContentAlignment="Left" 
+                                                            Padding="15,8" 
+                                                            Cursor="Hand"
+                                                            FontWeight="SemiBold">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Background" Value="{DynamicResource BorderSubtle}"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
                             </DockPanel>
 
                             <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">

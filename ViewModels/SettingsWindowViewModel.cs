@@ -61,6 +61,7 @@ namespace LbpArchiveToolkit.ViewModels
         public bool UseMemoryMappedIO { get; set => SetProperty(ref field, value); }
         public bool LoadDbIntoRam { get; set => SetProperty(ref field, value); }
         public bool ShowExtractionSuccessPrompt { get; set => SetProperty(ref field, value); }
+        public bool EnableAutocomplete { get; set => SetProperty(ref field, value); }
         public string RamUsageText { get; set => SetProperty(ref field, value); } = "Load entire DB into RAM (Extreme speed, requires free RAM based on DB size)";
 
         // --- Commands ---
@@ -101,6 +102,7 @@ namespace LbpArchiveToolkit.ViewModels
             UseMemoryMappedIO = ConfigManager.UseMemoryMappedIO;
             LoadDbIntoRam = ConfigManager.LoadDbIntoRam;
             ShowExtractionSuccessPrompt = ConfigManager.ShowExtractionSuccessPrompt;
+            EnableAutocomplete = ConfigManager.EnableAutocomplete;
 
             AvailableThemes.Clear();
             foreach (var theme in ThemeManager.AvailableThemes)
@@ -236,6 +238,7 @@ namespace LbpArchiveToolkit.ViewModels
                 UseMemoryMappedIO = false;
                 LoadDbIntoRam = false;
                 ShowExtractionSuccessPrompt = true;
+                EnableAutocomplete = true;
                 SelectedRegion = AvailableRegions.FirstOrDefault(r => r.StartsWith("EU")) ?? "EU (PAL)";
             }
         }
@@ -258,6 +261,7 @@ namespace LbpArchiveToolkit.ViewModels
             ConfigManager.UseMemoryMappedIO = UseMemoryMappedIO;
             ConfigManager.LoadDbIntoRam = LoadDbIntoRam;
             ConfigManager.ShowExtractionSuccessPrompt = ShowExtractionSuccessPrompt;
+            ConfigManager.EnableAutocomplete = EnableAutocomplete;
             ConfigManager.Theme = SelectedTheme.Key ?? "DefaultTheme";
             ConfigManager.GameRegion = SelectedRegion.Substring(0, 2);
 

@@ -10,6 +10,7 @@ namespace LbpArchiveToolkit.ViewModels
         #region Commands
         public ICommand SearchCommand { get; private set; } = null!;
         public ICommand CancelSearchCommand { get; private set; } = null!;
+        public ICommand AutocompleteSelectedCommand { get; private set; } = null!;
         public ICommand SurpriseMeCommand { get; private set; } = null!;
         public ICommand BackCommand { get; private set; } = null!;
         public ICommand ForwardCommand { get; private set; } = null!;
@@ -43,7 +44,42 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void InitializeCommands()
         {
-            SearchCommand = new RelayCommand(_ => _ = SearchAsync());
+            AutocompleteSelectedCommand = new RelayCommand(param => 
+            {
+                if (param is AutocompleteSuggestion suggestion)
+                {
+                    // Suppress automatic UI search triggers to prevent double-searching
+                    // and corrupting the back-arrow history stack
+                    _isApplyingState = true;
+                    try
+                    {
+                        SearchTypeIndex = suggestion.SearchTypeIndex; 
+                        SearchText = suggestion.QueryText;
+
+                        // Clear UI filters for exact entity searches to guarantee the match isn't hidden by them
+                        GameIndex = 0;
+                        SelectedGenre = "All Genres";
+                        SearchDesc = false;
+                        _advancedCriteria = new AdvancedSearchCriteria();
+                        
+                        // Enforce Exact Match for creator searches so we don't pull up similar names
+                        ExactMatch = suggestion.SearchTypeIndex == 1;
+                    }
+                    finally
+                    {
+                        _isApplyingState = false;
+                    }
+                    
+                    IsAutocompleteOpen = false;
+                    SearchCommand.Execute(null);
+                }
+            });
+
+            SearchCommand = new RelayCommand(_ => 
+            {
+                IsAutocompleteOpen = false;
+                _ = SearchAsync();
+            });
             CancelSearchCommand = new RelayCommand(_ => { _searchCts?.Cancel(); StatusText = "Cancelling search..."; });
             SurpriseMeCommand = new RelayCommand(_ => _ = SurpriseMeAsync());
             BackCommand = new RelayCommand(_ => NavigateBack(), _ => _searchHistory.Count > 0);

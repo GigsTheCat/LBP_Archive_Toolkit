@@ -27,6 +27,7 @@ namespace LbpArchiveToolkit.Configuration
         public static bool UseMemoryMappedIO { get; set; } = false;
         public static bool LoadDbIntoRam { get; set; } = false;
         public static bool ShowExtractionSuccessPrompt { get; set; } = true;
+        public static bool EnableAutocomplete { get; set; } = true;
 
         public static List<string> LegacySavedLevels { get; set; } = [];
         
@@ -81,6 +82,7 @@ namespace LbpArchiveToolkit.Configuration
             public bool UseMemoryMappedIO { get; set; }
             public bool LoadDbIntoRam { get; set; }
             public bool? ShowExtractionSuccessPrompt { get; set; }
+            public bool? EnableAutocomplete { get; set; }
             public double WindowWidth { get; set; }
             public double WindowHeight { get; set; }
             public double WindowLeft { get; set; }
@@ -133,6 +135,7 @@ namespace LbpArchiveToolkit.Configuration
                     UseMemoryMappedIO = data.UseMemoryMappedIO;
                     LoadDbIntoRam = data.LoadDbIntoRam;
                     ShowExtractionSuccessPrompt = data.ShowExtractionSuccessPrompt ?? ShowExtractionSuccessPrompt;
+                    EnableAutocomplete = data.EnableAutocomplete ?? EnableAutocomplete;
                     WindowWidth = data.WindowWidth;
                     WindowHeight = data.WindowHeight;
                     WindowLeft = data.WindowLeft;
@@ -167,6 +170,7 @@ namespace LbpArchiveToolkit.Configuration
                     UseMemoryMappedIO = UseMemoryMappedIO,
                     LoadDbIntoRam = LoadDbIntoRam,
                     ShowExtractionSuccessPrompt = ShowExtractionSuccessPrompt,
+                    EnableAutocomplete = EnableAutocomplete,
                     WindowWidth = WindowWidth,
                     WindowHeight = WindowHeight,
                     WindowLeft = WindowLeft,

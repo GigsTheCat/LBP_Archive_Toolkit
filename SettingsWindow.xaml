@@ -238,6 +238,7 @@
                                     </DockPanel>
                                     <CheckBox Content="Force LBP3 Backups (Useful if playing on retail LBP3)" IsChecked="{Binding ForceLbp3Backups}"/>
                                     <CheckBox Content="LBP2 Beta to Retail (Enable if importing corrupt errors)" IsChecked="{Binding Lbp2BetaToRetail}"/>
+                                    <CheckBox Content="Enable search autocomplete suggestions" IsChecked="{Binding EnableAutocomplete}"/>
                                     <CheckBox Content="Use mmap for database (faster search, uses slightly more RAM)" IsChecked="{Binding UseMemoryMappedIO}"/>
                                     <CheckBox Content="{Binding RamUsageText}" IsChecked="{Binding LoadDbIntoRam}"/>
                                     <CheckBox Content="Show success prompt after downloading a level" IsChecked="{Binding ShowExtractionSuccessPrompt}"/>

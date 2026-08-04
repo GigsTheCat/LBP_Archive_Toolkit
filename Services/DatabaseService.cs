@@ -859,6 +859,77 @@ namespace LbpArchiveToolkit.Services
             "UniquePlatformer", "VehicleShooter"
         ];
 
+        public async Task<List<(string DisplayText, string QueryText, int SearchTypeIndex)>> GetAutocompleteSuggestionsAsync(string prefix, bool isUserSearch, CancellationToken token = default)
+        {
+            var results = new List<(string, string, int)>();
+            if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2) return results;
+
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            ApplyConnectionOptimizations(conn);
+
+            string query;
+            if (isUserSearch)
+            {
+                query = "SELECT npHandle FROM user WHERE npHandle LIKE @prefix ORDER BY heartCount DESC LIMIT 10";
+            }
+            else
+            {
+                // Prefer sorting by Hearts, fallback to Plays if Hearts aren't mapped
+                string orderBy = "";
+                if (_colHeart != "NULL") orderBy = $"ORDER BY s.{_colHeart} DESC";
+                else if (_colPlay != "NULL") orderBy = $"ORDER BY s.{_colPlay} DESC";
+
+                if (_hasFtsTable)
+                {
+                    // FTS5 prefix matching reduces the pool instantly, allowing the ORDER BY clause 
+                    // to sort a tiny subset in memory without any performance penalty.
+                    query = $"SELECT s.id, s.name, s.npHandle FROM slot s INNER JOIN slot_fts f ON s.id = f.id WHERE f.name MATCH '^\"' || @safePrefix || '\"*' {orderBy} LIMIT 10";
+                }
+                else
+                {
+                    query = $"SELECT s.id, s.name, s.npHandle FROM slot s WHERE s.name LIKE @prefix {orderBy} LIMIT 10";
+                }
+            }
+
+            using var cmd = new SqliteCommand(query, conn);
+            cmd.Parameters.AddWithValue("@prefix", prefix + "%");
+            cmd.Parameters.AddWithValue("@safePrefix", FtsSanitizerRegex().Replace(prefix, ""));
+
+            using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            var seen = new HashSet<string>();
+            while (await reader.ReadAsync(token).ConfigureAwait(false))
+            {
+                if (isUserSearch)
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        string name = reader.GetString(0);
+                        if (seen.Add(name))
+                        {
+                            results.Add((name, name, 1));
+                        }
+                    }
+                }
+                else
+                {
+                    long id = reader.GetInt64(0);
+                    string name = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1);
+                    string creator = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2);
+                    
+                    string display = $"{name} (by {creator})";
+                    if (seen.Add(display))
+                    {
+                        // 4 is the SearchTypeIndex for "Level ID"
+                        results.Add((display, id.ToString(), 4));
+                    }
+                }
+            }
+            return results;
+        }
+
         public async Task<List<string>> GetContributorsAsync(long slotId, CancellationToken token = default)
         {
             await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
