@@ -278,7 +278,7 @@ namespace LbpArchiveToolkit.Services
                 var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
                 conn.Open();
-                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels FROM slot WHERE id = @id";
+                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels, description FROM slot WHERE id = @id";
                 using var cmd = new SqliteCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", levelId);
 
@@ -304,6 +304,7 @@ namespace LbpArchiveToolkit.Services
                     try { if (!r.IsDBNull(6)) slotInfo.IsSubLevel = Convert.ToBoolean(r.GetValue(6)); } catch { }
                     try { if (!r.IsDBNull(7)) slotInfo.IsAdventurePlanet = Convert.ToBoolean(r.GetValue(7)); } catch { }
                     try { if (!r.IsDBNull(8)) slotInfo.Labels = LabelParser.ParseLabelHashes(r.GetFieldValue<byte[]>(8)); } catch { }
+                    try { if (!r.IsDBNull(9)) slotInfo.Description = r.GetString(9); } catch { }
                 }
             }
             catch (Exception ex)

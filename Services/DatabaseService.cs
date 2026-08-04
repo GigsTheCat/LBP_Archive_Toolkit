@@ -196,6 +196,20 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
+        public async Task<string> GetLevelDescriptionAsync(long levelId, CancellationToken token = default)
+        {
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            if (_colDesc == "NULL") return "No description provided.";
+            
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+            using var cmd = new SqliteCommand($"SELECT {_colDesc} FROM slot WHERE id = @id", conn);
+            cmd.Parameters.AddWithValue("@id", levelId);
+            
+            var result = await cmd.ExecuteScalarAsync(token).ConfigureAwait(false);
+            return result == null || result is DBNull ? "No description provided." : (string)result;
+        }
+
         public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool searchById = false, bool searchByHash = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
@@ -259,7 +273,6 @@ namespace LbpArchiveToolkit.Services
                         .Append(pfx).Append("name, ")
                         .Append(SafeCol(_colGame)).Append(", ")
                         .Append(SafeCol(_colDate)).Append(", ")
-                        .Append(SafeCol(_colDesc)).Append(", ")
                         .Append(SafeCol(_colPlay)).Append(", ")
                         .Append(SafeCol(_colCompletion)).Append(", ")
                         .Append(SafeCol(_colHeart)).Append(", ")
@@ -591,12 +604,12 @@ namespace LbpArchiveToolkit.Services
                     {
                         if (reqL0 != 0 || reqL1 != 0)
                         {
-                            ReadBitmask(13, out long l0, out long l1);
+                            ReadBitmask(12, out long l0, out long l1);
                             
                             long cL0 = 0, cL1 = 0;
                             if (_colCommunityLabels != "NULL")
                             {
-                                ReadBitmask(15, out cL0, out cL1);
+                                ReadBitmask(14, out cL0, out cL1);
                             }
 
                             long combinedL0 = 0, combinedL1 = 0;
@@ -612,7 +625,7 @@ namespace LbpArchiveToolkit.Services
 
                         if ((reqT0 != 0 || reqT1 != 0) && _colTags != "NULL")
                         {
-                            ReadBitmask(14, out long t0, out long t1);
+                            ReadBitmask(13, out long t0, out long t1);
                             if ((t0 & reqT0) != reqT0 || (t1 & reqT1) != reqT1)
                             {
                                 continue;
@@ -621,12 +634,12 @@ namespace LbpArchiveToolkit.Services
 
                         if (exL0 != 0 || exL1 != 0)
                         {
-                            ReadBitmask(13, out long l0, out long l1);
+                            ReadBitmask(12, out long l0, out long l1);
                             
                             long cL0 = 0, cL1 = 0;
                             if (_colCommunityLabels != "NULL")
                             {
-                                ReadBitmask(15, out cL0, out cL1);
+                                ReadBitmask(14, out cL0, out cL1);
                             }
 
                             long combinedL0 = 0, combinedL1 = 0;
@@ -642,7 +655,7 @@ namespace LbpArchiveToolkit.Services
 
                         if ((exT0 != 0 || exT1 != 0) && _colTags != "NULL")
                         {
-                            ReadBitmask(14, out long t0, out long t1);
+                            ReadBitmask(13, out long t0, out long t1);
                             if ((t0 & exT0) != 0 || (t1 & exT1) != 0)
                             {
                                 continue;
@@ -727,41 +740,22 @@ namespace LbpArchiveToolkit.Services
                     LevelName = levelName,
                     Game = gameStr,
                     Date = date,
-                    Description = reader.IsDBNull(5) ? "No description provided." : reader.GetString(5),
-                    Plays = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
-                    Clears = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
-                    Hearts = reader.IsDBNull(8) ? 0 : reader.GetInt32(8),
-                    Genre = reader.IsDBNull(9) ? "Unknown" : (reader.GetFieldType(9) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(9), "Unknown") : MapGenreToString(reader.GetValue(9))),
-                    Hash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
-                    IconHash = reader.IsDBNull(11) ? "" : (reader.GetFieldType(11) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(11)) : reader.GetString(11)),
-                    IsMmPick = reader.IsDBNull(12) ? false : reader.GetBoolean(12)
+                    Description = null, // Lazy-loaded via GetLevelDescriptionAsync when clicked
+                    Plays = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                    Clears = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
+                    Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
+                    Genre = reader.IsDBNull(8) ? "Unknown" : (reader.GetFieldType(8) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(8), "Unknown") : MapGenreToString(reader.GetValue(8))),
+                    Hash = reader.IsDBNull(9) ? "" : (reader.GetFieldType(9) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(9)) : reader.GetString(9)),
+                    IconHash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
+                    IsMmPick = reader.IsDBNull(11) ? false : reader.GetBoolean(11),
+                    LabelsBlob = !reader.IsDBNull(12) && reader.GetFieldType(12) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(12) : null,
+                    TagsBlob = !reader.IsDBNull(13) && reader.GetFieldType(13) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(13) : null,
+                    CommunityLabelsBlob = _colCommunityLabels != "NULL" && !reader.IsDBNull(14) && reader.GetFieldType(14) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(14) : null,
+                    IsLocked = !reader.IsDBNull(15) && reader.GetBoolean(15),
+                    IsSubLevel = !reader.IsDBNull(16) && reader.GetBoolean(16),
+                    IsShareable = reader.IsDBNull(17) || reader.GetBoolean(17), // Default true if missing
+                    Yays = reader.FieldCount > 18 ? (reader.IsDBNull(18) ? 0 : reader.GetInt32(18)) : 0
                 };
-
-                var levelLabels = new List<string>();
-                if (!reader.IsDBNull(13) && reader.GetFieldType(13) == typeof(byte[]))
-                {
-                    levelLabels.AddRange(LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(13)));
-                }
-                
-                var levelTags = new List<string>();
-                if (!reader.IsDBNull(14) && reader.GetFieldType(14) == typeof(byte[]))
-                {
-                    levelTags.AddRange(TagParser.ParseTagNames(reader.GetFieldValue<byte[]>(14)));
-                }
-
-                var commLabels = new List<string>();
-                if (_colCommunityLabels != "NULL" && !reader.IsDBNull(15) && reader.GetFieldType(15) == typeof(byte[]))
-                {
-                    commLabels.AddRange(LabelParser.ParseLabelNames(reader.GetFieldValue<byte[]>(15)));
-                }
-                
-                levelItem.Labels = levelLabels;
-                levelItem.CommunityLabels = commLabels;
-                levelItem.Tags = levelTags;
-                levelItem.IsLocked = !reader.IsDBNull(16) && reader.GetBoolean(16);
-                levelItem.IsSubLevel = !reader.IsDBNull(17) && reader.GetBoolean(17);
-                levelItem.IsShareable = reader.IsDBNull(18) || reader.GetBoolean(18); // Default true if missing
-                levelItem.Yays = reader.FieldCount > 19 ? (reader.IsDBNull(19) ? 0 : reader.GetInt32(19)) : 0;
 
                 yield return levelItem;
 

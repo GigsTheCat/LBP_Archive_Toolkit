@@ -26,9 +26,9 @@ namespace LbpArchiveToolkit.Models
         public string? Hash { get; set; }
         public string? IconHash { get; set; }
         public string? Description { get; set; }
-        public List<string>? Labels { get; set; }
-        public List<string>? CommunityLabels { get; set; }
-        public List<string>? Tags { get; set; }
+        public byte[]? LabelsBlob { get; set; }
+        public byte[]? CommunityLabelsBlob { get; set; }
+        public byte[]? TagsBlob { get; set; }
         public bool IsMmPick { get; set; }
         public bool IsLocked { get; set; }
         public bool IsSubLevel { get; set; }

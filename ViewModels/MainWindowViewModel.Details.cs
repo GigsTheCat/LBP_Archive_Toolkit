@@ -38,9 +38,13 @@ namespace LbpArchiveToolkit.ViewModels
             HeartLevelButtonText = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
 
             LevelTags.Clear();
-            bool hasAuthorLabels = SelectedLevel.Labels != null && SelectedLevel.Labels.Count > 0;
-            bool hasCommLabels = SelectedLevel.CommunityLabels != null && SelectedLevel.CommunityLabels.Count > 0 && HasCommunityLabels;
-            bool hasTags = SelectedLevel.Tags != null && SelectedLevel.Tags.Count > 0;
+            var labels = SelectedLevel.LabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(SelectedLevel.LabelsBlob) : new List<string>();
+            var commLabels = SelectedLevel.CommunityLabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(SelectedLevel.CommunityLabelsBlob) : new List<string>();
+            var tags = SelectedLevel.TagsBlob != null ? LbpArchiveToolkit.Utils.TagParser.ParseTagNames(SelectedLevel.TagsBlob) : new List<string>();
+
+            bool hasAuthorLabels = labels.Count > 0;
+            bool hasCommLabels = commLabels.Count > 0 && HasCommunityLabels;
+            bool hasTags = tags.Count > 0;
 
             if (hasAuthorLabels || hasCommLabels || hasTags)
             {
@@ -50,7 +54,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasAuthorLabels)
                 {
-                    foreach (var label in SelectedLevel.Labels!.OrderBy(l => l))
+                    foreach (var label in labels.OrderBy(l => l))
                     {
                         addedLabels.Add(label);
                         string displayName = showAsterisk ? label + "*" : label;
@@ -61,7 +65,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasCommLabels)
                 {
-                    foreach (var label in SelectedLevel.CommunityLabels!.OrderBy(l => l))
+                    foreach (var label in commLabels.OrderBy(l => l))
                     {
                         if (addedLabels.Add(label))
                         {
@@ -72,7 +76,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                 if (hasTags)
                 {
-                    foreach (var tag in SelectedLevel.Tags!.OrderBy(t => t))
+                    foreach (var tag in tags.OrderBy(t => t))
                         newTags.Add(new TagItem { Text = tag, TiltAngle = GetDeterministicTilt(tag), Visibility = Visibility.Collapsed, IsLbp1Tag = true });
                     ToggleTagsButtonVisibility = Visibility.Visible;
                     ToggleTagsButtonText = "SHOW TAGS";

@@ -114,19 +114,35 @@ namespace LbpArchiveToolkit
         private FrameworkElement? _lastContextElement;
         private Point _lastRightClickPoint;
 
-        private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private async void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(MainWindowViewModel.SelectedLevel))
             {
                 if (_viewModel.SelectedLevel != null)
                 {
-                    LbpArchiveToolkit.Utils.RichTextHelper.SetDescriptionRichText(txtDescription, _viewModel.SelectedLevel.Description, name =>
-                    {
-                        _viewModel.SearchText = name;
-                        _viewModel.SearchTypeIndex = 1;
-                    });
+                    var selected = _viewModel.SelectedLevel;
+                    
+                    // Show loading state temporarily
+                    txtDescription.Document.Blocks.Clear();
+                    txtDescription.Document.Blocks.Add(new Paragraph(new Run("Loading description...")));
 
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    if (selected.Description == null)
+                    {
+                        var dbService = new LbpArchiveToolkit.Services.DatabaseService(LbpArchiveToolkit.Configuration.ConfigManager.DatabasePath);
+                        selected.Description = await dbService.GetLevelDescriptionAsync(selected.Id);
+                    }
+                    
+                    // Prevent overriding if selection changed while fetching
+                    if (_viewModel.SelectedLevel == selected)
+                    {
+                        LbpArchiveToolkit.Utils.RichTextHelper.SetDescriptionRichText(txtDescription, selected.Description, name =>
+                        {
+                            _viewModel.SearchText = name;
+                            _viewModel.SearchTypeIndex = 1;
+                        });
+                    }
+
+                    _ = Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (_viewModel.SelectedLevel != null)
                         {
@@ -143,7 +159,7 @@ namespace LbpArchiveToolkit
             {
                 if (_viewModel.SelectedUser != null)
                 {
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    _ = Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (_viewModel.SelectedUser != null)
                         {
