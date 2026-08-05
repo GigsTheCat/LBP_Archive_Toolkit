@@ -92,59 +92,6 @@ namespace LbpArchiveToolkit
             }
         }
 
-        private void ExportUpscaled_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.MenuItem mi && mi.CommandParameter is TextureItem item && item.ImageSource != null)
-            {
-                var dlg = new SaveFileDialog
-                {
-                    Filter = "PNG Image|*.png",
-                    Title = "Export Upscaled Texture (4x)",
-                    FileName = item.Hash + "_upscaled.png"
-                };
-
-                if (dlg.ShowDialog() == true)
-                {
-                    try
-                    {
-                        // Create a 4x Scale Transform
-                        double scale = 4.0;
-                        var scaleTransform = new System.Windows.Media.ScaleTransform(scale, scale);
-
-                        // Apply the transform with HighQuality (Fant) interpolation
-                        var upscaledBitmap = new TransformedBitmap(item.ImageSource, scaleTransform);
-                        
-                        // Render it into a visual to force the high-quality scaling mode
-                        var drawingVisual = new System.Windows.Media.DrawingVisual();
-                        using (var drawingContext = drawingVisual.RenderOpen())
-                        {
-                            System.Windows.Media.RenderOptions.SetBitmapScalingMode(drawingVisual, System.Windows.Media.BitmapScalingMode.HighQuality);
-                            drawingContext.DrawImage(item.ImageSource, new Rect(0, 0, item.ImageSource.PixelWidth * scale, item.ImageSource.PixelHeight * scale));
-                        }
-
-                        var renderTarget = new RenderTargetBitmap(
-                            (int)(item.ImageSource.PixelWidth * scale), 
-                            (int)(item.ImageSource.PixelHeight * scale), 
-                            96, 96, System.Windows.Media.PixelFormats.Pbgra32);
-                            
-                        renderTarget.Render(drawingVisual);
-
-                        // Save the result
-                        var encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(renderTarget));
-                        using var fs = File.Create(dlg.FileName);
-                        encoder.Save(fs);
-                        
-                        CustomDialog.Show(this, "Upscaled texture exported successfully!", "Success");
-                    }
-                    catch (Exception ex)
-                    {
-                        CustomDialog.Show(this, $"Failed to export upscaled texture:\n{ex.Message}", "Error");
-                    }
-                }
-            }
-        }
-
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

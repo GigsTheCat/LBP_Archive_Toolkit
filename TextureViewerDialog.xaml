@@ -48,8 +48,7 @@
                                             <Image Source="{Binding ImageSource}" Stretch="Uniform" ToolTip="Right-click to export"/>
                                             <Border.ContextMenu>
                                                 <ContextMenu>
-                                                    <MenuItem Header="Export as PNG (Original)" Click="Export_Click" CommandParameter="{Binding}"/>
-                                                    <MenuItem Header="Export as PNG (4x HQ Upscale)" Click="ExportUpscaled_Click" CommandParameter="{Binding}"/>
+                                                    <MenuItem Header="Export as PNG" Click="Export_Click" CommandParameter="{Binding}"/>
                                                 </ContextMenu>
                                             </Border.ContextMenu>
                                         </Border>
