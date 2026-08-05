@@ -78,8 +78,8 @@ namespace LbpArchiveToolkit.ViewModels
 
         private readonly HashSet<long> _savedLevels = new();
         
-        private readonly Stack<SearchState> _searchHistory = new();
-        private readonly Stack<SearchState> _forwardHistory = new();
+        private readonly List<SearchState> _searchHistory = new();
+        private readonly List<SearchState> _forwardHistory = new();
         private SearchState? _currentSearch = null;
 
         public BulkObservableCollection<LevelItem> ResultsList { get; } = new();

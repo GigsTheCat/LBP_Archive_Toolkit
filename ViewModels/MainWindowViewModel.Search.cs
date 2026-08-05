@@ -87,11 +87,11 @@ namespace LbpArchiveToolkit.ViewModels
                             RequireLocked = _advancedCriteria.RequireLocked,
                             RequireSubLevel = _advancedCriteria.RequireSubLevel,
                             RequireShareable = _advancedCriteria.RequireShareable,
-                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
+                            RequiredLabels = _advancedCriteria.RequiredLabels.Count > 0 ? new List<string>(_advancedCriteria.RequiredLabels) : [],
+                            RequiredTags = _advancedCriteria.RequiredTags.Count > 0 ? new List<string>(_advancedCriteria.RequiredTags) : [],
                             LabelMatchMode = _advancedCriteria.LabelMatchMode,
-                            ExcludedLabels = new List<string>(_advancedCriteria.ExcludedLabels),
-                            ExcludedTags = new List<string>(_advancedCriteria.ExcludedTags),
+                            ExcludedLabels = _advancedCriteria.ExcludedLabels.Count > 0 ? new List<string>(_advancedCriteria.ExcludedLabels) : [],
+                            ExcludedTags = _advancedCriteria.ExcludedTags.Count > 0 ? new List<string>(_advancedCriteria.ExcludedTags) : [],
                             ExcludedCreators = _advancedCriteria.ExcludedCreators,
                             ExcludedContributors = _advancedCriteria.ExcludedContributors,
                             ExcludedObjectContributors = _advancedCriteria.ExcludedObjectContributors,
@@ -232,11 +232,11 @@ namespace LbpArchiveToolkit.ViewModels
                             RequireLocked = _advancedCriteria.RequireLocked,
                             RequireSubLevel = _advancedCriteria.RequireSubLevel,
                             RequireShareable = _advancedCriteria.RequireShareable,
-                            RequiredLabels = new List<string>(_advancedCriteria.RequiredLabels),
-                            RequiredTags = new List<string>(_advancedCriteria.RequiredTags),
+                            RequiredLabels = _advancedCriteria.RequiredLabels.Count > 0 ? new List<string>(_advancedCriteria.RequiredLabels) : [],
+                            RequiredTags = _advancedCriteria.RequiredTags.Count > 0 ? new List<string>(_advancedCriteria.RequiredTags) : [],
                             LabelMatchMode = _advancedCriteria.LabelMatchMode,
-                            ExcludedLabels = new List<string>(_advancedCriteria.ExcludedLabels),
-                            ExcludedTags = new List<string>(_advancedCriteria.ExcludedTags),
+                            ExcludedLabels = _advancedCriteria.ExcludedLabels.Count > 0 ? new List<string>(_advancedCriteria.ExcludedLabels) : [],
+                            ExcludedTags = _advancedCriteria.ExcludedTags.Count > 0 ? new List<string>(_advancedCriteria.ExcludedTags) : [],
                             ExcludedCreators = _advancedCriteria.ExcludedCreators,
                             ExcludedContributors = _advancedCriteria.ExcludedContributors,
                             ExcludedObjectContributors = _advancedCriteria.ExcludedObjectContributors,
@@ -409,7 +409,11 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (IsLevelSearch) _currentSearch.SelectedItem = SelectedLevel; else _currentSearch.SelectedUser = SelectedUser;
                 PushToHistory(_forwardHistory, _currentSearch);
-                ApplySearchState(_searchHistory.Pop());
+                
+                var previousState = _searchHistory[^1];
+                _searchHistory.RemoveAt(_searchHistory.Count - 1);
+                
+                ApplySearchState(previousState);
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -420,19 +424,31 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (IsLevelSearch) _currentSearch.SelectedItem = SelectedLevel; else _currentSearch.SelectedUser = SelectedUser;
                 PushToHistory(_searchHistory, _currentSearch);
-                ApplySearchState(_forwardHistory.Pop());
+                
+                var nextState = _forwardHistory[^1];
+                _forwardHistory.RemoveAt(_forwardHistory.Count - 1);
+                
+                ApplySearchState(nextState);
                 CommandManager.InvalidateRequerySuggested();
             }
         }
 
-        private static void PushToHistory(Stack<SearchState> stack, SearchState state)
+        private static void PushToHistory(List<SearchState> history, SearchState state)
         {
-            stack.Push(state);
-            while (stack.Count > 10)
+            // Free unused heavy blobs from memory
+            if (state.SelectedItem != null)
             {
-                var temp = stack.ToArray();
-                stack.Clear();
-                for (int i = temp.Length - 2; i >= 0; i--) stack.Push(temp[i]);
+                state.SelectedItem.LabelsBlob = null;
+                state.SelectedItem.TagsBlob = null;
+                state.SelectedItem.CommunityLabelsBlob = null;
+                // Force the lazy-loader to re-fetch the blobs from SQLite if the user navigates back to this item
+                state.SelectedItem.Description = null; 
+            }
+
+            history.Add(state);
+            if (history.Count > 10)
+            {
+                history.RemoveAt(0); // Drops the oldest item. Zero new allocations.
             }
         }
 
