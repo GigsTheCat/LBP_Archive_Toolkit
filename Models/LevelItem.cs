@@ -23,9 +23,33 @@ namespace LbpArchiveToolkit.Models
         public int Hearts { get; set; }
         public int Yays { get; set; }
         public string? Genre { get; set; }
-        public string? Hash { get; set; }
-        public string? IconHash { get; set; }
-        public string? Description { get; set; }
+        public string? Hash
+        {
+            get => field;
+            set
+            {
+                field = value;
+                OnPropertyChanged(nameof(Hash));
+            }
+        }
+        public string? IconHash
+        {
+            get => field;
+            set
+            {
+                field = value;
+                OnPropertyChanged(nameof(IconHash));
+            }
+        }
+        public string? Description
+        {
+            get => field;
+            set
+            {
+                field = value;
+                OnPropertyChanged(nameof(Description));
+            }
+        }
         public byte[]? LabelsBlob { get; set; }
         public byte[]? CommunityLabelsBlob { get; set; }
         public byte[]? TagsBlob { get; set; }

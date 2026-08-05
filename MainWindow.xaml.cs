@@ -116,24 +116,18 @@ namespace LbpArchiveToolkit
 
         private async void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(MainWindowViewModel.SelectedLevel))
+            if (e.PropertyName == nameof(MainWindowViewModel.SelectedLevel) || e.PropertyName == nameof(MainWindowViewModel.SelectedLevelDescription))
             {
                 if (_viewModel.SelectedLevel != null)
                 {
                     var selected = _viewModel.SelectedLevel;
-                    
-                    // Show loading state temporarily
-                    txtDescription.Document.Blocks.Clear();
-                    txtDescription.Document.Blocks.Add(new Paragraph(new Run("Loading description...")));
 
                     if (selected.Description == null)
                     {
-                        var dbService = new LbpArchiveToolkit.Services.DatabaseService(LbpArchiveToolkit.Configuration.ConfigManager.DatabasePath);
-                        selected.Description = await dbService.GetLevelDescriptionAsync(selected.Id);
+                        txtDescription.Document.Blocks.Clear();
+                        txtDescription.Document.Blocks.Add(new Paragraph(new Run("Loading description...")));
                     }
-                    
-                    // Prevent overriding if selection changed while fetching
-                    if (_viewModel.SelectedLevel == selected)
+                    else
                     {
                         LbpArchiveToolkit.Utils.RichTextHelper.SetDescriptionRichText(txtDescription, selected.Description, name =>
                         {

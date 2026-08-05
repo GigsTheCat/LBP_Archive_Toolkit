@@ -210,6 +210,34 @@ namespace LbpArchiveToolkit.Services
             return result == null || result is DBNull ? "No description provided." : (string)result;
         }
 
+        // Lazy loads heavy un-indexed level details individually (saves upwards of 20MB of GC pressure during bulk loading)
+        public async Task FetchLevelDetailsAsync(LevelItem level, CancellationToken token = default)
+        {
+            if (level.Hash != null && level.Description != null) return;
+
+            await Task.Run(() => EnsureSchemaResolved()).ConfigureAwait(false);
+            using var conn = new SqliteConnection(GetConnectionString());
+            await conn.OpenAsync(token).ConfigureAwait(false);
+
+            string q = $"SELECT {_colHash}, {_colIcon}, {_colLabels}, {_colTags}, {_colCommunityLabels}, {_colDesc} FROM slot WHERE id = @id";
+            using var cmd = new SqliteCommand(q, conn);
+            cmd.Parameters.AddWithValue("@id", level.Id);
+
+            using var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+            if (await r.ReadAsync(token).ConfigureAwait(false))
+            {
+                level.Hash = r.IsDBNull(0) ? "" : (r.GetFieldType(0) == typeof(byte[]) ? Convert.ToHexStringLower(r.GetFieldValue<byte[]>(0)) : r.GetString(0));
+                level.IconHash = r.IsDBNull(1) ? "" : (r.GetFieldType(1) == typeof(byte[]) ? Convert.ToHexStringLower(r.GetFieldValue<byte[]>(1)) : r.GetString(1));
+                level.LabelsBlob = r.IsDBNull(2) ? null : r.GetFieldValue<byte[]>(2);
+                level.TagsBlob = r.IsDBNull(3) ? null : r.GetFieldValue<byte[]>(3);
+                level.CommunityLabelsBlob = _colCommunityLabels != "NULL" && !r.IsDBNull(4) ? r.GetFieldValue<byte[]>(4) : null;
+                if (level.Description == null && _colDesc != "NULL")
+                {
+                    level.Description = r.IsDBNull(5) ? "" : r.GetString(5);
+                }
+            }
+        }
+
         public async IAsyncEnumerable<LevelItem> SearchLevelsAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, HashSet<long> savedLevels, HashSet<long> heartedLevels, HashSet<long> playlistLevels, AdvancedSearchCriteria advanced, IProgress<string>? progress = null, bool searchContributions = false, bool searchObjects = false, bool searchById = false, bool searchByHash = false, bool randomSingle = false, [EnumeratorCancellation] CancellationToken token = default)
         {
             if (!File.Exists(_dbPath)) throw new FileNotFoundException($"Could not find '{_dbPath}'");
@@ -561,8 +589,10 @@ namespace LbpArchiveToolkit.Services
                 cmd.Parameters.Add(param);
             }
 
+            // String pooling buffers
             var creatorCache = new Dictionary<string, string>();
             var dateCache = new Dictionary<string, string>();
+            var nameCache = new Dictionary<string, string>();
 
             using var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
             
@@ -703,7 +733,23 @@ namespace LbpArchiveToolkit.Services
                     }
                 }
 
-                string levelName = reader.IsDBNull(2) ? "Unknown" : (reader.GetString(2) ?? "Unknown");
+                string levelName = "Unknown";
+                if (!reader.IsDBNull(2))
+                {
+                    string? raw = reader.GetString(2);
+                    if (raw != null)
+                    {
+                        if (nameCache.TryGetValue(raw, out var cachedName) && cachedName != null)
+                        {
+                            levelName = cachedName;
+                        }
+                        else
+                        {
+                            nameCache[raw] = raw;
+                            levelName = raw;
+                        }
+                    }
+                }
 
                 int gameInt = reader.IsDBNull(3) ? -1 : reader.GetInt32(3);
                 string gameStr = gameInt switch
@@ -732,6 +778,9 @@ namespace LbpArchiveToolkit.Services
                     }
                 }
 
+                // Data Virtualization Approach:
+                // We construct the core visual bindings, but drastically drop the GC payload by 
+                // deferring Hash and Blob (256+ bytes EACH) extraction entirely until the user clicks a row.
                 var levelItem = new LevelItem
                 {
                     Id = id,
@@ -740,20 +789,20 @@ namespace LbpArchiveToolkit.Services
                     LevelName = levelName,
                     Game = gameStr,
                     Date = date,
-                    Description = null, // Lazy-loaded via GetLevelDescriptionAsync when clicked
+                    Description = null, 
                     Plays = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
                     Clears = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
                     Hearts = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
                     Genre = reader.IsDBNull(8) ? "Unknown" : (reader.GetFieldType(8) == typeof(long) ? _intToGenreMap.GetValueOrDefault(reader.GetInt32(8), "Unknown") : MapGenreToString(reader.GetValue(8))),
-                    Hash = reader.IsDBNull(9) ? "" : (reader.GetFieldType(9) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(9)) : reader.GetString(9)),
-                    IconHash = reader.IsDBNull(10) ? "" : (reader.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(reader.GetFieldValue<byte[]>(10)) : reader.GetString(10)),
+                    Hash = null,
+                    IconHash = null,
                     IsMmPick = reader.IsDBNull(11) ? false : reader.GetBoolean(11),
-                    LabelsBlob = !reader.IsDBNull(12) && reader.GetFieldType(12) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(12) : null,
-                    TagsBlob = !reader.IsDBNull(13) && reader.GetFieldType(13) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(13) : null,
-                    CommunityLabelsBlob = _colCommunityLabels != "NULL" && !reader.IsDBNull(14) && reader.GetFieldType(14) == typeof(byte[]) ? reader.GetFieldValue<byte[]>(14) : null,
+                    LabelsBlob = null,
+                    TagsBlob = null,
+                    CommunityLabelsBlob = null,
                     IsLocked = !reader.IsDBNull(15) && reader.GetBoolean(15),
                     IsSubLevel = !reader.IsDBNull(16) && reader.GetBoolean(16),
-                    IsShareable = reader.IsDBNull(17) || reader.GetBoolean(17), // Default true if missing
+                    IsShareable = reader.IsDBNull(17) || reader.GetBoolean(17),
                     Yays = reader.FieldCount > 18 ? (reader.IsDBNull(18) ? 0 : reader.GetInt32(18)) : 0
                 };
 

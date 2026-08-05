@@ -81,6 +81,13 @@ namespace LbpArchiveToolkit.ViewModels
             var selected = SelectedLevel;
             if (selected != null)
             {
+                if (selected.Hash == null || selected.Description == null)
+                {
+                    var dbService = new DatabaseService(ConfigManager.DatabasePath);
+                    await dbService.FetchLevelDetailsAsync(selected);
+                    HeartedLevelsManager.Save();
+                }
+
                 LevelTitle = selected.LevelName ?? "";
                 LevelDescription = selected.Description ?? "";
                 LevelCreator = $"By: {selected.Creator}  |  Game: {selected.Game}";

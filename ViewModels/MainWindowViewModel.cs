@@ -289,6 +289,8 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
+        public string? SelectedLevelDescription => SelectedLevel?.Description;
+
         #endregion
 
         private AdvancedSearchCriteria _advancedCriteria = new();

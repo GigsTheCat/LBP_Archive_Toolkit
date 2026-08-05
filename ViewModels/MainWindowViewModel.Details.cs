@@ -12,7 +12,7 @@ namespace LbpArchiveToolkit.ViewModels
 {
     public partial class MainWindowViewModel
     {
-        private void UpdateLevelDetails()
+        private async void UpdateLevelDetails()
         {
             if (SelectedLevel == null)
             {
@@ -30,17 +30,31 @@ namespace LbpArchiveToolkit.ViewModels
                 return;
             }
 
-            MmPickVisibility = SelectedLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
-            IconEllipseStroke = SelectedLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
-            LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? Visibility.Visible : Visibility.Hidden;
-            IconLockVisibility = SelectedLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
-            IconScale = SelectedLevel.IsSubLevel ? 0.85 : 1.0;
-            HeartLevelButtonText = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
+            var currentLevel = SelectedLevel;
+            long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
+
+            MmPickVisibility = currentLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
+            IconEllipseStroke = currentLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
+            LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(currentLevel.Id) ? Visibility.Visible : Visibility.Hidden;
+            IconLockVisibility = currentLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
+            IconScale = currentLevel.IsSubLevel ? 0.85 : 1.0;
+            HeartLevelButtonText = HeartedLevelsManager.IsHearted(currentLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
+
+            if (currentLevel.Hash == null || currentLevel.Description == null)
+            {
+                await _dbService.FetchLevelDetailsAsync(currentLevel);
+            }
+
+            if (SelectedLevel != currentLevel) return;
+
+            OnPropertyChanged(nameof(SelectedLevelDescription));
+            OnPropertyChanged(nameof(SelectedLevel));
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
 
             LevelTags.Clear();
-            var labels = SelectedLevel.LabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(SelectedLevel.LabelsBlob) : new List<string>();
-            var commLabels = SelectedLevel.CommunityLabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(SelectedLevel.CommunityLabelsBlob) : new List<string>();
-            var tags = SelectedLevel.TagsBlob != null ? LbpArchiveToolkit.Utils.TagParser.ParseTagNames(SelectedLevel.TagsBlob) : new List<string>();
+            var labels = currentLevel.LabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.LabelsBlob) : new List<string>();
+            var commLabels = currentLevel.CommunityLabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.CommunityLabelsBlob) : new List<string>();
+            var tags = currentLevel.TagsBlob != null ? LbpArchiveToolkit.Utils.TagParser.ParseTagNames(currentLevel.TagsBlob) : new List<string>();
 
             bool hasAuthorLabels = labels.Count > 0;
             bool hasCommLabels = commLabels.Count > 0 && HasCommunityLabels;
@@ -90,11 +104,9 @@ namespace LbpArchiveToolkit.ViewModels
                 }
             }
             
-            long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
-
             ObjectOriginVisibility = Visibility.Collapsed;
-            _ = LoadIconAsync(SelectedLevel.IconHash, currentRequestId);
-            _ = CheckIfObjectOriginAsync(SelectedLevel.Id, currentRequestId);
+            _ = LoadIconAsync(currentLevel.IconHash, currentRequestId);
+            _ = CheckIfObjectOriginAsync(currentLevel.Id, currentRequestId);
             
             OnPropertyChanged(nameof(LevelCreatorText));
             OnPropertyChanged(nameof(LevelStatsText));
@@ -145,10 +157,15 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private void ToggleLevelHeart()
+        private async void ToggleLevelHeart()
         {
             if (SelectedLevel != null)
             {
+                if (SelectedLevel.Hash == null || SelectedLevel.Description == null)
+                {
+                    await _dbService.FetchLevelDetailsAsync(SelectedLevel);
+                }
+
                 if (HeartedLevelsManager.IsHearted(SelectedLevel.Id)) HeartedLevelsManager.Remove(SelectedLevel.Id);
                 else HeartedLevelsManager.Add(SelectedLevel);
                 

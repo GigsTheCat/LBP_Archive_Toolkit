@@ -177,10 +177,14 @@ namespace LbpArchiveToolkit.ViewModels
                 _viewService.OpenPlaylists();
                 RefreshHeartStates();
             });
-            AddToPlaylistCommand = new RelayCommand(_ => 
+            AddToPlaylistCommand = new RelayCommand(async _ => 
             {
                 if (SelectedLevel != null)
                 {
+                    if (SelectedLevel.Hash == null || SelectedLevel.Description == null)
+                    {
+                        await _dbService.FetchLevelDetailsAsync(SelectedLevel);
+                    }
                     _viewService.ShowAddToPlaylistDialog(SelectedLevel);
                     RefreshHeartStates();
                 }

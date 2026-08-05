@@ -100,6 +100,13 @@ namespace LbpArchiveToolkit.ViewModels
             var selected = SelectedLevel;
             if (selected != null)
             {
+                if (selected.Hash == null || selected.Description == null)
+                {
+                    var dbService = new DatabaseService(ConfigManager.DatabasePath);
+                    await dbService.FetchLevelDetailsAsync(selected);
+                    PlaylistsManager.Save();
+                }
+
                 LevelTitle = selected.LevelName ?? "Unnamed Level";
                 LevelCreator = $"By: {selected.Creator ?? "Unknown"}  |  Game: {selected.Game ?? "Unknown"}";
                 LevelDescription = selected.Description ?? "No description provided.";

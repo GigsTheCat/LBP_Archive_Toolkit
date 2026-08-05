@@ -119,11 +119,11 @@ namespace LbpArchiveToolkit.Services
 
         public static async Task<ExtractionResult> RunExtractionProcessAsync(LevelItem lvl, string dbPath, string backupDir, HttpClient client, ExtractionConfig config, CancellationToken externalToken, IProgress<(int processed, int total, string message)>? progress = null)
         {
+            var slotInfo = CreateSlotInfo(lvl);
+            PopulateSlotInfoFromDatabase(lvl.Id, dbPath, slotInfo, lvl);
+
             if (string.IsNullOrEmpty(lvl.Hash)) return new ExtractionResult.Error("Level hash is missing or empty.");
             if (!IsValidHash(lvl.Hash)) return new ExtractionResult.Error("Level hash contains invalid path characters.");
-
-            var slotInfo = CreateSlotInfo(lvl);
-            PopulateSlotInfoFromDatabase(lvl.Id, dbPath, slotInfo);
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
             var token = cts.Token;
@@ -271,14 +271,14 @@ namespace LbpArchiveToolkit.Services
             }
         }
 
-        private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo)
+        private static void PopulateSlotInfoFromDatabase(long levelId, string dbPath, SlotInfo slotInfo, LevelItem? lvl = null)
         {
             try
             {
                 var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
                 conn.Open();
-                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels, description FROM slot WHERE id = @id";
+                string q = "SELECT minPlayers, maxPlayers, levelType, shareable, initiallyLocked, background, isSubLevel, isAdventurePlanet, authorLabels, description, rootLevel, icon FROM slot WHERE id = @id";
                 using var cmd = new SqliteCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", levelId);
 
@@ -304,7 +304,34 @@ namespace LbpArchiveToolkit.Services
                     try { if (!r.IsDBNull(6)) slotInfo.IsSubLevel = Convert.ToBoolean(r.GetValue(6)); } catch { }
                     try { if (!r.IsDBNull(7)) slotInfo.IsAdventurePlanet = Convert.ToBoolean(r.GetValue(7)); } catch { }
                     try { if (!r.IsDBNull(8)) slotInfo.Labels = LabelParser.ParseLabelHashes(r.GetFieldValue<byte[]>(8)); } catch { }
-                    try { if (!r.IsDBNull(9)) slotInfo.Description = r.GetString(9); } catch { }
+                    try 
+                    { 
+                        if (!r.IsDBNull(9)) 
+                        { 
+                            slotInfo.Description = r.GetString(9); 
+                            if (lvl != null && string.IsNullOrEmpty(lvl.Description)) lvl.Description = slotInfo.Description;
+                        } 
+                    } catch { }
+                    try
+                    {
+                        if (!r.IsDBNull(10))
+                        {
+                            string rootHash = r.GetFieldType(10) == typeof(byte[]) ? Convert.ToHexStringLower(r.GetFieldValue<byte[]>(10)) : r.GetString(10);
+                            slotInfo.RootLevelHash = rootHash;
+                            if (lvl != null) lvl.Hash = rootHash;
+                        }
+                    }
+                    catch { }
+                    try
+                    {
+                        if (!r.IsDBNull(11))
+                        {
+                            string iconHash = r.GetFieldType(11) == typeof(byte[]) ? Convert.ToHexStringLower(r.GetFieldValue<byte[]>(11)) : r.GetString(11);
+                            slotInfo.IconHash = iconHash;
+                            if (lvl != null) lvl.IconHash = iconHash;
+                        }
+                    }
+                    catch { }
                 }
             }
             catch (Exception ex)
