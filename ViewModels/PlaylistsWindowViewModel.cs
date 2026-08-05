@@ -248,57 +248,95 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedPlaylist != null)
             {
-                var dlg = new SaveFileDialog
+                try
                 {
-                    Filter = "LBP Playlist (*.lbpplaylist)|*.lbpplaylist",
-                    Title = "Export Playlist",
-                    FileName = SelectedPlaylist.Name + ".lbpplaylist"
-                };
-
-                if (dlg.ShowDialog() == true)
+                    using var ms = new MemoryStream();
+                    using (var deflate = new DeflateStream(ms, CompressionLevel.Optimal, true))
+                    using (var writer = new BinaryWriter(deflate, System.Text.Encoding.UTF8))
+                    {
+                        writer.Write((byte)1); // Version Header
+                        writer.Write(SelectedPlaylist.Name ?? "My Playlist");
+                        writer.Write(SelectedPlaylist.Levels.Count);
+                        foreach (var lvl in SelectedPlaylist.Levels)
+                        {
+                            writer.Write(lvl.Id);
+                        }
+                    }
+                    
+                    string base64 = Convert.ToBase64String(ms.ToArray());
+                    string code = "LBP-" + base64.Replace("+", "-").Replace("/", "_").TrimEnd('=');
+                    Clipboard.SetText(code);
+                    _viewService.Alert("Share Code generated and copied to clipboard!", "Export Complete");
+                }
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        var options = new JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = AppJsonContext.Default };
-                        string json = JsonSerializer.Serialize(SelectedPlaylist, options);
-                        File.WriteAllText(dlg.FileName, json);
-                        _viewService.Alert("Playlist exported successfully.", "Export Complete");
-                    }
-                    catch (Exception ex)
-                    {
-                        _viewService.Alert($"Failed to export playlist: {ex.Message}", "Error");
-                    }
+                    _viewService.Alert($"Failed to generate share code: {ex.Message}", "Error");
                 }
             }
         }
 
-        private void ExecuteImport()
+        private async void ExecuteImport()
         {
-            var dlg = new OpenFileDialog
-            {
-                Filter = "LBP Playlist (*.lbpplaylist)|*.lbpplaylist",
-                Title = "Import Playlist"
-            };
-
-            if (dlg.ShowDialog() == true)
+            if (CustomDialog.ShowInput(_ownerWindow, "Paste a Playlist Share Code here:", "Import Playlist", "", out string code))
             {
                 try
                 {
-                    string json = File.ReadAllText(dlg.FileName);
-                    var options = new JsonSerializerOptions { TypeInfoResolver = AppJsonContext.Default };
-                    var playlist = JsonSerializer.Deserialize<Playlist>(json, options);
-
-                    if (playlist != null)
+                    if (string.IsNullOrWhiteSpace(code)) return;
+                    if (code.StartsWith("LBP-")) code = code.Substring(4);
+                    code = code.Replace("-", "+").Replace("_", "/");
+                    switch (code.Length % 4)
                     {
-                        playlist.Id = Guid.NewGuid().ToString(); // Assign new ID to prevent conflicts
-                        PlaylistsManager.AddPlaylist(playlist);
-                        Playlists.Add(playlist);
-                        SelectedPlaylist = playlist;
+                        case 2: code += "=="; break;
+                        case 3: code += "="; break;
                     }
+
+                    byte[] bytes = Convert.FromBase64String(code);
+                    
+                    using var ms = new MemoryStream(bytes);
+                    using var deflate = new DeflateStream(ms, CompressionMode.Decompress);
+                    using var reader = new BinaryReader(deflate, System.Text.Encoding.UTF8);
+
+                    byte version = reader.ReadByte();
+                    if (version != 1) throw new Exception("Unsupported share code version.");
+
+                    string name = reader.ReadString();
+                    int count = reader.ReadInt32();
+                    
+                    var newPlaylist = new Playlist { Id = Guid.NewGuid().ToString(), Name = name };
+                    var dbService = new DatabaseService(ConfigManager.DatabasePath);
+                    
+                    var fetchedLevels = new List<LevelItem>();
+                    for (int i = 0; i < count; i++)
+                    {
+                        long id = reader.ReadInt64();
+                        var results = new List<LevelItem>();
+                        await foreach (var lvl in dbService.SearchLevelsAsync(id.ToString(), false, false, 0, "All Genres", "1", new HashSet<long>(), new HashSet<long>(), new HashSet<long>(), new AdvancedSearchCriteria(), null, false, false, true, false, false, CancellationToken.None))
+                        {
+                            results.Add(lvl);
+                        }
+                        
+                        if (results.Count > 0)
+                        {
+                            fetchedLevels.Add(results[0]);
+                        }
+                    }
+
+                    if (fetchedLevels.Count == 0)
+                    {
+                        _viewService.Alert("No valid levels could be found in the database for this share code.", "Import Failed");
+                        return;
+                    }
+
+                    newPlaylist.Levels.AddRange(fetchedLevels);
+                    PlaylistsManager.AddPlaylist(newPlaylist);
+                    Playlists.Add(newPlaylist);
+                    SelectedPlaylist = newPlaylist;
+                    
+                    _viewService.Alert($"Successfully imported playlist '{newPlaylist.Name}' with {fetchedLevels.Count} level(s)!", "Success");
                 }
                 catch (Exception ex)
                 {
-                    _viewService.Alert($"Failed to import playlist: {ex.Message}", "Error");
+                    _viewService.Alert($"Failed to import share code. The code may be invalid or corrupted.\nError: {ex.Message}", "Error");
                 }
             }
         }

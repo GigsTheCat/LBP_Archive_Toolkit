@@ -68,6 +68,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public ICommand BrowseDbCommand { get; }
         public ICommand BrowseBackupCommand { get; }
+        public ICommand DetectRpcs3Command { get; }
         public ICommand BrowseLocalArchiveCommand { get; }
         public ICommand ForgetLevelsCommand { get; }
         public ICommand ResetDefaultsCommand { get; }
@@ -80,6 +81,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             BrowseDbCommand = new RelayCommand(_ => ExecuteBrowseDb());
             BrowseBackupCommand = new RelayCommand(_ => ExecuteBrowseBackup());
+            DetectRpcs3Command = new RelayCommand(_ => ExecuteDetectRpcs3());
             BrowseLocalArchiveCommand = new RelayCommand(_ => ExecuteBrowseLocalArchive());
             ForgetLevelsCommand = new RelayCommand(_ => ExecuteForgetLevels());
             ResetDefaultsCommand = new RelayCommand(_ => ExecuteResetDefaults());
@@ -201,6 +203,87 @@ namespace LbpArchiveToolkit.ViewModels
         {
             var dialog = new OpenFolderDialog { Title = "Select Backup Directory" };
             if (dialog.ShowDialog() == true) BackupDirectory = dialog.FolderName;
+        }
+
+        private void ExecuteDetectRpcs3()
+        {
+            // 1. Primary Strategy: Check if RPCS3 is actively running
+            try
+            {
+                var processes = Process.GetProcessesByName("rpcs3");
+                foreach (var process in processes)
+                {
+                    string? exePath = process.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(exePath))
+                    {
+                        string? baseDir = Path.GetDirectoryName(exePath);
+                        if (!string.IsNullOrEmpty(baseDir) && TrySetRpcs3BackupDir(baseDir))
+                        {
+                            return; // Found the active instance!
+                        }
+                    }
+                }
+            }
+            catch { /* Ignore access denied exceptions if running without admin privileges */ }
+
+            // 2. Fallback Strategy: Scan common installation drives/folders
+            var basePaths = new List<string>();
+            foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady))
+            {
+                basePaths.Add(d.RootDirectory.FullName);
+                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Games"));
+                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Emulators"));
+                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files"));
+                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files (x86)"));
+            }
+            basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+
+            foreach (var basePath in basePaths)
+            {
+                if (!Directory.Exists(basePath)) continue;
+
+                try
+                {
+                    // Find any folder containing "rpcs3" (case insensitive)
+                    var rpcs3Dirs = Directory.GetDirectories(basePath, "*rpcs3*", SearchOption.TopDirectoryOnly);
+                    foreach (var rpcs3Dir in rpcs3Dirs)
+                    {
+                        if (TrySetRpcs3BackupDir(rpcs3Dir))
+                        {
+                            return; // Found a valid installation!
+                        }
+                    }
+                }
+                catch { /* Ignore access denied exceptions on root drives */ }
+            }
+
+            _viewService.Alert("Could not automatically find an RPCS3 installation. Please browse manually.", "Not Found");
+        }
+
+        private bool TrySetRpcs3BackupDir(string rpcs3Dir)
+        {
+            try
+            {
+                string homePath = Path.Combine(rpcs3Dir, "dev_hdd0", "home");
+                if (Directory.Exists(homePath))
+                {
+                    foreach (var userDir in Directory.GetDirectories(homePath))
+                    {
+                        string savedata = Path.Combine(userDir, "savedata");
+                        if (Directory.Exists(savedata))
+                        {
+                            BackupDirectory = savedata;
+                            _viewService.Alert($"Found RPCS3 save directory at:\n{savedata}", "Success");
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         private void ExecuteBrowseLocalArchive()

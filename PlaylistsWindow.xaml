@@ -126,8 +126,8 @@
                                             <ColumnDefinition Width="5"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="IMPORT" Style="{DynamicResource BtnSecondary}" Padding="6" Command="{Binding ImportCommand}"/>
-                                        <Button Grid.Column="2" Content="EXPORT" Style="{DynamicResource BtnSecondary}" Padding="6" Command="{Binding ExportCommand}"/>
+                                        <Button Grid.Column="0" Content="IMPORT SHARE CODE" Style="{DynamicResource BtnSecondary}" Padding="6" FontSize="10" Command="{Binding ImportCommand}"/>
+                                        <Button Grid.Column="2" Content="COPY SHARE CODE" Style="{DynamicResource BtnSecondary}" Padding="6" FontSize="10" Command="{Binding ExportCommand}"/>
                                     </Grid>
                                     <Button Content="DELETE" Style="{DynamicResource BtnSecondary}" Padding="6" Margin="0,0,0,15" Command="{Binding DeleteCommand}"/>
 

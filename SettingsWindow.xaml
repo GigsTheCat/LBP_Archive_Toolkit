@@ -179,7 +179,10 @@
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Backup Directory:" Style="{StaticResource LabelText}"/>
                                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BackupDirectory, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,10,6"/>
-                                    <Button Grid.Row="1" Grid.Column="2" Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Margin="0,6,0,6" Padding="15,6" Command="{Binding BrowseBackupCommand}"/>
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,6,0,6">
+                                        <Button Content="Browse" Style="{DynamicResource BubbleButton}" Background="{DynamicResource BorderSubtle}" Padding="15,6" Margin="0,0,5,0" Command="{Binding BrowseBackupCommand}"/>
+                                        <Button Content="Detect RPCS3" Style="{DynamicResource BubbleButton}" Background="{DynamicResource LbpCyan}" Foreground="#002D3D" Padding="15,6" Command="{Binding DetectRpcs3Command}"/>
+                                    </StackPanel>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Local Archive Path:" Style="{StaticResource LabelText}"/>
                                     <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LocalArchivePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,10,6"/>

@@ -49,7 +49,7 @@ namespace LbpArchiveToolkit.Utils
         private const byte FMT_DXT5 = 0x88;
         private const byte FMT_X8R8G8B8 = 0x89;
 
-        public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData, int dataLength = -1)
+        public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData, int dataLength = -1, bool scaleAndCenter = true)
         {
             if (dataLength == -1) dataLength = resourceData.Length;
             if (resourceData == null || dataLength < 4) return null;
@@ -57,12 +57,12 @@ namespace LbpArchiveToolkit.Utils
             uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
             if (magic == MAGIC_PNG || (magic & MAGIC_JPEG_MASK) == MAGIC_JPEG)
             {
-                return CenterWpfImageToBitmap(resourceData, dataLength);
+                return scaleAndCenter ? CenterWpfImageToBitmap(resourceData, dataLength) : LoadWpfImageRaw(resourceData, dataLength);
             }
             if (dataLength < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
             if (magic == MAGIC_DDS)
             {
-                return DecodeDdsToBitmapCentered(resourceData, dataLength);
+                return DecodeDdsToBitmapCentered(resourceData, dataLength, scaleAndCenter);
             }
 
             using var ms = new MemoryStream(resourceData, 0, dataLength);
@@ -167,11 +167,11 @@ namespace LbpArchiveToolkit.Utils
                 {
                     if (totalDecompSize >= 128 && finalData[0] == 'D' && finalData[1] == 'D' && finalData[2] == 'S' && finalData[3] == ' ')
                     {
-                        return DecodeDdsToBitmapCentered(finalData, (int)totalDecompSize);
+                        return DecodeDdsToBitmapCentered(finalData, (int)totalDecompSize, scaleAndCenter);
                     }
                     else
                     {
-                        return CenterWpfImageToBitmap(finalData, (int)totalDecompSize);
+                        return scaleAndCenter ? CenterWpfImageToBitmap(finalData, (int)totalDecompSize) : LoadWpfImageRaw(finalData, (int)totalDecompSize);
                     }
                 }
                 else // GTF files are raw console textures that need unswizzling
@@ -225,7 +225,7 @@ namespace LbpArchiveToolkit.Utils
                 if (width == 0 || height == 0) return null;
 
                 bgraData = DecodeFormatToBgra32(finalData, 0, (int)totalDecompSize, format, width, height);
-                return CenterBgraToBitmap(bgraData, width, height);
+                return scaleAndCenter ? CenterBgraToBitmap(bgraData, width, height) : CreateBitmapSource(bgraData, width, height);
             }
             finally
             {
@@ -236,7 +236,7 @@ namespace LbpArchiveToolkit.Utils
             }
         }
 
-        private static BitmapSource? DecodeDdsToBitmapCentered(byte[] finalData, int dataLength)
+        private static BitmapSource? DecodeDdsToBitmapCentered(byte[] finalData, int dataLength, bool scaleAndCenter = true)
         {
             if (dataLength < 12) return null;
 
@@ -275,7 +275,7 @@ namespace LbpArchiveToolkit.Utils
             try
             {
                 bgraData = DecodeFormatToBgra32(finalData, dataOffset, dataLength - dataOffset, format, width, height);
-                return CenterBgraToBitmap(bgraData, width, height);
+                return scaleAndCenter ? CenterBgraToBitmap(bgraData, width, height) : CreateBitmapSource(bgraData, width, height);
             }
             finally
             {
@@ -763,6 +763,22 @@ namespace LbpArchiveToolkit.Utils
         {
             if (srcWidth == 0 || srcHeight == 0) return null;
             return ScaleAndCenterBgraToBitmap(bgraData, srcWidth, srcHeight);
+        }
+
+        private static BitmapSource? LoadWpfImageRaw(byte[] imageData, int length)
+        {
+            try
+            {
+                using var ms = new MemoryStream(imageData, 0, length);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = ms;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch { return null; }
         }
 
         private static BitmapSource? CenterWpfImageToBitmap(byte[] imageData, int length = -1)

@@ -57,6 +57,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private CancellationTokenSource? _sltCts;
 
+        public ICommand ViewTexturesCommand { get; }
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
         public ICommand MoveCommand { get; }
@@ -69,6 +70,7 @@ namespace LbpArchiveToolkit.ViewModels
             IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
             OriginalIconFill = IconFill;
 
+            ViewTexturesCommand = new RelayCommand(ExecuteViewTextures, CanExecuteEdit);
             EditCommand = new RelayCommand(ExecuteEdit, CanExecuteEdit);
             DeleteCommand = new RelayCommand(ExecuteDelete, CanExecuteMultipleAction);
             MoveCommand = new RelayCommand(ExecuteMove, CanExecuteMultipleAction);
@@ -456,6 +458,19 @@ namespace LbpArchiveToolkit.ViewModels
                     if (movedCount > 0) _viewService.Alert($"Successfully moved {movedCount} backup(s) to the new location.", "Move Successful");
                     if (BackupList.Any()) SelectedBackup = BackupList[0];
                 }
+            }
+        }
+
+        private void ExecuteViewTextures(object? parameter)
+        {
+            if (SelectedBackup != null && SelectedBackup.FullPath != null)
+            {
+                var owner = Application.Current.Windows.OfType<BackupManagerWindow>().FirstOrDefault();
+                var dialog = new TextureViewerDialog(SelectedBackup.FullPath, SelectedBackup.LevelName ?? "Level")
+                {
+                    Owner = owner
+                };
+                dialog.ShowDialog();
             }
         }
 

@@ -153,23 +153,28 @@
                                 </DockPanel>
 
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
-                                    <!-- Responsive Grid (Allows buttons to automatically shrink/grow to match card padding) -->
                                     <Grid Margin="0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="8"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="10"/> <!-- Spacing gap -->
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="10"/>
-                                            <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <Button Grid.Column="0" Content="EDIT INFO" Style="{DynamicResource BtnActionBlue}" 
+                                        <Button Grid.Row="0" Grid.Column="0" Content="VIEW ASSETS" Style="{DynamicResource BtnActionBlue}" FontSize="11"
+                                                Command="{Binding ViewTexturesCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
+                                        
+                                        <Button Grid.Row="0" Grid.Column="2" Content="EDIT INFO" Style="{DynamicResource BtnActionBlue}" FontSize="11"
                                                 Command="{Binding EditCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
                                         
-                                        <Button Grid.Column="2" Content="MOVE" Style="{DynamicResource BtnActionBlue}" 
+                                        <Button Grid.Row="2" Grid.Column="0" Content="MOVE" Style="{DynamicResource BtnActionBlue}" FontSize="11"
                                                 Command="{Binding MoveCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
                                         
-                                        <Button Grid.Column="4" Content="DELETE" Style="{DynamicResource BtnDelete}" 
+                                        <Button Grid.Row="2" Grid.Column="2" Content="DELETE" Style="{DynamicResource BtnDelete}" FontSize="11"
                                                 Command="{Binding DeleteCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvBackups}"/>
                                     </Grid>
                                 </StackPanel>
