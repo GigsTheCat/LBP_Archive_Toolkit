@@ -36,11 +36,12 @@ namespace LbpArchiveToolkit.Services
         private static string _lastConfiguredServer = string.Empty;
         private static readonly System.Threading.Lock _limiterLock = new();
 
-        private static readonly ConcurrentDictionary<string, Func<string, string, string, string, string>> _layoutBuilderCache = new();
+        private enum ArchiveLayout { Flat, Dry23r, Dry5Nested, Dry5Flat }
+        private static readonly ConcurrentDictionary<string, ArchiveLayout> _layoutCache = new();
 
         public static void CleanupLocalArchives()
         {
-            _layoutBuilderCache.Clear();
+            _layoutCache.Clear();
             _globalRateLimitTask = Task.CompletedTask;
 
             lock (_limiterLock)
@@ -60,7 +61,7 @@ namespace LbpArchiveToolkit.Services
             return !hash.AsSpan().ContainsAnyExcept(HexChars);
         }
 
-        private static Func<string, string, string, string, string> DetermineLayoutRobust(string baseDir)
+        private static ArchiveLayout DetermineLayoutRobust(string baseDir)
         {
             try
             {
@@ -69,19 +70,19 @@ namespace LbpArchiveToolkit.Services
                     string name = Path.GetFileName(dir).ToLowerInvariant();
 
                     if (name.StartsWith("dry23r"))
-                        return static (b, p_1, p_2, h) => Path.Combine(b, $"dry23r{p_1[0]}", $"dry{p_1}", p_1, p_2, h);
+                        return ArchiveLayout.Dry23r;
 
                     if (name.StartsWith("dry") && name.Length == 5)
                     {
                         string p1 = name.Substring(3, 2);
                         if (Directory.Exists(Path.Combine(dir, p1)))
-                            return static (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_1, p_2, h);
+                            return ArchiveLayout.Dry5Nested;
                         else
-                            return static (b, p_1, p_2, h) => Path.Combine(b, $"dry{p_1}", p_2, h);
+                            return ArchiveLayout.Dry5Flat;
                     }
 
                     if (name.Length == 2 && char.IsAsciiHexDigit(name[0]) && char.IsAsciiHexDigit(name[1]))
-                        return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
+                        return ArchiveLayout.Flat;
                 }
             }
             catch (Exception ex)
@@ -89,23 +90,41 @@ namespace LbpArchiveToolkit.Services
                 LbpArchiveToolkit.LogManager.Log("AssetDownloader.DetermineLayoutRobust", ex);
             }
 
-            return static (b, p_1, p_2, h) => Path.Combine(b, p_1, p_2, h);
+            return ArchiveLayout.Flat;
         }
 
-        public static async Task<byte[]?> ExtractLocalArchiveToMemoryAsync(string hash, string baseDir, CancellationToken token)
+        public static async ValueTask<byte[]?> ExtractLocalArchiveToMemoryAsync(string hash, string baseDir, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(baseDir) || !IsValidHash(hash) || hash.Length < 4) return null;
 
+            var layout = _layoutCache.GetOrAdd(baseDir, DetermineLayoutRobust);
+
             string part1 = hash.Substring(0, 2);
             string part2 = hash.Substring(2, 2);
+            string exactPath;
 
-            var pathBuilder = _layoutBuilderCache.GetOrAdd(baseDir, DetermineLayoutRobust);
+            switch (layout)
+            {
+                case ArchiveLayout.Dry23r:
+                    exactPath = Path.Combine(baseDir, $"dry23r{part1[0]}", $"dry{part1}", part1, part2, hash);
+                    break;
+                case ArchiveLayout.Dry5Nested:
+                    exactPath = Path.Combine(baseDir, $"dry{part1}", part1, part2, hash);
+                    break;
+                case ArchiveLayout.Dry5Flat:
+                    exactPath = Path.Combine(baseDir, $"dry{part1}", part2, hash);
+                    break;
+                case ArchiveLayout.Flat:
+                default:
+                    exactPath = Path.Combine(baseDir, part1, part2, hash);
+                    break;
+            }
 
             try
             {
-                string exactPath = pathBuilder(baseDir, part1, part2, hash);
                 if (File.Exists(exactPath)) return await File.ReadAllBytesAsync(exactPath, token).ConfigureAwait(false);
 
+                // Fallback direct check if the layout was incorrectly mapped for this specific asset
                 string flatPath = Path.Combine(baseDir, part1, part2, hash);
                 if (exactPath != flatPath && File.Exists(flatPath)) return await File.ReadAllBytesAsync(flatPath, token).ConfigureAwait(false);
             }
@@ -353,7 +372,7 @@ namespace LbpArchiveToolkit.Services
             };
         }
 
-        private static async Task<(bool success, byte[]? data)> FetchFileWithRetriesAsync(string currentHash, DownloadContext ctx)
+        private static async ValueTask<(bool success, byte[]? data)> FetchFileWithRetriesAsync(string currentHash, DownloadContext ctx)
         {
             int maxRetries = 5;
             int currentTry = 0;

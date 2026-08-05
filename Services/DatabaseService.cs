@@ -718,36 +718,54 @@ namespace LbpArchiveToolkit.Services
                 string creator = "Unknown";
                 if (!reader.IsDBNull(1))
                 {
-                    string? raw = reader.GetString(1);
-                    if (raw != null)
+                    int len = (int)reader.GetChars(1, 0, null, 0, 0);
+                    char[] buffer = System.Buffers.ArrayPool<char>.Shared.Rent(len);
+                    try
                     {
-                        if (creatorCache.TryGetValue(raw, out var cachedCreator) && cachedCreator != null)
+                        reader.GetChars(1, 0, buffer, 0, len);
+                        var span = buffer.AsSpan(0, len);
+
+                        var altCache = creatorCache.GetAlternateLookup<ReadOnlySpan<char>>();
+                        if (altCache.TryGetValue(span, out var cachedCreator) && cachedCreator != null)
                         {
                             creator = cachedCreator;
                         }
                         else
                         {
-                            creatorCache[raw] = raw;
-                            creator = raw;
+                            creator = new string(span);
+                            creatorCache[creator] = creator;
                         }
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<char>.Shared.Return(buffer);
                     }
                 }
 
                 string levelName = "Unknown";
                 if (!reader.IsDBNull(2))
                 {
-                    string? raw = reader.GetString(2);
-                    if (raw != null)
+                    int len = (int)reader.GetChars(2, 0, null, 0, 0);
+                    char[] buffer = System.Buffers.ArrayPool<char>.Shared.Rent(len);
+                    try
                     {
-                        if (nameCache.TryGetValue(raw, out var cachedName) && cachedName != null)
+                        reader.GetChars(2, 0, buffer, 0, len);
+                        var span = buffer.AsSpan(0, len);
+
+                        var altCache = nameCache.GetAlternateLookup<ReadOnlySpan<char>>();
+                        if (altCache.TryGetValue(span, out var cachedName) && cachedName != null)
                         {
                             levelName = cachedName;
                         }
                         else
                         {
-                            nameCache[raw] = raw;
-                            levelName = raw;
+                            levelName = new string(span);
+                            nameCache[levelName] = levelName;
                         }
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<char>.Shared.Return(buffer);
                     }
                 }
 

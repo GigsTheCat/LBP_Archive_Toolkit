@@ -53,10 +53,11 @@ namespace LbpArchiveToolkit.Models
         public byte[]? LabelsBlob { get; set; }
         public byte[]? CommunityLabelsBlob { get; set; }
         public byte[]? TagsBlob { get; set; }
-        public bool IsMmPick { get; set; }
-        public bool IsLocked { get; set; }
-        public bool IsSubLevel { get; set; }
-        public bool IsShareable { get; set; }
+        private byte _flags;
+        public bool IsMmPick { get => (_flags & 1) != 0; set { if (value) _flags |= 1; else _flags &= 0xFE; } }
+        public bool IsLocked { get => (_flags & 2) != 0; set { if (value) _flags |= 2; else _flags &= 0xFD; } }
+        public bool IsSubLevel { get => (_flags & 4) != 0; set { if (value) _flags |= 4; else _flags &= 0xFB; } }
+        public bool IsShareable { get => (_flags & 8) != 0; set { if (value) _flags |= 8; else _flags &= 0xF7; } }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
