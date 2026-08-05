@@ -78,7 +78,15 @@
             <ScrollViewer x:Name="scrollMessage" Grid.Row="2" MaxHeight="300" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,15">
                 <StackPanel>
                     <TextBlock x:Name="txtMessage" Foreground="{DynamicResource FgPrimary}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24"/>
-                    <TextBox x:Name="txtInput" Visibility="{Binding InputVisibility}" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,0"/>
+                    <TextBox x:Name="txtInput" Visibility="{Binding InputVisibility}" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,0">
+                        <TextBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Command="Cut" Header="Cut" />
+                                <MenuItem Command="Copy" Header="Copy" />
+                                <MenuItem Command="Paste" Header="Paste" />
+                            </ContextMenu>
+                        </TextBox.ContextMenu>
+                    </TextBox>
                 </StackPanel>
             </ScrollViewer>
 

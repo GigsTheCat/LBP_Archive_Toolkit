@@ -8,6 +8,17 @@
         FontFamily="Segoe UI" Topmost="False">
 
     <Window.Resources>
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
+            <Setter Property="Background" Value="{DynamicResource LbpCyan}"/>
+            <Setter Property="Foreground" Value="#002D3D"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#7EE0FA"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BubbleButton}">
             <Setter Property="Background" Value="{DynamicResource LbpPink}"/>
             <Setter Property="MinWidth" Value="100"/>
@@ -63,6 +74,7 @@
             </Border>
 
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="EXPORT ALL..." Click="ExportAll_Click" Style="{StaticResource BtnPrimary}"/>
                 <Button Content="CLOSE" Click="Close_Click" Style="{DynamicResource BtnSecondary}"/>
             </StackPanel>
         </Grid>
