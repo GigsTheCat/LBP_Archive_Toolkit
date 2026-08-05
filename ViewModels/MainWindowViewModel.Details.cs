@@ -51,7 +51,6 @@ namespace LbpArchiveToolkit.ViewModels
             OnPropertyChanged(nameof(SelectedLevel));
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
 
-            LevelTags.Clear();
             var labels = currentLevel.LabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.LabelsBlob) : new List<string>();
             var commLabels = currentLevel.CommunityLabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.CommunityLabelsBlob) : new List<string>();
             var tags = currentLevel.TagsBlob != null ? LbpArchiveToolkit.Utils.TagParser.ParseTagNames(currentLevel.TagsBlob) : new List<string>();
@@ -64,7 +63,25 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 var addedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 bool showAsterisk = HasCommunityLabels;
-                var newTags = new List<TagItem>();
+
+                int tagIndex = 0;
+                void AddOrUpdateTag(string text, string? toolTip, Visibility vis, bool isLbp1)
+                {
+                    if (tagIndex < LevelTags.Count)
+                    {
+                        var t = LevelTags[tagIndex];
+                        t.Text = text;
+                        t.ToolTip = toolTip;
+                        t.TiltAngle = GetDeterministicTilt(text);
+                        t.Visibility = vis;
+                        t.IsLbp1Tag = isLbp1;
+                    }
+                    else
+                    {
+                        LevelTags.Add(new TagItem { Text = text, ToolTip = toolTip, TiltAngle = GetDeterministicTilt(text), Visibility = vis, IsLbp1Tag = isLbp1 });
+                    }
+                    tagIndex++;
+                }
 
                 if (hasAuthorLabels)
                 {
@@ -73,7 +90,7 @@ namespace LbpArchiveToolkit.ViewModels
                         addedLabels.Add(label);
                         string displayName = showAsterisk ? label + "*" : label;
                         string? tooltip = showAsterisk ? "*Labels chosen by the author" : null;
-                        newTags.Add(new TagItem { Text = displayName, ToolTip = tooltip, TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                        AddOrUpdateTag(displayName, tooltip, Visibility.Visible, false);
                     }
                 }
 
@@ -83,7 +100,7 @@ namespace LbpArchiveToolkit.ViewModels
                     {
                         if (addedLabels.Add(label))
                         {
-                            newTags.Add(new TagItem { Text = label, ToolTip = "Labels chosen by the community", TiltAngle = GetDeterministicTilt(label), Visibility = Visibility.Visible, IsLbp1Tag = false });
+                            AddOrUpdateTag(label, "Labels chosen by the community", Visibility.Visible, false);
                         }
                     }
                 }
@@ -91,17 +108,22 @@ namespace LbpArchiveToolkit.ViewModels
                 if (hasTags)
                 {
                     foreach (var tag in tags.OrderBy(t => t))
-                        newTags.Add(new TagItem { Text = tag, TiltAngle = GetDeterministicTilt(tag), Visibility = Visibility.Collapsed, IsLbp1Tag = true });
+                        AddOrUpdateTag(tag, null, Visibility.Collapsed, true);
+
                     ToggleTagsButtonVisibility = Visibility.Visible;
                     ToggleTagsButtonText = "SHOW TAGS";
                     _showingLbp1Tags = false;
                 }
                 else ToggleTagsButtonVisibility = Visibility.Collapsed;
 
-                if (newTags.Count > 0)
+                while (LevelTags.Count > tagIndex)
                 {
-                    LevelTags.AddRange(newTags);
+                    LevelTags.RemoveAt(LevelTags.Count - 1);
                 }
+            }
+            else
+            {
+                LevelTags.Clear();
             }
             
             ObjectOriginVisibility = Visibility.Collapsed;

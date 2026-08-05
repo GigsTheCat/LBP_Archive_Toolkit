@@ -38,10 +38,10 @@ namespace LbpArchiveToolkit.ViewModels
 
     public class TagItem : ViewModelBase
     {
-        public string Text { get; set; } = "";
-        public string? ToolTip { get; set; }
-        public double TiltAngle { get; set; }
-        public bool IsLbp1Tag { get; set; }
+        public string Text { get; set => SetProperty(ref field, value); } = "";
+        public string? ToolTip { get; set => SetProperty(ref field, value); }
+        public double TiltAngle { get; set => SetProperty(ref field, value); }
+        public bool IsLbp1Tag { get; set => SetProperty(ref field, value); }
         public Visibility Visibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
     }
 

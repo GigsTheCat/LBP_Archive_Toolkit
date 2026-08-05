@@ -71,8 +71,12 @@ namespace LbpArchiveToolkit.Services
 
                 if (token.IsCancellationRequested) return null;
 
-                byte[] rawBytes = ms.ToArray();
-                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawBytes), token).ConfigureAwait(false);
+                if (!ms.TryGetBuffer(out ArraySegment<byte> bufferSegment))
+                {
+                    bufferSegment = new ArraySegment<byte>(ms.ToArray());
+                }
+
+                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(bufferSegment.Array!, bufferSegment.Count), token).ConfigureAwait(false);
                 if (webBmp == null) return null;
 
                 var webBrush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };

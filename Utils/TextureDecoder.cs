@@ -49,22 +49,23 @@ namespace LbpArchiveToolkit.Utils
         private const byte FMT_DXT5 = 0x88;
         private const byte FMT_X8R8G8B8 = 0x89;
 
-        public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData)
+        public static BitmapSource? DecodeToBitmapSourceCentered(byte[] resourceData, int dataLength = -1)
         {
-            if (resourceData == null || resourceData.Length < 4) return null;
+            if (dataLength == -1) dataLength = resourceData.Length;
+            if (resourceData == null || dataLength < 4) return null;
 
-            uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData[..4]);
+            uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
             if (magic == MAGIC_PNG || (magic & MAGIC_JPEG_MASK) == MAGIC_JPEG)
             {
-                return CenterWpfImageToBitmap(resourceData);
+                return CenterWpfImageToBitmap(resourceData, dataLength);
             }
-            if (resourceData.Length < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
+            if (dataLength < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
             if (magic == MAGIC_DDS)
             {
-                return DecodeDdsToBitmapCentered(resourceData, resourceData.Length);
+                return DecodeDdsToBitmapCentered(resourceData, dataLength);
             }
 
-            using var ms = new MemoryStream(resourceData);
+            using var ms = new MemoryStream(resourceData, 0, dataLength);
             using var br = new BinaryReader(ms);
 
             byte[] resrcType = br.ReadBytes(3);
@@ -774,6 +775,7 @@ namespace LbpArchiveToolkit.Utils
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.StreamSource = ms;
+                bitmap.DecodePixelWidth = 320;
                 bitmap.EndInit();
                 bitmap.Freeze();
 
