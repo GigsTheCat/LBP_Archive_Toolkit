@@ -246,9 +246,16 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateLevelDetails(); }
         }
 
-        public Brush IconEllipseStroke { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(255, 183, 3));
-        public Brush IconEllipseFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush IconEllipseStroke { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(255, 183, 3));
+        public Brush IconEllipseFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
+        
+        private static SolidColorBrush CreateFrozenBrush(Color color)
+        {
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
         public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
         public Visibility MmPickVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
@@ -268,7 +275,7 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateUserDetails(); }
         }
 
-        public Brush UserIconRectFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush UserIconRectFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
         public Visibility UserHeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
         public string UserIconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
         public string UserHeartButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART CREATOR";

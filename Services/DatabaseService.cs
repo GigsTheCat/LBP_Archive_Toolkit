@@ -110,9 +110,9 @@ namespace LbpArchiveToolkit.Services
         private string GetConnectionString()
         {
             if (LbpArchiveToolkit.Configuration.ConfigManager.LoadDbIntoRam && _keepAliveMemConn != null)
-                return "Data Source=lbpramdb;Mode=Memory;Cache=Shared";
+                return "Data Source=lbpramdb;Mode=Memory;Cache=Shared;Pooling=False";
 
-            return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite }.ConnectionString;
+            return new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite, Pooling = false }.ConnectionString;
         }
 
         private void ApplyConnectionOptimizations(SqliteConnection conn, bool isLightweight = false)
@@ -161,7 +161,7 @@ namespace LbpArchiveToolkit.Services
                         var memConn = new SqliteConnection("Data Source=lbpramdb;Mode=Memory;Cache=Shared");
                         memConn.Open();
 
-                        var builder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly };
+                        var builder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false };
                         using var diskConn = new SqliteConnection(builder.ConnectionString);
                         diskConn.Open();
 
@@ -1392,7 +1392,7 @@ namespace LbpArchiveToolkit.Services
 
                 if (!File.Exists(_dbPath)) return;
 
-                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite };
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = _dbPath, Mode = SqliteOpenMode.ReadWrite, Pooling = false };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
                 conn.Open();
 

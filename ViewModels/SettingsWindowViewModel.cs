@@ -152,7 +152,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             try
             {
-                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath };
+                var connStringBuilder = new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false };
                 using var conn = new SqliteConnection(connStringBuilder.ConnectionString);
                 conn.Open();
 

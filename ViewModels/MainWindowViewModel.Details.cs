@@ -16,7 +16,8 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedLevel == null)
             {
-                IconEllipseStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3));
+                var normStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3)); normStroke.Freeze();
+                IconEllipseStroke = normStroke;
                 MmPickVisibility = Visibility.Hidden;
                 LevelHeartOverlayVisibility = Visibility.Hidden;
                 IconLockVisibility = Visibility.Hidden;
@@ -24,7 +25,8 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTags.Clear();
                 ToggleTagsButtonVisibility = Visibility.Collapsed;
                 ObjectOriginVisibility = Visibility.Collapsed;
-                IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+                var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
+                IconEllipseFill = darkFill;
                 OriginalIconFill = IconEllipseFill;
                 IconStatusText = "Select a level\nto view details";
                 return;
@@ -34,7 +36,9 @@ namespace LbpArchiveToolkit.ViewModels
             long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
 
             MmPickVisibility = currentLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
-            IconEllipseStroke = currentLevel.IsMmPick ? new SolidColorBrush(Color.FromRgb(247, 37, 133)) : new SolidColorBrush(Color.FromRgb(255, 183, 3));
+            var mmStroke = new SolidColorBrush(currentLevel.IsMmPick ? Color.FromRgb(247, 37, 133) : Color.FromRgb(255, 183, 3));
+            mmStroke.Freeze();
+            IconEllipseStroke = mmStroke;
             LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(currentLevel.Id) ? Visibility.Visible : Visibility.Hidden;
             IconLockVisibility = currentLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
             IconScale = currentLevel.IsSubLevel ? 0.85 : 1.0;
@@ -151,7 +155,8 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedUser == null)
             {
-                UserIconRectFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+                var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
+                UserIconRectFill = darkFill;
                 UserIconStatusText = "Select a creator\nto view details";
                 UserHeartOverlayVisibility = Visibility.Hidden;
                 OnPropertyChanged(nameof(UserStatsText));
@@ -244,7 +249,8 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task LoadIconAsync(string? hash, long expectedRequestId)
         {
-            IconEllipseFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+            var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
+            IconEllipseFill = darkFill;
             OriginalIconFill = IconEllipseFill;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { IconStatusText = "No Icon Available"; return; }
 
@@ -277,7 +283,8 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task LoadUserIconAsync(string? hash, string npHandle, long expectedRequestId)
         {
-            UserIconRectFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+            var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
+            UserIconRectFill = darkFill;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { UserIconStatusText = "No Icon Available"; return; }
 
             UserIconStatusText = "Loading Icon...";

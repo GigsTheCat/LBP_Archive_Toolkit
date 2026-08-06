@@ -212,7 +212,13 @@ namespace LbpArchiveToolkit.ViewModels
 
         private Brush GetBrush(string resourceKey, Color fallback)
         {
-            return Application.Current.TryFindResource(resourceKey) as Brush ?? new SolidColorBrush(fallback);
+            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
+            {
+                return resourceBrush;
+            }
+            var brush = new SolidColorBrush(fallback);
+            brush.Freeze();
+            return brush;
         }
     }
 }

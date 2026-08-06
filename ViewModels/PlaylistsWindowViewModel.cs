@@ -53,8 +53,15 @@ namespace LbpArchiveToolkit.ViewModels
         public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
         public string LevelCreator { get; set => SetProperty(ref field, value); } = "";
         public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
-        public Brush IconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+        public Brush IconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
+        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
+
+        private static SolidColorBrush CreateFrozenBrush(Color color)
+        {
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
         public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
@@ -92,7 +99,11 @@ namespace LbpArchiveToolkit.ViewModels
 
         private Brush GetBrush(string resourceKey, Color fallback)
         {
-            return Application.Current.TryFindResource(resourceKey) as Brush ?? new SolidColorBrush(fallback);
+            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
+            {
+                return resourceBrush;
+            }
+            return CreateFrozenBrush(fallback);
         }
 
         private async void UpdateSelectionDetails()

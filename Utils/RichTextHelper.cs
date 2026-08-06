@@ -157,13 +157,15 @@ namespace LbpArchiveToolkit.Utils
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
+                    var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43));
+                    darkFill.Freeze();
                     var iconRect = new Rectangle
                     {
                         Width = 64,
                         Height = 64,
                         RadiusX = 8,
                         RadiusY = 8,
-                        Fill = new SolidColorBrush(Color.FromRgb(25, 19, 43)),
+                        Fill = darkFill,
                         Stroke = (Brush)Application.Current.FindResource("LbpOrange"),
                         StrokeThickness = 2,
                         Margin = new Thickness(0, 0, 15, 0)
