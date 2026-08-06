@@ -243,6 +243,16 @@
             <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
             <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#701A44"/>
 
+            <!-- GLOBAL DATAGRID STYLES (Fix for WPF RowHeader Virtualization Glitch) -->
+            <Style TargetType="DataGrid">
+                <Setter Property="RowHeaderWidth" Value="0"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+
+            <Style TargetType="DataGridRow">
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+
             <!-- GLOBAL DATAGRID HEADER STYLE -->
             <Style TargetType="DataGridColumnHeader">
                 <Setter Property="Background" Value="Transparent"/>
