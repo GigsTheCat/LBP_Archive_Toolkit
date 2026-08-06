@@ -344,62 +344,101 @@ namespace LbpArchiveToolkit.ViewModels
 
         public void InitiateCreatorSearch(string npHandle)
         {
-            SearchText = npHandle;
-            ExactMatch = true;
-            SearchDesc = false;
-            GameIndex = 0;
-            SelectedGenre = "All Genres";
-            _advancedCriteria = new AdvancedSearchCriteria();
-            SearchTypeIndex = 0;
+            _isApplyingState = true;
+            try
+            {
+                SearchText = npHandle;
+                ExactMatch = true;
+                SearchDesc = false;
+                GameIndex = 0;
+                SelectedGenre = "All Genres";
+                _advancedCriteria = new AdvancedSearchCriteria();
+                SearchTypeIndex = 0;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
             SearchCommand.Execute(null);
         }
 
         public void InitiateUserSearch(string npHandle)
         {
-            SearchText = npHandle;
-            ExactMatch = true;
-            SearchDesc = false;
-            GameIndex = 0;
-            SelectedGenre = "All Genres";
-            _advancedCriteria = new AdvancedSearchCriteria();
-            SearchTypeIndex = 1;
+            _isApplyingState = true;
+            try
+            {
+                SearchText = npHandle;
+                ExactMatch = true;
+                SearchDesc = false;
+                GameIndex = 0;
+                SelectedGenre = "All Genres";
+                _advancedCriteria = new AdvancedSearchCriteria();
+                SearchTypeIndex = 1;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
             SearchCommand.Execute(null);
         }
 
         public void InitiateContributionsSearch(string npHandle)
         {
-            SearchText = npHandle;
-            ExactMatch = true;
-            SearchDesc = false;
-            GameIndex = 0;
-            SelectedGenre = "All Genres";
-            _advancedCriteria = new AdvancedSearchCriteria();
-            SearchTypeIndex = 2;
+            _isApplyingState = true;
+            try
+            {
+                SearchText = npHandle;
+                ExactMatch = true;
+                SearchDesc = false;
+                GameIndex = 0;
+                SelectedGenre = "All Genres";
+                _advancedCriteria = new AdvancedSearchCriteria();
+                SearchTypeIndex = 2;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
             SearchCommand.Execute(null);
         }
 
         public void InitiateObjectsSearch(string npHandle)
         {
-            SearchText = npHandle;
-            ExactMatch = true;
-            SearchDesc = false;
-            GameIndex = 0;
-            SelectedGenre = "All Genres";
-            _advancedCriteria = new AdvancedSearchCriteria();
-            SearchTypeIndex = 3;
+            _isApplyingState = true;
+            try
+            {
+                SearchText = npHandle;
+                ExactMatch = true;
+                SearchDesc = false;
+                GameIndex = 0;
+                SelectedGenre = "All Genres";
+                _advancedCriteria = new AdvancedSearchCriteria();
+                SearchTypeIndex = 3;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
             SearchCommand.Execute(null);
         }
 
         public void InitiateLevelSearch(long levelId)
         {
-            SearchText = levelId.ToString();
-            ExactMatch = false;
-            SearchDesc = false;
-            GameIndex = 0;
-            SelectedGenre = "All Genres";
-            _advancedCriteria = new AdvancedSearchCriteria();
-            
-            SearchTypeIndex = 4;
+            _isApplyingState = true;
+            try
+            {
+                SearchText = levelId.ToString();
+                ExactMatch = false;
+                SearchDesc = false;
+                GameIndex = 0;
+                SelectedGenre = "All Genres";
+                _advancedCriteria = new AdvancedSearchCriteria();
+                SearchTypeIndex = 4;
+            }
+            finally
+            {
+                _isApplyingState = false;
+            }
             SearchCommand.Execute(null);
         }
 

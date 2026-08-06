@@ -57,7 +57,7 @@ namespace LbpArchiveToolkit.Utils
             uint magic = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(resourceData.AsSpan(0, 4));
             if (magic == MAGIC_PNG || (magic & MAGIC_JPEG_MASK) == MAGIC_JPEG)
             {
-                return scaleAndCenter ? CenterWpfImageToBitmap(resourceData, dataLength) : LoadWpfImageRaw(resourceData, dataLength);
+                return scaleAndCenter ? CenterWpfImageToBitmap(resourceData, dataLength) : LoadWpfImageRaw(resourceData, dataLength, true);
             }
             if (dataLength < 44) return null; // Protection against short header buffers for GTF/DDS/TEX
             if (magic == MAGIC_DDS)
@@ -171,7 +171,7 @@ namespace LbpArchiveToolkit.Utils
                     }
                     else
                     {
-                        return scaleAndCenter ? CenterWpfImageToBitmap(finalData, (int)totalDecompSize) : LoadWpfImageRaw(finalData, (int)totalDecompSize);
+                        return scaleAndCenter ? CenterWpfImageToBitmap(finalData, (int)totalDecompSize) : LoadWpfImageRaw(finalData, (int)totalDecompSize, true);
                     }
                 }
                 else // GTF files are raw console textures that need unswizzling
@@ -765,7 +765,7 @@ namespace LbpArchiveToolkit.Utils
             return ScaleAndCenterBgraToBitmap(bgraData, srcWidth, srcHeight);
         }
 
-        private static BitmapSource? LoadWpfImageRaw(byte[] imageData, int length)
+        private static BitmapSource? LoadWpfImageRaw(byte[] imageData, int length, bool limitSize = false)
         {
             try
             {
@@ -774,6 +774,7 @@ namespace LbpArchiveToolkit.Utils
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.StreamSource = ms;
+                if (limitSize) bitmap.DecodePixelWidth = 320;
                 bitmap.EndInit();
                 bitmap.Freeze();
                 return bitmap;
@@ -877,10 +878,11 @@ namespace LbpArchiveToolkit.Utils
 
         public static BitmapSource CreateBitmapSource(byte[] bgraData, int width, int height)
         {
-            var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-            wb.WritePixels(new System.Windows.Int32Rect(0, 0, width, height), bgraData, width * 4, 0);
-            wb.Freeze(); // Freezing allows WPF to natively cross threads perfectly safely
-            return wb;
+            var bitmap = BitmapSource.Create(
+                width, height, 96, 96, PixelFormats.Bgra32, null,
+                bgraData, width * 4);
+            bitmap.Freeze(); // Freezing allows WPF to natively cross threads perfectly safely
+            return bitmap;
         }
 
         private static byte[] EncodeToPng(BitmapSource bitmapSource)

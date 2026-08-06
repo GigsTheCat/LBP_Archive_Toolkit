@@ -27,7 +27,7 @@ namespace LbpArchiveToolkit.Services
 
                         if (rawResource != null)
                         {
-                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource), token).ConfigureAwait(false);
+                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource, -1, false), token).ConfigureAwait(false);
                             if (token.IsCancellationRequested || bmp == null) return null;
 
                             var brush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
@@ -52,36 +52,34 @@ namespace LbpArchiveToolkit.Services
                 if (contentLength.HasValue && contentLength.Value > 5242880) return null;
 
                 using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-                using var ms = new MemoryStream(contentLength.HasValue ? (int)contentLength.Value : 81920);
-                byte[] chunk = System.Buffers.ArrayPool<byte>.Shared.Rent(81920);
+                int maxCapacity = 5242880; // 5 MB hard cap
+                byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(maxCapacity);
+                int totalBytesRead = 0;
                 
                 try
                 {
                     int bytesRead;
-                    while ((bytesRead = await stream.ReadAsync(chunk, token).ConfigureAwait(false)) > 0)
+                    while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(totalBytesRead), token).ConfigureAwait(false)) > 0)
                     {
-                        ms.Write(chunk, 0, bytesRead);
-                        if (ms.Length > 5242880) return null; // Hard cap at 5MB
+                        totalBytesRead += bytesRead;
+                        if (totalBytesRead > maxCapacity) return null; 
                     }
+
+                    if (token.IsCancellationRequested) return null;
+
+                    // scaleAndCenter: false avoids creating multiple heavy format-converted pixel arrays just to display it
+                    var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(buffer, totalBytesRead, false), token).ConfigureAwait(false);
+                    if (webBmp == null) return null;
+
+                    var webBrush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
+                    webBrush.Freeze();
+                    return webBrush;
                 }
                 finally
                 {
-                    System.Buffers.ArrayPool<byte>.Shared.Return(chunk);
+                    // Cleanly return the 5MB array to the .NET memory allocator instantly
+                    System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
                 }
-
-                if (token.IsCancellationRequested) return null;
-
-                if (!ms.TryGetBuffer(out ArraySegment<byte> bufferSegment))
-                {
-                    bufferSegment = new ArraySegment<byte>(ms.ToArray());
-                }
-
-                var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(bufferSegment.Array!, bufferSegment.Count), token).ConfigureAwait(false);
-                if (webBmp == null) return null;
-
-                var webBrush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                webBrush.Freeze();
-                return webBrush;
             }
             catch (OperationCanceledException)
             {

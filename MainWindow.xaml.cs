@@ -131,8 +131,7 @@ namespace LbpArchiveToolkit
                     {
                         LbpArchiveToolkit.Utils.RichTextHelper.SetDescriptionRichText(txtDescription, selected.Description, name =>
                         {
-                            _viewModel.SearchText = name;
-                            _viewModel.SearchTypeIndex = 1;
+                            _viewModel.InitiateUserSearch(name);
                         });
                     }
 
