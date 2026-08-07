@@ -70,7 +70,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             try
             {
-                Clipboard.SetText(Message);
+                (Application.Current?.MainWindow as IViewService)?.SetClipboardText(Message);
                 CopyButtonText = "COPIED!";
                 await Task.Delay(2000);
                 CopyButtonText = "COPY";

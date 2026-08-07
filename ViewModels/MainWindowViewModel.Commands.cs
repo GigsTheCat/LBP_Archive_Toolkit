@@ -112,7 +112,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (!string.IsNullOrEmpty(SelectedLevel?.Hash))
                 {
-                    Clipboard.SetText(SelectedLevel.Hash);
+                    _viewService.SetClipboardText(SelectedLevel.Hash);
                     _viewService.ShowToast("Hash Copied!", "btnCopyHash");
                 }
             }, _ => SelectedLevel != null && !string.IsNullOrEmpty(SelectedLevel.Hash));
@@ -121,7 +121,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (param is LevelItem level && !string.IsNullOrEmpty(level.LevelName))
                 {
-                    Clipboard.SetText(level.LevelName);
+                    _viewService.SetClipboardText(level.LevelName);
                     _viewService.ShowToast("Level Name Copied!", "ContextElement");
                 }
             });

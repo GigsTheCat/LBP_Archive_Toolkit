@@ -1,5 +1,4 @@
 using LbpArchiveToolkit.Utils;
-using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Windows;
@@ -10,7 +9,7 @@ namespace LbpArchiveToolkit.ViewModels
 {
     public class EditInfoDialogViewModel : ViewModelBase
     {
-        private readonly Window _ownerWindow;
+        private readonly IViewService _viewService;
         private readonly string? _originalIconPath;
 
         public string LevelName
@@ -53,9 +52,9 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public EditInfoDialogViewModel(Window ownerWindow, string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
+        public EditInfoDialogViewModel(IViewService viewService, string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
         {
-            _ownerWindow = ownerWindow;
+            _viewService = viewService;
             _originalIconPath = currentIconPath;
             LevelName = currentName;
             Description = currentDesc;
@@ -86,26 +85,23 @@ namespace LbpArchiveToolkit.ViewModels
             string? pathToEdit = NewIconPath ?? _originalIconPath;
             if (string.IsNullOrEmpty(pathToEdit) || !File.Exists(pathToEdit)) return;
 
-            var cropDialog = new ImageCropDialog(pathToEdit)
-            {
-                Owner = _ownerWindow
-            };
+            string? croppedPath = _viewService.ShowImageCropDialog(pathToEdit);
 
-            if (cropDialog.ShowDialog() == true)
+            if (croppedPath != null)
             {
-                if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != cropDialog.CroppedImagePath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != croppedPath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
                 {
                     try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialogViewModel.ExecuteEditIcon", ex); }
                 }
 
-                NewIconPath = cropDialog.CroppedImagePath;
+                NewIconPath = croppedPath;
                 try
                 {
                     IconImage = TextureDecoder.LoadBitmapImage(NewIconPath!);
                 }
                 catch
                 {
-                    CustomDialog.Show(_ownerWindow, "Failed to load the cropped image preview.", "Error");
+                    _viewService.Alert("Failed to load the cropped image preview.", "Error");
                     NewIconPath = null;
                 }
                 OnPropertyChanged(nameof(EditIconVisibility));
@@ -114,34 +110,27 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteChangeIcon()
         {
-            var dlg = new OpenFileDialog
-            {
-                Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-                Title = "Select New Icon"
-            };
+            string? fileName = _viewService.ShowOpenFileDialog("Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*", "Select New Icon");
 
-            if (dlg.ShowDialog() == true)
+            if (fileName != null)
             {
-                var cropDialog = new ImageCropDialog(dlg.FileName)
-                {
-                    Owner = _ownerWindow
-                };
+                string? croppedPath = _viewService.ShowImageCropDialog(fileName);
 
-                if (cropDialog.ShowDialog() == true)
+                if (croppedPath != null)
                 {
-                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != cropDialog.CroppedImagePath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrEmpty(NewIconPath) && NewIconPath != croppedPath && NewIconPath.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
                     {
                         try { File.Delete(NewIconPath); } catch (Exception ex) { LogManager.Log("EditInfoDialogViewModel.ExecuteChangeIcon", ex); }
                     }
 
-                    NewIconPath = cropDialog.CroppedImagePath;
+                    NewIconPath = croppedPath;
                     try
                     {
                         IconImage = TextureDecoder.LoadBitmapImage(NewIconPath!);
                     }
                     catch
                     {
-                        CustomDialog.Show(_ownerWindow, "Failed to load the cropped image preview.", "Error");
+                        _viewService.Alert("Failed to load the cropped image preview.", "Error");
                         NewIconPath = null;
                     }
                     OnPropertyChanged(nameof(EditIconVisibility));

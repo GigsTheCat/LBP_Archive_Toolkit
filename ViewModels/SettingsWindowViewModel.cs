@@ -1,7 +1,6 @@
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Themes;
 using Microsoft.Data.Sqlite;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -195,14 +194,14 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteBrowseDb()
         {
-            var dialog = new OpenFileDialog { Filter = "Database Files (*.db)|*.db|All Files (*.*)|*.*", Title = "Select dry.db file" };
-            if (dialog.ShowDialog() == true) DatabasePath = dialog.FileName;
+            string? fileName = _viewService.ShowOpenFileDialog("Database Files (*.db)|*.db|All Files (*.*)|*.*", "Select dry.db file");
+            if (fileName != null) DatabasePath = fileName;
         }
 
         private void ExecuteBrowseBackup()
         {
-            var dialog = new OpenFolderDialog { Title = "Select Backup Directory" };
-            if (dialog.ShowDialog() == true) BackupDirectory = dialog.FolderName;
+            string? folderName = _viewService.ShowOpenFolderDialog("Select Backup Directory");
+            if (folderName != null) BackupDirectory = folderName;
         }
 
         private void ExecuteDetectRpcs3()
@@ -288,8 +287,8 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteBrowseLocalArchive()
         {
-            var dialog = new OpenFolderDialog { Title = "Select Local Archive Directory" };
-            if (dialog.ShowDialog() == true) LocalArchivePath = dialog.FolderName;
+            string? folderName = _viewService.ShowOpenFolderDialog("Select Local Archive Directory");
+            if (folderName != null) LocalArchivePath = folderName;
         }
 
         private void ExecuteForgetLevels()

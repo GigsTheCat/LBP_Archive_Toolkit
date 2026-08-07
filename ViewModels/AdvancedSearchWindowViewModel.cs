@@ -290,6 +290,24 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
+        private void UpdateTagsFromCriteria(AdvancedSearchCriteria criteria)
+        {
+            var reqCollections = new[] { Lbp2ExperienceLabels, Lbp2TypeLabels, Lbp2ContentLabels, Lbp3ExperienceLabels, Lbp3TypeLabels, Lbp3ContentLabels, Lbp3CharacterLabels };
+            foreach (var collection in reqCollections)
+            {
+                foreach (var item in collection) item.IsSelected = criteria.RequiredLabels.Contains(item.InternalTag);
+            }
+
+            var excCollections = new[] { ExcludedLbp2ExperienceLabels, ExcludedLbp2TypeLabels, ExcludedLbp2ContentLabels, ExcludedLbp3ExperienceLabels, ExcludedLbp3TypeLabels, ExcludedLbp3ContentLabels, ExcludedLbp3CharacterLabels };
+            foreach (var collection in excCollections)
+            {
+                foreach (var item in collection) item.IsSelected = criteria.ExcludedLabels.Contains(item.InternalTag);
+            }
+
+            foreach (var item in Lbp1Tags) item.IsSelected = criteria.RequiredTags.Contains(item.InternalTag);
+            foreach (var item in ExcludedLbp1Tags) item.IsSelected = criteria.ExcludedTags.Contains(item.InternalTag);
+        }
+
         private void ExecuteClear()
         {
             MinHearts = "0";
@@ -421,19 +439,14 @@ namespace LbpArchiveToolkit.ViewModels
             string presetsDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", "Presets");
             System.IO.Directory.CreateDirectory(presetsDir);
 
-            var dlg = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "LBP Search Preset (*.lbppreset)|*.lbppreset",
-                Title = "Save Search Preset",
-                InitialDirectory = presetsDir
-            };
-            if (dlg.ShowDialog() == true)
+            string? fileName = _viewService.ShowSaveFileDialog("LBP Search Preset (*.lbppreset)|*.lbppreset", "Save Search Preset", "Preset.lbppreset");
+            if (fileName != null)
             {
                 try
                 {
                     var criteria = BuildCriteria();
                     var json = System.Text.Json.JsonSerializer.Serialize(criteria, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, TypeInfoResolver = LbpArchiveToolkit.Configuration.ConfigManager.ConfigJsonContext.Default });
-                    System.IO.File.WriteAllText(dlg.FileName, json);
+                    System.IO.File.WriteAllText(fileName, json);
                     _viewService.Alert("Preset saved successfully.", "Success");
                 }
                 catch (Exception ex)
@@ -448,17 +461,12 @@ namespace LbpArchiveToolkit.ViewModels
             string presetsDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit", "Presets");
             System.IO.Directory.CreateDirectory(presetsDir);
 
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "LBP Search Preset (*.lbppreset)|*.lbppreset",
-                Title = "Load Search Preset",
-                InitialDirectory = presetsDir
-            };
-            if (dlg.ShowDialog() == true)
+            string? fileName = _viewService.ShowOpenFileDialog("LBP Search Preset (*.lbppreset)|*.lbppreset", "Load Search Preset");
+            if (fileName != null)
             {
                 try
                 {
-                    var json = System.IO.File.ReadAllText(dlg.FileName);
+                    var json = System.IO.File.ReadAllText(fileName);
                     var criteria = System.Text.Json.JsonSerializer.Deserialize<AdvancedSearchCriteria>(json, new System.Text.Json.JsonSerializerOptions { TypeInfoResolver = LbpArchiveToolkit.Configuration.ConfigManager.ConfigJsonContext.Default });
                     if (criteria != null)
                     {
@@ -489,7 +497,9 @@ namespace LbpArchiveToolkit.ViewModels
                         ExcludeShareable = criteria.ExcludeShareable;
                         LabelMatchMode = !_hasCommunityLabels ? 1 : criteria.LabelMatchMode;
 
-                        PopulateTags(criteria);
+                        UpdateTagsFromCriteria(criteria);
+                        
+                        _viewService.Alert("Preset loaded successfully.", "Success");
                     }
                 }
                 catch (Exception ex)

@@ -24,5 +24,13 @@ namespace LbpArchiveToolkit.ViewModels
         void OpenDownloads();
         void OpenLogViewer();
         void OpenAbout();
+        string? ShowOpenFileDialog(string filter, string title);
+        string? ShowSaveFileDialog(string filter, string title, string defaultFileName);
+        string? ShowOpenFolderDialog(string title);
+        string? ShowImageCropDialog(string imagePath);
+        (bool success, string newName, string newDesc, string? newIconPath, bool newLocked, bool newSubLevel, bool newShareable) ShowEditInfoDialog(string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable);
+        void ShowTextureViewerDialog(string backupPath, string levelName);
+        void SetClipboardText(string text);
+        void SetClipboardImage(object image);
     }
 }

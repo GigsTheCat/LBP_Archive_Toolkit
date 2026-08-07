@@ -399,6 +399,56 @@ namespace LbpArchiveToolkit
 
             dialog.ShowDialog();
         }
+
+        public string? ShowOpenFileDialog(string filter, string title)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = filter, Title = title };
+            return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+
+        public string? ShowSaveFileDialog(string filter, string title, string defaultFileName)
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog { Filter = filter, Title = title, FileName = defaultFileName };
+            return dlg.ShowDialog() == true ? dlg.FileName : null;
+        }
+
+        public string? ShowOpenFolderDialog(string title)
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog { Title = title };
+            return dlg.ShowDialog() == true ? dlg.FolderName : null;
+        }
+
+        public string? ShowImageCropDialog(string imagePath)
+        {
+            var dlg = new ImageCropDialog(imagePath) { Owner = this };
+            return dlg.ShowDialog() == true ? dlg.CroppedImagePath : null;
+        }
+
+        public (bool success, string newName, string newDesc, string? newIconPath, bool newLocked, bool newSubLevel, bool newShareable) ShowEditInfoDialog(string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
+        {
+            var dlg = new EditInfoDialog(currentName, currentDesc, currentIconPath, isLocked, isSubLevel, isShareable) { Owner = this };
+            bool success = dlg.ShowDialog() == true;
+            return (success, dlg.LevelName, dlg.Description, dlg.NewIconPath, dlg.IsLocked, dlg.IsSubLevel, dlg.IsShareable);
+        }
+
+        public void ShowTextureViewerDialog(string backupPath, string levelName)
+        {
+            var dlg = new TextureViewerDialog(backupPath, levelName) { Owner = this };
+            dlg.ShowDialog();
+        }
+
+        public void SetClipboardText(string text)
+        {
+            try { Clipboard.SetText(text); } catch { }
+        }
+
+        public void SetClipboardImage(object image)
+        {
+            try 
+            { 
+                if (image is System.Windows.Media.Imaging.BitmapSource bmp) Clipboard.SetImage(bmp); 
+            } catch { }
+        }
         #endregion
     }
 }

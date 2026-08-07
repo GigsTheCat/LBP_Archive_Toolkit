@@ -13,14 +13,12 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using Microsoft.Win32;
 
 namespace LbpArchiveToolkit.ViewModels
 {
     public class PlaylistsWindowViewModel : ViewModelBase
     {
         private readonly IViewService _viewService;
-        private readonly Window _ownerWindow;
 
         public BulkObservableCollection<Playlist> Playlists { get; } = new();
 
@@ -76,10 +74,9 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand RemoveLevelCommand { get; }
         public ICommand ExtractLevelCommand { get; }
 
-        public PlaylistsWindowViewModel(IViewService viewService, Window ownerWindow)
+        public PlaylistsWindowViewModel(IViewService viewService)
         {
             _viewService = viewService;
-            _ownerWindow = ownerWindow;
 
             CreateCommand = new RelayCommand(_ => ExecuteCreate());
             RenameCommand = new RelayCommand(_ => ExecuteRename(), _ => SelectedPlaylist != null);
@@ -210,7 +207,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteCreate()
         {
-            if (CustomDialog.ShowInput(_ownerWindow, "Enter a name for the new playlist:", "New Playlist", "New Playlist", out string newName))
+            if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Enter a name for the new playlist:", "New Playlist", "New Playlist", out string newName))
             {
                 if (!string.IsNullOrWhiteSpace(newName))
                 {
@@ -226,7 +223,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedPlaylist != null)
             {
-                if (CustomDialog.ShowInput(_ownerWindow, "Enter a new name for the playlist:", "Rename Playlist", SelectedPlaylist.Name, out string newName))
+                if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Enter a new name for the playlist:", "Rename Playlist", SelectedPlaylist.Name, out string newName))
                 {
                     if (!string.IsNullOrWhiteSpace(newName))
                     {
@@ -276,7 +273,7 @@ namespace LbpArchiveToolkit.ViewModels
                     
                     string base64 = Convert.ToBase64String(ms.ToArray());
                     string code = "LBP-" + base64.Replace("+", "-").Replace("/", "_").TrimEnd('=');
-                    Clipboard.SetText(code);
+                    _viewService.SetClipboardText(code);
                     _viewService.Alert("Share Code generated and copied to clipboard!", "Export Complete");
                 }
                 catch (Exception ex)
@@ -288,7 +285,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async void ExecuteImport()
         {
-            if (CustomDialog.ShowInput(_ownerWindow, "Paste a Playlist Share Code here:", "Import Playlist", "", out string code))
+            if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Paste a Playlist Share Code here:", "Import Playlist", "", out string code))
             {
                 try
                 {
@@ -358,7 +355,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (_viewService.Confirm($"Download all {SelectedPlaylist.Levels.Count} levels in '{SelectedPlaylist.Name}' to your backups folder?", "Download All"))
                 {
-                    await LevelExtractionService.ExtractLevelsAsync(_ownerWindow, SelectedPlaylist.Levels.ToList());
+                    await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), SelectedPlaylist.Levels.ToList());
                 }
             }
         }
@@ -367,14 +364,9 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedPlaylist != null && SelectedPlaylist.Levels.Any())
             {
-                var dlg = new SaveFileDialog
-                {
-                    Filter = "ZIP Archive (*.zip)|*.zip",
-                    Title = "Download and Zip Playlist",
-                    FileName = SelectedPlaylist.Name + ".zip"
-                };
+                string? fileName = _viewService.ShowSaveFileDialog("ZIP Archive (*.zip)|*.zip", "Download and Zip Playlist", SelectedPlaylist.Name + ".zip");
 
-                if (dlg.ShowDialog() == true)
+                if (fileName != null)
                 {
                     string tempDir = Path.Combine(Path.GetTempPath(), "LbpArchiveToolkit_Zip_" + Guid.NewGuid().ToString("N"));
                     Directory.CreateDirectory(tempDir);
@@ -384,14 +376,14 @@ namespace LbpArchiveToolkit.ViewModels
                         bool originalPrompt = ConfigManager.ShowExtractionSuccessPrompt;
                         ConfigManager.ShowExtractionSuccessPrompt = false;
 
-                        await LevelExtractionService.ExtractLevelsAsync(_ownerWindow, SelectedPlaylist.Levels.ToList(), null, tempDir);
+                        await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), SelectedPlaylist.Levels.ToList(), null, tempDir);
 
                         ConfigManager.ShowExtractionSuccessPrompt = originalPrompt;
 
                         if (Directory.GetDirectories(tempDir).Length > 0)
                         {
-                            if (File.Exists(dlg.FileName)) File.Delete(dlg.FileName);
-                            ZipFile.CreateFromDirectory(tempDir, dlg.FileName, CompressionLevel.Optimal, false);
+                            if (File.Exists(fileName)) File.Delete(fileName);
+                            ZipFile.CreateFromDirectory(tempDir, fileName, CompressionLevel.Optimal, false);
                             _viewService.Alert($"Successfully downloaded and zipped {Directory.GetDirectories(tempDir).Length} levels.", "Zip Complete");
                         }
                         else
@@ -443,7 +435,7 @@ namespace LbpArchiveToolkit.ViewModels
             if (parameter is IList items && items.Count > 0)
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
-                await LevelExtractionService.ExtractLevelsAsync(_ownerWindow, selectedItems);
+                await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), selectedItems);
             }
         }
     }

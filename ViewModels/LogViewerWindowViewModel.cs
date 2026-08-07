@@ -104,7 +104,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (!string.IsNullOrEmpty(LogText))
                 {
-                    Clipboard.SetText(LogText);
+                    _viewService.SetClipboardText(LogText);
                     _viewService.Alert("Log contents copied to clipboard.", "Success");
                 }
             }

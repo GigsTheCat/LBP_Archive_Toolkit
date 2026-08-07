@@ -1,7 +1,6 @@
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Services;
 using LbpArchiveToolkit.Utils;
-using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.Collections.ObjectModel;
@@ -302,22 +301,18 @@ namespace LbpArchiveToolkit.ViewModels
                     CommandManager.InvalidateRequerySuggested();
                 }
 
-                var owner = Application.Current.Windows.OfType<BackupManagerWindow>().FirstOrDefault();
-                var dialog = new EditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath, isLocked, isSubLevel, isShareable)
-                {
-                    Owner = owner
-                };
+                var editResult = _viewService.ShowEditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath, isLocked, isSubLevel, isShareable);
 
-                if (dialog.ShowDialog() == true)
-                {
-                    string newName = dialog.LevelName;
-                    string newDesc = dialog.Description;
-                    string? newIcon = dialog.NewIconPath;
-                    bool newLocked = dialog.IsLocked;
-                    bool newSubLevel = dialog.IsSubLevel;
-                    bool newShareable = dialog.IsShareable;
+                    if (editResult.success)
+                    {
+                        string newName = editResult.newName;
+                        string newDesc = editResult.newDesc;
+                        string? newIcon = editResult.newIconPath;
+                        bool newLocked = editResult.newLocked;
+                        bool newSubLevel = editResult.newSubLevel;
+                        bool newShareable = editResult.newShareable;
 
-                    if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null && newLocked == isLocked && newSubLevel == isSubLevel && newShareable == isShareable) return;
+                        if (newName == selected.LevelName && newDesc == selected.Description && newIcon == null && newLocked == isLocked && newSubLevel == isSubLevel && newShareable == isShareable) return;
 
                     StatusText = "Updating and re-encrypting backup...";
                     _isBusy = true;
@@ -419,11 +414,10 @@ namespace LbpArchiveToolkit.ViewModels
             if (parameter is IList items && items.Count > 0)
             {
                 var selectedItems = items.Cast<BackupItemViewModel>().ToList();
-                var dialog = new OpenFolderDialog { Title = "Select Destination Folder" };
+                string? destDir = _viewService.ShowOpenFolderDialog("Select Destination Folder");
 
-                if (dialog.ShowDialog() == true)
+                if (destDir != null)
                 {
-                    string destDir = dialog.FolderName;
                     int movedCount = 0;
                     
                     SelectedBackup = null;
@@ -465,22 +459,17 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedBackup != null && SelectedBackup.FullPath != null)
             {
-                var owner = Application.Current.Windows.OfType<BackupManagerWindow>().FirstOrDefault();
-                var dialog = new TextureViewerDialog(SelectedBackup.FullPath, SelectedBackup.LevelName ?? "Level")
-                {
-                    Owner = owner
-                };
-                dialog.ShowDialog();
+                _viewService.ShowTextureViewerDialog(SelectedBackup.FullPath, SelectedBackup.LevelName ?? "Level");
             }
         }
 
         private void ExecuteChangeDir(object? parameter)
         {
-            var dialog = new OpenFolderDialog { Title = "Select Backup Directory" };
+            string? folder = _viewService.ShowOpenFolderDialog("Select Backup Directory");
 
-            if (dialog.ShowDialog() == true)
+            if (folder != null)
             {
-                _backupDir = dialog.FolderName;
+                _backupDir = folder;
                 ConfigManager.BackupDirectory = _backupDir;
                 _ = ConfigManager.SaveConfigAsync();
                 LoadBackups();

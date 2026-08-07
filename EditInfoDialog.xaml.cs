@@ -21,8 +21,9 @@ namespace LbpArchiveToolkit
         public EditInfoDialog(string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
         {
             InitializeComponent();
+            var viewService = (IViewService)Application.Current.MainWindow;
             
-            _viewModel = new EditInfoDialogViewModel(this, currentName, currentDesc, currentIconPath, isLocked, isSubLevel, isShareable);
+            _viewModel = new EditInfoDialogViewModel(viewService, currentName, currentDesc, currentIconPath, isLocked, isSubLevel, isShareable);
 
             // Reacts to commands setting the dialog's close request
             _viewModel.RequestClose += (result) =>

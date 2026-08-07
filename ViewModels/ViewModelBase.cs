@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -27,8 +26,12 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 try
                 {
-                    Clipboard.SetImage(bmp);
-                    (Application.Current?.MainWindow as IViewService)?.ShowToast("Image Copied!", "Mouse");
+                    var viewService = Application.Current?.MainWindow as IViewService;
+                    if (viewService != null)
+                    {
+                        viewService.SetClipboardImage(bmp);
+                        viewService.ShowToast("Image Copied!", "Mouse");
+                    }
                 }
                 catch { }
             }
@@ -38,22 +41,20 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (parameter is ImageBrush brush && brush.ImageSource is BitmapSource bmp)
             {
-                var dlg = new SaveFileDialog
-                {
-                    Filter = "PNG Image|*.png",
-                    Title = "Save Image",
-                    FileName = "icon.png"
-                };
+                var viewService = Application.Current?.MainWindow as IViewService;
+                if (viewService == null) return;
 
-                if (dlg.ShowDialog() == true)
+                string? fileName = viewService.ShowSaveFileDialog("PNG Image|*.png", "Save Image", "icon.png");
+
+                if (fileName != null)
                 {
                     try
                     {
                         var encoder = new PngBitmapEncoder();
                         encoder.Frames.Add(BitmapFrame.Create(bmp));
-                        using var fs = File.Create(dlg.FileName);
+                        using var fs = File.Create(fileName);
                         encoder.Save(fs);
-                        (Application.Current?.MainWindow as IViewService)?.ShowToast("Image Saved!", "ContextElement");
+                        viewService.ShowToast("Image Saved!", "ContextElement");
                     }
                     catch { }
                 }

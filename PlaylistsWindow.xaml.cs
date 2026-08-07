@@ -10,7 +10,7 @@ namespace LbpArchiveToolkit
             InitializeComponent();
 
             var viewService = (IViewService)Application.Current.MainWindow;
-            DataContext = new PlaylistsWindowViewModel(viewService, this);
+            DataContext = new PlaylistsWindowViewModel(viewService);
 
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }

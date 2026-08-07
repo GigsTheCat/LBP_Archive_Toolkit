@@ -198,10 +198,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
                 
-                // Get the current window to act as the extraction progress popup owner
-                var ownerWindow = Application.Current.Windows.OfType<HeartedLevelsWindow>().FirstOrDefault() ?? _viewService.GetMainWindow();
-                
-                await LevelExtractionService.ExtractLevelsAsync(ownerWindow, selectedItems, lvl =>
+                await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), selectedItems, lvl =>
                 {
                     lvl.Saved = "✓";
                 });
