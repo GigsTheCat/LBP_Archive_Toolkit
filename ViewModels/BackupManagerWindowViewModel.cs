@@ -26,9 +26,9 @@ namespace LbpArchiveToolkit.ViewModels
         public string? IconPath { get; set; }
         public string? DateSaved { get; set; }
 
-        public bool? IsLocked { get; set; }
-        public bool? IsSubLevel { get; set; }
-        public bool? IsShareable { get; set; }
+        public bool? IsLocked { get; set => SetProperty(ref field, value); }
+        public bool? IsSubLevel { get; set => SetProperty(ref field, value); }
+        public bool? IsShareable { get; set => SetProperty(ref field, value); }
     }
 
     public class BackupManagerWindowViewModel : ViewModelBase
@@ -48,9 +48,8 @@ namespace LbpArchiveToolkit.ViewModels
         public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
         public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
         public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
-        public Brush IconFill { get; set => SetProperty(ref field, value); } = null!;
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = null!;
-        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
+        public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a backup\nto view details";
 
@@ -66,8 +65,6 @@ namespace LbpArchiveToolkit.ViewModels
         {
             _viewService = viewService;
             _backupDir = ConfigManager.BackupDirectory;
-            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            OriginalIconFill = IconFill;
 
             ViewTexturesCommand = new RelayCommand(ExecuteViewTextures, CanExecuteEdit);
             EditCommand = new RelayCommand(ExecuteEdit, CanExecuteEdit);
@@ -166,17 +163,8 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelDescription = selected.Description ?? "";
                 LoadIconPreview(selected.IconPath);
 
-                IconLockVisibility = (selected.IsLocked == true) ? Visibility.Visible : Visibility.Hidden;
+                IsIconLockVisible = selected.IsLocked == true;
                 IconScale = (selected.IsSubLevel == true) ? 0.85 : 1.0;
-
-                if (selected.IsLocked == true && OriginalIconFill is ImageBrush cacheImgBrush && cacheImgBrush.ImageSource is System.Windows.Media.Imaging.BitmapSource cacheBmp)
-                {
-                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(cacheBmp, System.Windows.Media.PixelFormats.Gray8, null, 0);
-                    grayscaleBmp.Freeze();
-                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
-                    grayBrush.Freeze();
-                    IconFill = grayBrush;
-                }
 
                 if (!selected.IsLocked.HasValue)
                 {
@@ -205,17 +193,9 @@ namespace LbpArchiveToolkit.ViewModels
                             selected.IsSubLevel = isSubLevel;
                             selected.IsShareable = isShareable;
 
-                            IconLockVisibility = isLocked ? Visibility.Visible : Visibility.Hidden;
+                            IsIconLockVisible = isLocked;
                             IconScale = isSubLevel ? 0.85 : 1.0;
-
-                            if (isLocked && OriginalIconFill is ImageBrush imgBrush && imgBrush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
-                            {
-                                var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, System.Windows.Media.PixelFormats.Gray8, null, 0);
-                                grayscaleBmp.Freeze();
-                                var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
-                                grayBrush.Freeze();
-                                IconFill = grayBrush;
-                            }
+                            OnPropertyChanged(nameof(SelectedBackup)); // Triggers multi-converter UI refresh
                         }
                     }
                     catch { }
@@ -225,9 +205,8 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 LevelTitle = "";
                 LevelDescription = "";
-                IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-                OriginalIconFill = IconFill;
-                IconLockVisibility = Visibility.Hidden;
+                IconSource = null;
+                IsIconLockVisible = false;
                 IconScale = 1.0;
                 IconStatusText = "Select a backup\nto view details";
             }
@@ -239,24 +218,18 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 try
                 {
-                    var bitmap = TextureDecoder.LoadBitmapImage(iconPath);
-                    var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
-                    brush.Freeze();
-                    OriginalIconFill = brush;
-                    IconFill = brush;
+                    IconSource = TextureDecoder.LoadBitmapImage(iconPath);
                     IconStatusText = "";
                 }
                 catch
                 {
-                    OriginalIconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-                    IconFill = OriginalIconFill;
+                    IconSource = null;
                     IconStatusText = "Icon error";
                 }
             }
             else
             {
-                OriginalIconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-                IconFill = OriginalIconFill;
+                IconSource = null;
                 IconStatusText = "No icon";
             }
         }
@@ -499,15 +472,5 @@ namespace LbpArchiveToolkit.ViewModels
             foreach (string dir in Directory.GetDirectories(sourceDir)) CopyDirectoryRecursively(dir, Path.Combine(destDir, Path.GetFileName(dir)));
         }
 
-        private Brush GetBrush(string resourceKey, Color fallback)
-        {
-            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
-            {
-                return resourceBrush;
-            }
-            var brush = new SolidColorBrush(fallback);
-            brush.Freeze();
-            return brush;
-        }
     }
 }

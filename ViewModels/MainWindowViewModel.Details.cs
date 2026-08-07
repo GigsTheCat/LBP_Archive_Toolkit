@@ -16,18 +16,14 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedLevel == null)
             {
-                var normStroke = new SolidColorBrush(Color.FromRgb(255, 183, 3)); normStroke.Freeze();
-                IconEllipseStroke = normStroke;
-                MmPickVisibility = Visibility.Hidden;
-                LevelHeartOverlayVisibility = Visibility.Hidden;
-                IconLockVisibility = Visibility.Hidden;
+                IsMmPickVisible = false;
+                IsLevelHeartOverlayVisible = false;
+                IsIconLockVisible = false;
                 IconScale = 1.0;
                 LevelTags.Clear();
-                ToggleTagsButtonVisibility = Visibility.Collapsed;
-                ObjectOriginVisibility = Visibility.Collapsed;
-                var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
-                IconEllipseFill = darkFill;
-                OriginalIconFill = IconEllipseFill;
+                IsToggleTagsButtonVisible = false;
+                IsObjectOriginVisible = false;
+                LevelIconSource = null;
                 IconStatusText = "Select a level\nto view details";
                 return;
             }
@@ -35,12 +31,9 @@ namespace LbpArchiveToolkit.ViewModels
             var currentLevel = SelectedLevel;
             long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
 
-            MmPickVisibility = currentLevel.IsMmPick ? Visibility.Visible : Visibility.Hidden;
-            var mmStroke = new SolidColorBrush(currentLevel.IsMmPick ? Color.FromRgb(247, 37, 133) : Color.FromRgb(255, 183, 3));
-            mmStroke.Freeze();
-            IconEllipseStroke = mmStroke;
-            LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(currentLevel.Id) ? Visibility.Visible : Visibility.Hidden;
-            IconLockVisibility = currentLevel.IsLocked ? Visibility.Visible : Visibility.Hidden;
+            IsMmPickVisible = currentLevel.IsMmPick;
+            IsLevelHeartOverlayVisible = HeartedLevelsManager.IsHearted(currentLevel.Id);
+            IsIconLockVisible = currentLevel.IsLocked;
             IconScale = currentLevel.IsSubLevel ? 0.85 : 1.0;
             HeartLevelButtonText = HeartedLevelsManager.IsHearted(currentLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
 
@@ -114,11 +107,11 @@ namespace LbpArchiveToolkit.ViewModels
                     foreach (var tag in tags.OrderBy(t => t))
                         AddOrUpdateTag(tag, null, Visibility.Collapsed, true);
 
-                    ToggleTagsButtonVisibility = Visibility.Visible;
+                    IsToggleTagsButtonVisible = true;
                     ToggleTagsButtonText = "SHOW TAGS";
                     _showingLbp1Tags = false;
                 }
-                else ToggleTagsButtonVisibility = Visibility.Collapsed;
+                else IsToggleTagsButtonVisible = false;
 
                 while (LevelTags.Count > tagIndex)
                 {
@@ -130,7 +123,7 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTags.Clear();
             }
             
-            ObjectOriginVisibility = Visibility.Collapsed;
+            IsObjectOriginVisible = false;
             _ = LoadIconAsync(currentLevel.IconHash, currentRequestId);
             _ = CheckIfObjectOriginAsync(currentLevel.Id, currentRequestId);
             
@@ -145,7 +138,7 @@ namespace LbpArchiveToolkit.ViewModels
                 bool isOrigin = await _dbService.IsObjectOriginAsync(slotId);
                 if (_currentIconRequestId == expectedRequestId)
                 {
-                    ObjectOriginVisibility = isOrigin ? Visibility.Visible : Visibility.Collapsed;
+                    IsObjectOriginVisible = isOrigin;
                 }
             }
             catch { }
@@ -155,10 +148,9 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedUser == null)
             {
-                var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
-                UserIconRectFill = darkFill;
+                UserIconSource = null;
                 UserIconStatusText = "Select a creator\nto view details";
-                UserHeartOverlayVisibility = Visibility.Hidden;
+                IsUserHeartOverlayVisible = false;
                 OnPropertyChanged(nameof(UserStatsText));
                 OnPropertyChanged(nameof(UserSummaryText));
                 return;
@@ -166,7 +158,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             long currentRequestId = Interlocked.Increment(ref _currentIconRequestId);
 
-            UserHeartOverlayVisibility = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? Visibility.Visible : Visibility.Hidden;
+            IsUserHeartOverlayVisible = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle);
             UserHeartButtonText = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
             OnPropertyChanged(nameof(UserStatsText));
             OnPropertyChanged(nameof(UserSummaryText));
@@ -249,9 +241,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task LoadIconAsync(string? hash, long expectedRequestId)
         {
-            var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
-            IconEllipseFill = darkFill;
-            OriginalIconFill = IconEllipseFill;
+            LevelIconSource = null;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { IconStatusText = "No Icon Available"; return; }
 
             IconStatusText = "Loading Icon...";
@@ -262,20 +252,11 @@ namespace LbpArchiveToolkit.ViewModels
             }
             _iconCts = new CancellationTokenSource();
 
-            var brush = await IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, _iconCts.Token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _iconCts.Token);
             if (_currentIconRequestId != expectedRequestId || _iconCts.Token.IsCancellationRequested) return;
 
-            if (brush != null) { 
-                OriginalIconFill = brush;
-                if (SelectedLevel != null && SelectedLevel.IsLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
-                {
-                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
-                    grayscaleBmp.Freeze();
-                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
-                    grayBrush.Freeze();
-                    IconEllipseFill = grayBrush;
-                }
-                else IconEllipseFill = brush;
+            if (bmp != null) { 
+                LevelIconSource = bmp;
                 IconStatusText = ""; 
             }
             else IconStatusText = "Icon offline\nor missing.";
@@ -283,8 +264,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task LoadUserIconAsync(string? hash, string npHandle, long expectedRequestId)
         {
-            var darkFill = new SolidColorBrush(Color.FromRgb(25, 19, 43)); darkFill.Freeze();
-            UserIconRectFill = darkFill;
+            UserIconSource = null;
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8) { UserIconStatusText = "No Icon Available"; return; }
 
             UserIconStatusText = "Loading Icon...";
@@ -295,10 +275,10 @@ namespace LbpArchiveToolkit.ViewModels
             }
             _iconCts = new CancellationTokenSource();
 
-            var brush = await IconLoaderService.LoadIconBrushAsync(hash, SharedHttpClient, _iconCts.Token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _iconCts.Token);
             if (_currentIconRequestId != expectedRequestId || _iconCts.Token.IsCancellationRequested) return;
 
-            if (brush != null) { UserIconRectFill = brush; UserIconStatusText = ""; }
+            if (bmp != null) { UserIconSource = bmp; UserIconStatusText = ""; }
             else UserIconStatusText = "Icon offline\nor missing.";
         }
 

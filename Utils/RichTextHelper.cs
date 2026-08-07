@@ -209,9 +209,11 @@ namespace LbpArchiveToolkit.Utils
 
                     toolTip.Content = grid;
 
-                    var brush = await IconLoaderService.LoadIconBrushAsync(user.IconHash, MainWindow.SharedHttpClient, CancellationToken.None);
-                    if (brush != null)
+                    var bmp = await IconLoaderService.LoadIconSourceAsync(user.IconHash, MainWindow.SharedHttpClient, CancellationToken.None);
+                    if (bmp != null)
                     {
+                        var brush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                        brush.Freeze();
                         iconRect.Fill = brush;
                     }
                 }

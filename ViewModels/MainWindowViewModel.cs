@@ -184,14 +184,14 @@ namespace LbpArchiveToolkit.ViewModels
                 if (SetProperty(ref field, value))
                 {
                     OnPropertyChanged(nameof(IsLevelSearch));
-                    OnPropertyChanged(nameof(LevelViewVisibility));
-                    OnPropertyChanged(nameof(UserViewVisibility));
-                    OnPropertyChanged(nameof(SearchDescVisibility));
-                    OnPropertyChanged(nameof(AdvancedButtonVisibility));
-                    OnPropertyChanged(nameof(SurpriseButtonVisibility));
-                    OnPropertyChanged(nameof(LevelFiltersVisibility));
-                    OnPropertyChanged(nameof(LimitVisibility));
-                    OnPropertyChanged(nameof(ExactMatchVisibility));
+                    OnPropertyChanged(nameof(IsLevelViewVisible));
+                    OnPropertyChanged(nameof(IsUserViewVisible));
+                    OnPropertyChanged(nameof(IsSearchDescVisible));
+                    OnPropertyChanged(nameof(IsAdvancedButtonVisible));
+                    OnPropertyChanged(nameof(IsSurpriseButtonVisible));
+                    OnPropertyChanged(nameof(IsLevelFiltersVisible));
+                    OnPropertyChanged(nameof(IsLimitVisible));
+                    OnPropertyChanged(nameof(IsExactMatchVisible));
                 }
             }
         } = 0;
@@ -209,32 +209,32 @@ namespace LbpArchiveToolkit.ViewModels
             set
             {
                 SetProperty(ref field, value);
-                OnPropertyChanged(nameof(SearchButtonVisibility));
-                OnPropertyChanged(nameof(SurpriseButtonVisibility));
-                OnPropertyChanged(nameof(CancelButtonVisibility));
+                OnPropertyChanged(nameof(IsSearchButtonVisible));
+                OnPropertyChanged(nameof(IsSurpriseButtonVisible));
+                OnPropertyChanged(nameof(IsCancelButtonVisible));
             }
         }
-        public Visibility SearchButtonVisibility => IsSearching ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility SurpriseButtonVisibility => (IsSearching || SearchTypeIndex == 4 || SearchTypeIndex == 5) ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility CancelButtonVisibility => IsSearching ? Visibility.Visible : Visibility.Collapsed;
+        public bool IsSearchButtonVisible => !IsSearching;
+        public bool IsSurpriseButtonVisible => !(IsSearching || SearchTypeIndex == 4 || SearchTypeIndex == 5);
+        public bool IsCancelButtonVisible => IsSearching;
 
-        public Visibility IsProgressVisible { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public bool IsProgressVisible { get; set => SetProperty(ref field, value); }
         public bool IsProgressIndeterminate { get; set => SetProperty(ref field, value); }
         public int ProgressMaximum { get; set => SetProperty(ref field, value); } = 100;
         public int ProgressValue { get; set => SetProperty(ref field, value); } = 0;
 
         public bool IsLevelSearch => SearchTypeIndex == 0 || SearchTypeIndex == 2 || SearchTypeIndex == 3 || SearchTypeIndex == 4 || SearchTypeIndex == 5;
-        public Visibility LevelViewVisibility => IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility UserViewVisibility => !IsLevelSearch ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility SearchDescVisibility => (SearchTypeIndex == 0) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility AdvancedButtonVisibility => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility LevelFiltersVisibility => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility LimitVisibility => (SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility ExactMatchVisibility => (SearchTypeIndex != 4 && SearchTypeIndex != 5) ? Visibility.Visible : Visibility.Collapsed;
+        public bool IsLevelViewVisible => IsLevelSearch;
+        public bool IsUserViewVisible => !IsLevelSearch;
+        public bool IsSearchDescVisible => (SearchTypeIndex == 0);
+        public bool IsAdvancedButtonVisible => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5);
+        public bool IsLevelFiltersVisible => (IsLevelSearch && SearchTypeIndex != 4 && SearchTypeIndex != 5);
+        public bool IsLimitVisible => (SearchTypeIndex != 4 && SearchTypeIndex != 5);
+        public bool IsExactMatchVisible => (SearchTypeIndex != 4 && SearchTypeIndex != 5);
 
         // DB Dependent Visibilities
-        public Visibility HasContributorsVisibility => _dbService.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility HasObjectContributorsVisibility => _dbService.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
+        public bool IsContributorsVisible => _dbService.HasContributorsTable;
+        public bool IsObjectContributorsVisible => _dbService.HasObjectContributorsTable;
         public bool HasCompletionData => _dbService.HasCompletionData;
         public bool HasCommunityLabels => _dbService.HasCommunityLabels;
         public bool HasExtendedSlotProperties => _dbService.HasExtendedSlotProperties;
@@ -246,25 +246,17 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateLevelDetails(); }
         }
 
-        public Brush IconEllipseStroke { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(255, 183, 3));
-        public Brush IconEllipseFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
-        
-        private static SolidColorBrush CreateFrozenBrush(Color color)
-        {
-            var brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
-        }
-        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public System.Windows.Media.Imaging.BitmapSource? LevelIconSource { get; set => SetProperty(ref field, value); }
+
+        public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
-        public Visibility MmPickVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
-        public Visibility LevelHeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public bool IsMmPickVisible { get; set => SetProperty(ref field, value); }
+        public bool IsLevelHeartOverlayVisible { get; set => SetProperty(ref field, value); }
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
         public string HeartLevelButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART LEVEL";
-        public Visibility ToggleTagsButtonVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsToggleTagsButtonVisible { get; set => SetProperty(ref field, value); }
         public string ToggleTagsButtonText { get; set => SetProperty(ref field, value); } = "SHOW TAGS";
-        public Visibility ObjectOriginVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsObjectOriginVisible { get; set => SetProperty(ref field, value); }
 
         private bool _showingLbp1Tags = false;
 
@@ -275,8 +267,8 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateUserDetails(); }
         }
 
-        public Brush UserIconRectFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
-        public Visibility UserHeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public System.Windows.Media.Imaging.BitmapSource? UserIconSource { get; set => SetProperty(ref field, value); }
+        public bool IsUserHeartOverlayVisible { get; set => SetProperty(ref field, value); }
         public string UserIconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
         public string UserHeartButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART CREATOR";
 
@@ -380,8 +372,8 @@ namespace LbpArchiveToolkit.ViewModels
         public void RefreshDatabaseService()
         {
             _dbService = new DatabaseService(ConfigManager.DatabasePath);
-            OnPropertyChanged(nameof(HasContributorsVisibility));
-            OnPropertyChanged(nameof(HasObjectContributorsVisibility));
+            OnPropertyChanged(nameof(IsContributorsVisible));
+            OnPropertyChanged(nameof(IsObjectContributorsVisible));
             OnPropertyChanged(nameof(HasCompletionData));
             OnPropertyChanged(nameof(LevelCreatorText));
             OnPropertyChanged(nameof(LevelStatsText));
@@ -392,12 +384,12 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedLevel != null)
             {
-                LevelHeartOverlayVisibility = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? Visibility.Visible : Visibility.Hidden;
+                IsLevelHeartOverlayVisible = HeartedLevelsManager.IsHearted(SelectedLevel.Id);
                 HeartLevelButtonText = HeartedLevelsManager.IsHearted(SelectedLevel.Id) ? "♡ UNHEART LEVEL" : "♥ HEART LEVEL";
             }
             if (SelectedUser != null)
             {
-                UserHeartOverlayVisibility = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? Visibility.Visible : Visibility.Hidden;
+                IsUserHeartOverlayVisible = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle);
                 UserHeartButtonText = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
             }
             foreach (var item in ResultsList) UpdateLevelSavedString(item);

@@ -94,7 +94,7 @@
                     <TextBlock Text="LEVEL ICON" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,0,5"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="CHANGE ICON..." Command="{Binding ChangeIconCommand}" Style="{DynamicResource BtnActionBlue}" HorizontalAlignment="Left" Padding="15,6" FontSize="11" Margin="0,0,10,0"/>
-                        <Button Content="EDIT ICON" Command="{Binding EditIconCommand}" Style="{DynamicResource BtnSecondary}" HorizontalAlignment="Left" Padding="15,6" FontSize="11" Margin="0" Visibility="{Binding EditIconVisibility}"/>
+                        <Button Content="EDIT ICON" Command="{Binding EditIconCommand}" Style="{DynamicResource BtnSecondary}" HorizontalAlignment="Left" Padding="15,6" FontSize="11" Margin="0" Visibility="{Binding IsEditIconVisible, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
                 </StackPanel>
             </DockPanel>

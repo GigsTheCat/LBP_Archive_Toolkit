@@ -51,17 +51,9 @@ namespace LbpArchiveToolkit.ViewModels
         public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
         public string LevelCreator { get; set => SetProperty(ref field, value); } = "";
         public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
-        public Brush IconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = CreateFrozenBrush(Color.FromRgb(25, 19, 43));
-
-        private static SolidColorBrush CreateFrozenBrush(Color color)
-        {
-            var brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
-        }
+        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
-        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
 
         public ICommand CreateCommand { get; }
@@ -88,19 +80,7 @@ namespace LbpArchiveToolkit.ViewModels
             RemoveLevelCommand = new RelayCommand(ExecuteRemoveLevel, CanExecuteRemoveLevel);
             ExtractLevelCommand = new RelayCommand(ExecuteExtractLevel, CanExecuteRemoveLevel);
 
-            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            OriginalIconFill = IconFill;
-
             LoadPlaylists();
-        }
-
-        private Brush GetBrush(string resourceKey, Color fallback)
-        {
-            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
-            {
-                return resourceBrush;
-            }
-            return CreateFrozenBrush(fallback);
         }
 
         private async void UpdateSelectionDetails()
@@ -119,7 +99,7 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelCreator = $"By: {selected.Creator ?? "Unknown"}  |  Game: {selected.Game ?? "Unknown"}";
                 LevelDescription = selected.Description ?? "No description provided.";
                 
-                IconLockVisibility = selected.IsLocked ? Visibility.Visible : Visibility.Hidden;
+                IsIconLockVisible = selected.IsLocked;
                 IconScale = selected.IsSubLevel ? 0.85 : 1.0;
 
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
@@ -137,18 +117,16 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTitle = "";
                 LevelCreator = "";
                 LevelDescription = "";
-                IconLockVisibility = Visibility.Hidden;
+                IsIconLockVisible = false;
                 IconScale = 1.0;
-                IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-                OriginalIconFill = IconFill;
+                IconSource = null;
                 IconStatusText = "Select a level\nto view details";
             }
         }
 
         private async Task LoadIconAsync(string? hash, CancellationToken token, long expectedRequestId, bool isLocked)
         {
-            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            OriginalIconFill = IconFill;
+            IconSource = null;
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -158,22 +136,13 @@ namespace LbpArchiveToolkit.ViewModels
 
             IconStatusText = "Loading Icon...";
 
-            var brush = await IconLoaderService.LoadIconBrushAsync(hash, MainWindow.SharedHttpClient, token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, MainWindow.SharedHttpClient, token);
 
             if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
-            if (brush != null)
+            if (bmp != null)
             {
-                OriginalIconFill = brush;
-                if (isLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
-                {
-                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
-                    grayscaleBmp.Freeze();
-                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
-                    grayBrush.Freeze();
-                    IconFill = grayBrush;
-                }
-                else IconFill = brush;
+                IconSource = bmp;
                 IconStatusText = "";
             }
             else

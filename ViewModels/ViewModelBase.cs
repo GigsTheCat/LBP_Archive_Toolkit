@@ -22,7 +22,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteCopyImage(object? parameter)
         {
-            if (parameter is ImageBrush brush && brush.ImageSource is BitmapSource bmp)
+            if (parameter is BitmapSource bmp)
             {
                 try
                 {
@@ -39,7 +39,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteSaveImage(object? parameter)
         {
-            if (parameter is ImageBrush brush && brush.ImageSource is BitmapSource bmp)
+            if (parameter is BitmapSource bmp)
             {
                 var viewService = Application.Current?.MainWindow as IViewService;
                 if (viewService == null) return;

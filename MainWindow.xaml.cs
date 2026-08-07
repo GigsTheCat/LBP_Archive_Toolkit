@@ -24,8 +24,8 @@ namespace LbpArchiveToolkit
         // --- Backwards Compatibility Passthroughs for Child Windows ---
         public static readonly HttpClient SharedHttpClient = MainWindowViewModel.SharedHttpClient;
         
-        public bool HasContributorsTable => _viewModel.HasContributorsVisibility == Visibility.Visible;
-        public bool HasObjectContributorsTable => _viewModel.HasObjectContributorsVisibility == Visibility.Visible;
+        public bool HasContributorsTable => _viewModel.IsContributorsVisible;
+        public bool HasObjectContributorsTable => _viewModel.IsObjectContributorsVisible;
         
         public void InitiateCreatorSearch(string npHandle) => _viewModel.InitiateCreatorSearch(npHandle);
         public void InitiateContributionsSearch(string npHandle) => _viewModel.InitiateContributionsSearch(npHandle);
@@ -196,9 +196,9 @@ namespace LbpArchiveToolkit
                             if (menuItem.Name == "MenuHeartCreator")
                                 menuItem.Header = isHearted ? "Unheart Creator" : "Heart Creator";
                             else if (menuItem.Name == "MenuSearchContributions")
-                                menuItem.Visibility = _viewModel.HasContributorsVisibility;
+                                menuItem.Visibility = _viewModel.IsContributorsVisible ? Visibility.Visible : Visibility.Collapsed;
                             else if (menuItem.Name == "MenuSearchObjects")
-                                menuItem.Visibility = _viewModel.HasObjectContributorsVisibility;
+                                menuItem.Visibility = _viewModel.IsObjectContributorsVisible ? Visibility.Visible : Visibility.Collapsed;
                         }
                     }
                 }

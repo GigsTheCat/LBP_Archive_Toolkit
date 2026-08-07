@@ -121,25 +121,43 @@
                                     </Ellipse>
                                     
                                     <!-- Ribbon Background Elements for MM Pick -->
-                                    <Path x:Name="mmPickTails" Visibility="{Binding MmPickVisibility}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
+                                    <Path x:Name="mmPickTails" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
                                         <Path.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.5" Direction="270"/></Path.Effect>
                                     </Path>
-                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding MmPickVisibility}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
-                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding MmPickVisibility}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
+                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
+                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
 
-                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconStroke}" StrokeThickness="5" Fill="{Binding IconFill}" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse x:Name="iconEllipse" StrokeThickness="5" RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Stroke" Value="{DynamicResource LbpOrange}" />
+                                                <Setter Property="Fill">
+                                                    <Setter.Value>
+                                                        <MultiBinding Converter="{StaticResource IconToBrush}">
+                                                            <Binding Path="IconSource" />
+                                                            <Binding Path="SelectedLevel.IsLocked" FallbackValue="False" />
+                                                        </MultiBinding>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedLevel.IsMmPick}" Value="True">
+                                                        <Setter Property="Stroke" Value="{DynamicResource LbpPink}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
                                         <Ellipse.RenderTransform>
                                             <ScaleTransform ScaleX="{Binding IconScale}" ScaleY="{Binding IconScale}"/>
                                         </Ellipse.RenderTransform>
                                         <Ellipse.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
-                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconSource}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconSource}" />
                                             </ContextMenu>
                                         </Ellipse.ContextMenu>
                                     </Ellipse>
 
-                                    <Path x:Name="lockSymbol" Visibility="{Binding IconLockVisibility}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
+                                    <Path x:Name="lockSymbol" Visibility="{Binding IsIconLockVisible, Converter={StaticResource BoolToVis}}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
                                         <Path.Effect>
                                             <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="1.0" Color="Black" Direction="270"/>
                                         </Path.Effect>
@@ -147,7 +165,7 @@
                                     
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding IsHeartOverlayVisible, Converter={StaticResource BoolToVis}}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>

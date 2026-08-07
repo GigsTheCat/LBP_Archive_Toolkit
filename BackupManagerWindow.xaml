@@ -120,19 +120,25 @@
                                         <Ellipse.RenderTransform><TranslateTransform Y="8"/></Ellipse.RenderTransform>
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                     </Ellipse>
-                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconFill}" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse x:Name="iconEllipse" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.Fill>
+                                            <MultiBinding Converter="{StaticResource IconToBrush}">
+                                                <Binding Path="IconSource" />
+                                                <Binding Path="SelectedBackup.IsLocked" FallbackValue="False" />
+                                            </MultiBinding>
+                                        </Ellipse.Fill>
                                         <Ellipse.RenderTransform>
                                             <ScaleTransform ScaleX="{Binding IconScale}" ScaleY="{Binding IconScale}"/>
                                         </Ellipse.RenderTransform>
                                         <Ellipse.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
-                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconSource}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconSource}" />
                                             </ContextMenu>
                                         </Ellipse.ContextMenu>
                                     </Ellipse>
                                     
-                                    <Path x:Name="lockSymbol" Visibility="{Binding IconLockVisibility}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
+                                    <Path x:Name="lockSymbol" Visibility="{Binding IsIconLockVisible, Converter={StaticResource BoolToVis}}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
                                         <Path.Effect>
                                             <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="1.0" Color="Black" Direction="270"/>
                                         </Path.Effect>

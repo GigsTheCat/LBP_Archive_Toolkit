@@ -30,12 +30,10 @@ namespace LbpArchiveToolkit.ViewModels
         public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
         public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
         public string LevelCreator { get; set => SetProperty(ref field, value); } = "";
-        public Visibility HeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
-        public Visibility MmPickVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
-        public Brush IconStroke { get; set => SetProperty(ref field, value); } = null!;
-        public Brush IconFill { get; set => SetProperty(ref field, value); } = null!;
-        public Brush OriginalIconFill { get; set => SetProperty(ref field, value); } = null!;
-        public Visibility IconLockVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
+        public bool IsHeartOverlayVisible { get; set => SetProperty(ref field, value); }
+        public bool IsMmPickVisible { get; set => SetProperty(ref field, value); }
+        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
+        public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a level\nto view details";
 
@@ -45,11 +43,6 @@ namespace LbpArchiveToolkit.ViewModels
         public HeartedLevelsWindowViewModel(IViewService viewService)
         {
             _viewService = viewService;
-
-            // Initialize default brushes
-            IconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
-            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            OriginalIconFill = IconFill;
 
             RemoveCommand = new RelayCommand(ExecuteRemove, CanExecuteAction);
             ExtractCommand = new RelayCommand(ExecuteExtract, CanExecuteAction);
@@ -68,7 +61,7 @@ namespace LbpArchiveToolkit.ViewModels
             HeartedList.AddRange(HeartedLevelsManager.HeartedLevels);
             
             StatusText = $"You have {HeartedList.Count} hearted level(s).";
-            HeartOverlayVisibility = Visibility.Hidden;
+            IsHeartOverlayVisible = false;
 
             if (HeartedList.Any())
             {
@@ -91,12 +84,11 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTitle = selected.LevelName ?? "";
                 LevelDescription = selected.Description ?? "";
                 LevelCreator = $"By: {selected.Creator}  |  Game: {selected.Game}";
-                HeartOverlayVisibility = Visibility.Visible;
+                IsHeartOverlayVisible = true;
 
-                MmPickVisibility = selected.IsMmPick ? Visibility.Visible : Visibility.Hidden;
-                IconStroke = selected.IsMmPick ? GetBrush("LbpPink", Color.FromRgb(247, 37, 133)) : GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
+                IsMmPickVisible = selected.IsMmPick;
 
-                IconLockVisibility = selected.IsLocked ? Visibility.Visible : Visibility.Hidden;
+                IsIconLockVisible = selected.IsLocked;
                 IconScale = selected.IsSubLevel ? 0.85 : 1.0;
 
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
@@ -114,21 +106,18 @@ namespace LbpArchiveToolkit.ViewModels
                 LevelTitle = "";
                 LevelDescription = "";
                 LevelCreator = "";
-                HeartOverlayVisibility = Visibility.Hidden;
-                MmPickVisibility = Visibility.Hidden;
-                IconLockVisibility = Visibility.Hidden;
+                IsHeartOverlayVisible = false;
+                IsMmPickVisible = false;
+                IsIconLockVisible = false;
                 IconScale = 1.0;
-                IconStroke = GetBrush("LbpOrange", Color.FromRgb(255, 183, 3));
-                IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-                OriginalIconFill = IconFill;
+                IconSource = null;
                 IconStatusText = "Select a level\nto view details";
             }
         }
 
         private async Task LoadIconAsync(string? hash, CancellationToken token, long expectedRequestId, bool isLocked)
         {
-            IconFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-            OriginalIconFill = IconFill;
+            IconSource = null;
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -138,22 +127,13 @@ namespace LbpArchiveToolkit.ViewModels
 
             IconStatusText = "Loading Icon...";
 
-            var brush = await IconLoaderService.LoadIconBrushAsync(hash, MainWindow.SharedHttpClient, token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, MainWindow.SharedHttpClient, token);
 
             if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
-            if (brush != null)
+            if (bmp != null)
             {
-                OriginalIconFill = brush;
-                if (isLocked && brush.ImageSource is System.Windows.Media.Imaging.BitmapSource bmp)
-                {
-                    var grayscaleBmp = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Gray8, null, 0);
-                    grayscaleBmp.Freeze();
-                    var grayBrush = new ImageBrush(grayscaleBmp) { Stretch = Stretch.UniformToFill };
-                    grayBrush.Freeze();
-                    IconFill = grayBrush;
-                }
-                else IconFill = brush;
+                IconSource = bmp;
                 IconStatusText = "";
             }
             else
@@ -207,15 +187,5 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private Brush GetBrush(string resourceKey, Color fallback)
-        {
-            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
-            {
-                return resourceBrush;
-            }
-            var brush = new SolidColorBrush(fallback);
-            brush.Freeze();
-            return brush;
-        }
     }
 }

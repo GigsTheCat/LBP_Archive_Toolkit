@@ -9,14 +9,14 @@ namespace LbpArchiveToolkit.ViewModels
     {
         public string Title { get; set => SetProperty(ref field, value); } = "";
         public string Message { get; set => SetProperty(ref field, value); } = "";
-        public Visibility YesNoVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
-        public Visibility OkVisibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
-        public Visibility CopyVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsYesNoVisible { get; set => SetProperty(ref field, value); }
+        public bool IsOkVisible { get; set => SetProperty(ref field, value); } = true;
+        public bool IsCopyVisible { get; set => SetProperty(ref field, value); }
         public string CopyButtonText { get; set => SetProperty(ref field, value); } = "COPY";
-        public Visibility CheckboxVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsCheckboxVisible { get; set => SetProperty(ref field, value); }
         public string CheckboxText { get; set => SetProperty(ref field, value); } = "";
         public bool IsCheckboxChecked { get; set => SetProperty(ref field, value); }
-        public Visibility InputVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsInputVisible { get; set => SetProperty(ref field, value); }
         public string InputText { get; set => SetProperty(ref field, value); } = "";
 
         public ICommand OkCommand { get; }
@@ -33,31 +33,31 @@ namespace LbpArchiveToolkit.ViewModels
 
             if (isInput)
             {
-                InputVisibility = Visibility.Visible;
+                IsInputVisible = true;
                 InputText = defaultInput;
             }
 
             if (!string.IsNullOrEmpty(checkboxText))
             {
                 CheckboxText = checkboxText;
-                CheckboxVisibility = Visibility.Visible;
+                IsCheckboxVisible = true;
             }
 
             if (title.Contains("Error", StringComparison.OrdinalIgnoreCase) ||
                 title.Contains("Failed", StringComparison.OrdinalIgnoreCase))
             {
-                CopyVisibility = Visibility.Visible;
+                IsCopyVisible = true;
             }
 
             if (isYesNo)
             {
-                OkVisibility = Visibility.Collapsed;
-                YesNoVisibility = Visibility.Visible;
+                IsOkVisible = false;
+                IsYesNoVisible = true;
             }
             else
             {
-                OkVisibility = Visibility.Visible;
-                YesNoVisibility = Visibility.Collapsed;
+                IsOkVisible = true;
+                IsYesNoVisible = false;
             }
 
             OkCommand = new RelayCommand(_ => RequestClose?.Invoke(true));

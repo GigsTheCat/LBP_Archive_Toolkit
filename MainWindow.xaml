@@ -237,9 +237,9 @@
                                     <Button x:Name="btnForward" Content="→" Width="40" Height="40" FontSize="18" Style="{DynamicResource BtnNav}" Command="{Binding ForwardCommand}"/>
                                 </StackPanel>
                                 
-                                <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="160" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="{Binding CancelButtonVisibility}" Command="{Binding CancelSearchCommand}"/>
-                                <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="10,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding SearchButtonVisibility}" Command="{Binding SearchCommand}"/>
-                                <Button x:Name="btnSurprise" Content="🎲" DockPanel.Dock="Right" Width="40" Height="40" Margin="15,0,0,0" Padding="0" FontSize="20" Style="{DynamicResource BtnSecondary}" ToolTip="Surprise Me! (Random)" Visibility="{Binding SurpriseButtonVisibility}" Command="{Binding SurpriseMeCommand}"/>
+                                <Button x:Name="btnCancelSearch" Content="CANCEL" DockPanel.Dock="Right" Width="160" Height="40" Margin="15,0,0,0" FontSize="14" Style="{DynamicResource BtnSecondary}" Visibility="{Binding IsCancelButtonVisible, Converter={StaticResource BoolToVis}}" Command="{Binding CancelSearchCommand}"/>
+                                <Button x:Name="btnSearch" Content="SEARCH" DockPanel.Dock="Right" Width="110" Height="40" Margin="10,0,0,0" FontSize="14" Style="{DynamicResource BtnSearch}" Visibility="{Binding IsSearchButtonVisible, Converter={StaticResource BoolToVis}}" Command="{Binding SearchCommand}"/>
+                                <Button x:Name="btnSurprise" Content="🎲" DockPanel.Dock="Right" Width="40" Height="40" Margin="15,0,0,0" Padding="0" FontSize="20" Style="{DynamicResource BtnSecondary}" ToolTip="Surprise Me! (Random)" Visibility="{Binding IsSurpriseButtonVisible, Converter={StaticResource BoolToVis}}" Command="{Binding SurpriseMeCommand}"/>
                                 
                                 <Grid>
                                     <Border x:Name="searchBorder" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource LbpPink}" BorderThickness="2" CornerRadius="20" Padding="15,0">
@@ -308,13 +308,13 @@
                                 <ComboBox x:Name="cmbSearchType" SelectedIndex="{Binding SearchTypeIndex}" Width="125" Margin="0,0,8,5">
                                     <ComboBoxItem Content="Levels"/>
                                     <ComboBoxItem Content="Creators"/>
-                                    <ComboBoxItem x:Name="cbiContributions" Content="Contributions" Visibility="{Binding HasContributorsVisibility}"/>
-                                    <ComboBoxItem x:Name="cbiObjects" Content="Objects By" Visibility="{Binding HasObjectContributorsVisibility}"/>
+                                    <ComboBoxItem x:Name="cbiContributions" Content="Contributions" Visibility="{Binding IsContributorsVisible, Converter={StaticResource BoolToVis}}"/>
+                                    <ComboBoxItem x:Name="cbiObjects" Content="Objects By" Visibility="{Binding IsObjectContributorsVisible, Converter={StaticResource BoolToVis}}"/>
                                     <ComboBoxItem Content="Level ID"/>
                                     <ComboBoxItem Content="Level Hash"/>
                                 </ComboBox>
 
-                                <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LevelFiltersVisibility}">
+                                <StackPanel x:Name="panelLevelFilters" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding IsLevelFiltersVisible, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="Game:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="cmbGame" SelectedIndex="{Binding GameIndex}" Width="110" Margin="0,0,8,5">
                                         <ComboBoxItem Content="All Games"/>
@@ -327,7 +327,7 @@
                                     <ComboBox x:Name="cmbGenre" ItemsSource="{Binding Genres}" SelectedItem="{Binding SelectedGenre}" Width="150" Margin="0,0,8,5" />
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding LimitVisibility}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding IsLimitVisible, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="Limit:" Foreground="{DynamicResource LbpCyan}" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="cmbLimit" SelectedIndex="{Binding LimitIndex}" Width="75" Margin="0,0,15,5">
                                         <ComboBoxItem Content="100"/>
@@ -338,9 +338,9 @@
                                     </ComboBox>
                                 </StackPanel>
 
-                                <CheckBox x:Name="chkExact" Content="Exact Phrase" IsChecked="{Binding ExactMatch}" Margin="0,0,15,5" Visibility="{Binding ExactMatchVisibility}"/>
-                                <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" IsChecked="{Binding SearchDesc}" Margin="0,0,15,5" Visibility="{Binding SearchDescVisibility}"/>
-                                <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Visibility="{Binding AdvancedButtonVisibility}" Command="{Binding OpenAdvancedSearchCommand}"/>
+                                <CheckBox x:Name="chkExact" Content="Exact Phrase" IsChecked="{Binding ExactMatch}" Margin="0,0,15,5" Visibility="{Binding IsExactMatchVisible, Converter={StaticResource BoolToVis}}"/>
+                                <CheckBox x:Name="chkSearchDesc" Content="Search Descriptions" IsChecked="{Binding SearchDesc}" Margin="0,0,15,5" Visibility="{Binding IsSearchDescVisible, Converter={StaticResource BoolToVis}}"/>
+                                <Button x:Name="btnAdvanced" Content="ADVANCED ⚙" Style="{DynamicResource BtnSecondary}" Padding="12,4" Margin="0,0,0,5" FontSize="11" Visibility="{Binding IsAdvancedButtonVisible, Converter={StaticResource BoolToVis}}" Command="{Binding OpenAdvancedSearchCommand}"/>
                             </WrapPanel>
                         </StackPanel>
                     </ContentControl>
@@ -349,7 +349,7 @@
                         <Grid>
                             <DataGrid x:Name="dgResults" ItemsSource="{Binding ResultsList}" SelectedItem="{Binding SelectedLevel}"
                                       EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                                      Visibility="{Binding LevelViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
+                                      Visibility="{Binding IsLevelViewVisible, Converter={StaticResource BoolToVis}}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
 
@@ -408,7 +408,7 @@
 
                             <DataGrid x:Name="dgUsers" ItemsSource="{Binding UserResultsList}" SelectedItem="{Binding SelectedUser}"
                                       EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                                      Visibility="{Binding UserViewVisibility}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
+                                      Visibility="{Binding IsUserViewVisible, Converter={StaticResource BoolToVis}}" Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
                                       HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
                                 <DataGrid.Columns>
@@ -445,7 +445,7 @@
 
                     <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
                         <!-- Level Details -->
-                        <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding LevelViewVisibility}">
+                        <ContentControl x:Name="panelLevelDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding IsLevelViewVisible, Converter={StaticResource BoolToVis}}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -461,25 +461,43 @@
                                         <Ellipse.Effect><BlurEffect Radius="12"/></Ellipse.Effect>
                                     </Ellipse>
                                     
-                                    <Path x:Name="mmPickTails" Visibility="{Binding MmPickVisibility}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
+                                    <Path x:Name="mmPickTails" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Data="M 90,140 L 40,240 L 75,220 L 90,190 L 105,220 L 140,240 Z" Fill="{DynamicResource LbpPink}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-45">
                                         <Path.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.5" Direction="270"/></Path.Effect>
                                     </Path>
-                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding MmPickVisibility}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
-                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding MmPickVisibility}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
+                                    <Ellipse x:Name="mmPickRosette" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Margin="-12" Stroke="{DynamicResource LbpPink}" StrokeThickness="16" StrokeDashArray="2 1.5" StrokeDashCap="Flat" />
+                                    <Ellipse x:Name="mmPickRosetteInner" Visibility="{Binding IsMmPickVisible, Converter={StaticResource BoolToVis}}" Margin="-4" Stroke="#B80E5B" StrokeThickness="4" />
 
-                                    <Ellipse x:Name="iconEllipse" Stroke="{Binding IconEllipseStroke}" StrokeThickness="5" Fill="{Binding IconEllipseFill}" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse x:Name="iconEllipse" StrokeThickness="5" RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Stroke" Value="{DynamicResource LbpOrange}" />
+                                                <Setter Property="Fill">
+                                                    <Setter.Value>
+                                                        <MultiBinding Converter="{StaticResource IconToBrush}">
+                                                            <Binding Path="LevelIconSource" />
+                                                            <Binding Path="SelectedLevel.IsLocked" FallbackValue="False" />
+                                                        </MultiBinding>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedLevel.IsMmPick}" Value="True">
+                                                        <Setter Property="Stroke" Value="{DynamicResource LbpPink}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
                                         <Ellipse.RenderTransform>
                                             <ScaleTransform ScaleX="{Binding IconScale}" ScaleY="{Binding IconScale}"/>
                                         </Ellipse.RenderTransform>
                                         <Ellipse.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
-                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding OriginalIconFill}" />
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding LevelIconSource}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding LevelIconSource}" />
                                             </ContextMenu>
                                         </Ellipse.ContextMenu>
                                     </Ellipse>
 
-                                    <Path x:Name="lockSymbol" Visibility="{Binding IconLockVisibility}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
+                                    <Path x:Name="lockSymbol" Visibility="{Binding IsIconLockVisible, Converter={StaticResource BoolToVis}}" Data="M9 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h1a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2V13a2 2 0 0 1 2 -2h1zm2 0h6V7a3 3 0 0 0 -6 0v4z" Fill="{DynamicResource FgPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0" Stretch="Uniform" Width="64" Height="80">
                                         <Path.Effect>
                                             <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="1.0" Color="Black" Direction="270"/>
                                         </Path.Effect>
@@ -487,7 +505,7 @@
                                     
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
 
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding LevelHeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding IsLevelHeartOverlayVisible, Converter={StaticResource BoolToVis}}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -516,7 +534,7 @@
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                                    <Button x:Name="btnToggleTags" Content="{Binding ToggleTagsButtonText}" Command="{Binding ToggleTagsCommand}" Visibility="{Binding ToggleTagsButtonVisibility}" Style="{DynamicResource BtnSecondary}" Padding="10,4" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                    <Button x:Name="btnToggleTags" Content="{Binding ToggleTagsButtonText}" Command="{Binding ToggleTagsCommand}" Visibility="{Binding IsToggleTagsButtonVisible, Converter={StaticResource BoolToVis}}" Style="{DynamicResource BtnSecondary}" Padding="10,4" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                                     <ItemsControl ItemsSource="{Binding LevelTags}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -556,14 +574,14 @@
                                     <Button Content="ADD TO PLAYLIST" Command="{Binding AddToPlaylistCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnCopyHash" Content="COPY HASH" Command="{Binding CopyHashCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button Content="CONTRIBUTORS" Command="{Binding ShowContributorsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
-                                    <Button Content="🎁 OBJECT USAGES" Command="{Binding ShowObjectUsagesCommand}" Visibility="{Binding ObjectOriginVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="🎁 OBJECT USAGES" Command="{Binding ShowObjectUsagesCommand}" Visibility="{Binding IsObjectOriginVisible, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnExtract" Content="EXTRACT &amp; BACKUP" Command="{Binding ExtractSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgResults}" Style="{DynamicResource BtnExtract}" />
                                 </StackPanel>
                             </Grid>
                         </ContentControl>
 
                         <!-- User Details -->
-                        <ContentControl x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding UserViewVisibility}">
+                        <ContentControl x:Name="panelUserDetails" Style="{DynamicResource PopitCard}" Padding="20" Visibility="{Binding IsUserViewVisible, Converter={StaticResource BoolToVis}}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/> 
@@ -577,17 +595,20 @@
                                         <Rectangle.RenderTransform><TranslateTransform Y="8"/></Rectangle.RenderTransform>
                                         <Rectangle.Effect><BlurEffect Radius="12"/></Rectangle.Effect>
                                     </Rectangle>
-                                    <Rectangle x:Name="userIconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding UserIconRectFill}" RadiusX="8" RadiusY="8">
+                                    <Rectangle x:Name="userIconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" RadiusX="8" RadiusY="8">
+                                        <Rectangle.Fill>
+                                            <ImageBrush ImageSource="{Binding UserIconSource}" Stretch="UniformToFill" />
+                                        </Rectangle.Fill>
                                         <Rectangle.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding UserIconRectFill}" />
-                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding UserIconRectFill}" />
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding UserIconSource}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding UserIconSource}" />
                                             </ContextMenu>
                                         </Rectangle.ContextMenu>
                                     </Rectangle>
                                     <TextBlock x:Name="txtUserIconStatus" Text="{Binding UserIconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="userIconHeartOverlay" Text="♥" Visibility="{Binding UserHeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
+                                    <TextBlock x:Name="userIconHeartOverlay" Text="♥" Visibility="{Binding IsUserHeartOverlayVisible, Converter={StaticResource BoolToVis}}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -611,8 +632,8 @@
                                 <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
                                     <Button Content="{Binding UserHeartButtonText}" Command="{Binding HeartUserCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnSecondary}" />
                                     <Button Content="VIEW CREATOR'S LEVELS" Command="{Binding ViewUserLevelsCommand}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
-                                    <Button Content="VIEW CONTRIBUTIONS" Command="{Binding ViewUserContributionsCommand}" Visibility="{Binding HasContributorsVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
-                                    <Button Content="VIEW OBJECTS BY" Command="{Binding ViewUserObjectsCommand}" Visibility="{Binding HasObjectContributorsVisibility}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="VIEW CONTRIBUTIONS" Command="{Binding ViewUserContributionsCommand}" Visibility="{Binding IsContributorsVisible, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
+                                    <Button Content="VIEW OBJECTS BY" Command="{Binding ViewUserObjectsCommand}" Visibility="{Binding IsObjectContributorsVisible, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6" Padding="12,6" FontSize="12" Style="{DynamicResource BtnActionBlue}" />
                                     <Button x:Name="btnBatchDownload" Content="DOWNLOAD ALL LEVELS" Command="{Binding BatchDownloadCommand}" Style="{DynamicResource BtnExtract}" />
                                 </StackPanel>
                             </Grid>
@@ -620,7 +641,7 @@
                     </Grid>
 
                     <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,15,0,5">
-                        <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding IsProgressVisible}">
+                        <Border DockPanel.Dock="Right" Width="220" Height="14" Background="{DynamicResource BgCardDarker}" CornerRadius="7" ClipToBounds="True" Visibility="{Binding IsProgressVisible, Converter={StaticResource BoolToVis}}">
                             <ProgressBar Background="Transparent" Foreground="{DynamicResource LbpEmerald}" BorderThickness="0" IsIndeterminate="{Binding IsProgressIndeterminate}" Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}"/>
                         </Border>
                         <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" VerticalAlignment="Center"/>

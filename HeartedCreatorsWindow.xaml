@@ -143,17 +143,20 @@
                                         <Rectangle.RenderTransform><TranslateTransform Y="8"/></Rectangle.RenderTransform>
                                         <Rectangle.Effect><BlurEffect Radius="12"/></Rectangle.Effect>
                                     </Rectangle>
-                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" Fill="{Binding IconRectFill}" RadiusX="8" RadiusY="8">
+                                    <Rectangle x:Name="iconRect" Stroke="{DynamicResource LbpOrange}" StrokeThickness="5" RadiusX="8" RadiusY="8">
+                                        <Rectangle.Fill>
+                                            <ImageBrush ImageSource="{Binding IconSource}" Stretch="UniformToFill" />
+                                        </Rectangle.Fill>
                                         <Rectangle.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconRectFill}" />
-                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconRectFill}" />
+                                                <MenuItem Header="Copy Image" Command="{Binding CopyImageCommand}" CommandParameter="{Binding IconSource}" />
+                                                <MenuItem Header="Save Image..." Command="{Binding SaveImageCommand}" CommandParameter="{Binding IconSource}" />
                                             </ContextMenu>
                                         </Rectangle.ContextMenu>
                                     </Rectangle>
                                     <TextBlock x:Name="txtIconStatus" Text="{Binding IconStatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                     
-                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding HeartOverlayVisibility}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
+                                    <TextBlock x:Name="iconHeartOverlay" Text="♥" Visibility="{Binding IsHeartOverlayVisible, Converter={StaticResource BoolToVis}}" Foreground="{DynamicResource LbpPink}" FontSize="60" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-10,0,0,-15">
                                         <TextBlock.Effect>
                                             <DropShadowEffect BlurRadius="8" ShadowDepth="4" Opacity="0.6" Color="Black" Direction="270"/>
                                         </TextBlock.Effect>
@@ -178,8 +181,8 @@
                                     <TextBlock x:Name="txtStatus" Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
                                     <Button x:Name="btnRemove" Content="REMOVE FROM HEARTS" Style="{DynamicResource BtnRemove}" Margin="0,0,0,10" Command="{Binding RemoveCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
                                     <Button x:Name="btnViewUserLevels" Content="VIEW CREATOR'S LEVELS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserLevelsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
-                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserContributionsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding ViewContributionsVisibility}"/>
-                                    <Button x:Name="btnViewUserObjects" Content="VIEW OBJECTS BY" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserObjectsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding ViewObjectsVisibility}"/>
+                                    <Button x:Name="btnViewUserContributions" Content="VIEW CONTRIBUTIONS" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserContributionsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding IsViewContributionsVisible, Converter={StaticResource BoolToVis}}"/>
+                                    <Button x:Name="btnViewUserObjects" Content="VIEW OBJECTS BY" Margin="0,0,0,10" Style="{DynamicResource BtnActionBlue}" Command="{Binding ViewUserObjectsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}" Visibility="{Binding IsViewObjectsVisible, Converter={StaticResource BoolToVis}}"/>
                                     <Button x:Name="btnDownloadAllLevels" Content="DOWNLOAD ALL LEVELS" Style="{DynamicResource BtnExtract}" Command="{Binding DownloadAllLevelsCommand}" CommandParameter="{Binding SelectedItems, ElementName=lvHearted}"/>
                                 </StackPanel>
                             </Grid>

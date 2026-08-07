@@ -48,7 +48,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public Visibility EditIconVisibility => File.Exists(NewIconPath ?? _originalIconPath) ? Visibility.Visible : Visibility.Collapsed;
+        public bool IsEditIconVisible => File.Exists(NewIconPath ?? _originalIconPath);
 
         public Action<bool>? RequestClose { get; set; }
 
@@ -102,9 +102,9 @@ namespace LbpArchiveToolkit.ViewModels
                 catch
                 {
                     _viewService.Alert("Failed to load the cropped image preview.", "Error");
-                    NewIconPath = null;
+                        NewIconPath = null;
                 }
-                OnPropertyChanged(nameof(EditIconVisibility));
+                OnPropertyChanged(nameof(IsEditIconVisible));
             }
         }
 
@@ -133,7 +133,7 @@ namespace LbpArchiveToolkit.ViewModels
                         _viewService.Alert("Failed to load the cropped image preview.", "Error");
                         NewIconPath = null;
                     }
-                    OnPropertyChanged(nameof(EditIconVisibility));
+                    OnPropertyChanged(nameof(IsEditIconVisible));
                 }
             }
         }

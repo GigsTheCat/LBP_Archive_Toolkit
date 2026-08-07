@@ -31,11 +31,11 @@ namespace LbpArchiveToolkit.ViewModels
         public string UserNpHandle { get; set => SetProperty(ref field, value); } = "";
         public string UserStats { get; set => SetProperty(ref field, value); } = "";
         public string UserSummary { get; set => SetProperty(ref field, value); } = "";
-        public Visibility HeartOverlayVisibility { get; set => SetProperty(ref field, value); } = Visibility.Hidden;
-        public Brush IconRectFill { get; set => SetProperty(ref field, value); } = null!;
+        public bool IsHeartOverlayVisible { get; set => SetProperty(ref field, value); }
+        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
-        public Visibility ViewContributionsVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
-        public Visibility ViewObjectsVisibility { get; set => SetProperty(ref field, value); } = Visibility.Collapsed;
+        public bool IsViewContributionsVisible { get; set => SetProperty(ref field, value); }
+        public bool IsViewObjectsVisible { get; set => SetProperty(ref field, value); }
 
         public ICommand RemoveCommand { get; }
         public ICommand ViewUserLevelsCommand { get; }
@@ -49,9 +49,6 @@ namespace LbpArchiveToolkit.ViewModels
         {
             _viewService = viewService;
 
-            // Initialize default brush
-            IconRectFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
-
             RemoveCommand = new RelayCommand(ExecuteRemove, CanExecuteAction);
             ViewUserLevelsCommand = new RelayCommand(ExecuteViewUserLevels, CanExecuteAction);
             ViewUserContributionsCommand = new RelayCommand(ExecuteViewUserContributions, CanExecuteAction);
@@ -61,8 +58,8 @@ namespace LbpArchiveToolkit.ViewModels
             // Access owner window to determine available database features
             if (_viewService.GetMainWindow() is MainWindow mainWindow)
             {
-                ViewContributionsVisibility = mainWindow.HasContributorsTable ? Visibility.Visible : Visibility.Collapsed;
-                ViewObjectsVisibility = mainWindow.HasObjectContributorsTable ? Visibility.Visible : Visibility.Collapsed;
+                IsViewContributionsVisible = mainWindow.HasContributorsTable;
+                IsViewObjectsVisible = mainWindow.HasObjectContributorsTable;
             }
 
             LoadHeartedCreators();
@@ -79,7 +76,7 @@ namespace LbpArchiveToolkit.ViewModels
             HeartedList.AddRange(HeartedCreatorsManager.HeartedCreators);
             
             StatusText = $"You have {HeartedList.Count} hearted creator(s).";
-            HeartOverlayVisibility = Visibility.Hidden;
+            IsHeartOverlayVisible = false;
 
             if (HeartedList.Any())
             {
@@ -98,7 +95,7 @@ namespace LbpArchiveToolkit.ViewModels
                               $"• LBP1 Slots: {selected.Lbp1UsedSlots}\n" +
                               $"• LBP2 Slots: {selected.Lbp2UsedSlots}\n" +
                               $"• LBP3 Slots: {selected.Lbp3UsedSlots}";
-                HeartOverlayVisibility = Visibility.Visible;
+                IsHeartOverlayVisible = true;
 
                 long expectedRequestId = Interlocked.Increment(ref _currentIconRequestId);
                 if (_iconCts != null)
@@ -115,15 +112,15 @@ namespace LbpArchiveToolkit.ViewModels
                 UserNpHandle = "";
                 UserStats = "";
                 UserSummary = "";
-                HeartOverlayVisibility = Visibility.Hidden;
-                IconRectFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+                IsHeartOverlayVisible = false;
+                IconSource = null;
                 IconStatusText = "Select a creator\nto view details";
             }
         }
 
         private async Task LoadUserIconAsync(string? hash, CancellationToken token, long expectedRequestId)
         {
-            IconRectFill = GetBrush("BgPrimary", Color.FromRgb(25, 19, 43));
+            IconSource = null;
 
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -133,13 +130,13 @@ namespace LbpArchiveToolkit.ViewModels
 
             IconStatusText = "Loading Icon...";
 
-            var brush = await IconLoaderService.LoadIconBrushAsync(hash, MainWindow.SharedHttpClient, token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, MainWindow.SharedHttpClient, token);
 
             if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 
-            if (brush != null)
+            if (bmp != null)
             {
-                IconRectFill = brush;
+                IconSource = bmp;
                 IconStatusText = "";
             }
             else
@@ -214,15 +211,5 @@ namespace LbpArchiveToolkit.ViewModels
             }
         }
 
-        private Brush GetBrush(string resourceKey, Color fallback)
-        {
-            if (Application.Current.TryFindResource(resourceKey) is Brush resourceBrush)
-            {
-                return resourceBrush;
-            }
-            var brush = new SolidColorBrush(fallback);
-            brush.Freeze();
-            return brush;
-        }
     }
 }

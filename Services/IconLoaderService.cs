@@ -3,12 +3,13 @@ using LbpArchiveToolkit.Utils;
 using System.IO;
 using System.Net.Http;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace LbpArchiveToolkit.Services
 {
     public static class IconLoaderService
     {
-        public static async Task<ImageBrush?> LoadIconBrushAsync(string? hash, HttpClient client, CancellationToken token)
+        public static async Task<BitmapSource?> LoadIconSourceAsync(string? hash, HttpClient client, CancellationToken token)
         {
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -30,9 +31,7 @@ namespace LbpArchiveToolkit.Services
                             var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource, -1, false), token).ConfigureAwait(false);
                             if (token.IsCancellationRequested || bmp == null) return null;
 
-                            var brush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
-                            brush.Freeze();
-                            return brush;
+                            return bmp;
                         }
                     }
                     catch (Exception ex)
@@ -71,9 +70,7 @@ namespace LbpArchiveToolkit.Services
                     var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(buffer, totalBytesRead, false), token).ConfigureAwait(false);
                     if (webBmp == null) return null;
 
-                    var webBrush = new ImageBrush(webBmp) { Stretch = Stretch.UniformToFill };
-                    webBrush.Freeze();
-                    return webBrush;
+                    return webBmp;
                 }
                 finally
                 {

@@ -28,7 +28,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             IsSearching = true;
             StatusText = "Searching database...";
-            IsProgressVisible = Visibility.Visible;
+            IsProgressVisible = true;
             IsProgressIndeterminate = true;
 
             var current = _currentSearch;
@@ -141,7 +141,7 @@ namespace LbpArchiveToolkit.ViewModels
             finally
             {
                 IsSearching = false;
-                IsProgressVisible = Visibility.Hidden;
+                IsProgressVisible = false;
             }
         }
 
@@ -149,7 +149,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             IsSearching = true;
             StatusText = SearchTypeIndex == 1 ? "Finding a random creator..." : "Finding a random level...";
-            IsProgressVisible = Visibility.Visible;
+            IsProgressVisible = true;
             IsProgressIndeterminate = true;
 
             var current = _currentSearch;
@@ -279,7 +279,7 @@ namespace LbpArchiveToolkit.ViewModels
             finally
             {
                 IsSearching = false;
-                IsProgressVisible = Visibility.Hidden;
+                IsProgressVisible = false;
                 IsProgressIndeterminate = false;
             }
         }
@@ -519,7 +519,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             IsSearching = true;
             StatusText = "Restoring search...";
-            IsProgressVisible = Visibility.Visible;
+            IsProgressVisible = true;
             IsProgressIndeterminate = true;
 
             ResultsList.Clear();
@@ -566,7 +566,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
             catch (OperationCanceledException) { StatusText = "Search cancelled."; }
             catch (Exception) { StatusText = "Failed to restore search."; }
-            finally { IsSearching = false; IsProgressVisible = Visibility.Hidden; }
+            finally { IsSearching = false; IsProgressVisible = false; }
         }
 
         private async Task ExtractLevelsAsync(IList<LevelItem> levels)

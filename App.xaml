@@ -2,9 +2,14 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:LbpArchiveToolkit"
+             xmlns:utils="clr-namespace:LbpArchiveToolkit.Utils"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
              <ResourceDictionary>
+                <BooleanToVisibilityConverter x:Key="BoolToVis" />
+                <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+                <utils:IconToBrushConverter x:Key="IconToBrush" />
+                
                 <!-- Global Shared Styles -->
 
                 <!-- TOOLTIP THEME -->
