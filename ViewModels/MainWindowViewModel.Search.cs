@@ -310,18 +310,18 @@ namespace LbpArchiveToolkit.ViewModels
                     {
                         var chunk = buffer.ToList();
                         buffer.Clear();
-                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        await _viewService.InvokeOnUIThreadAsync(() =>
                         {
                             ResultsList.AddRange(chunk);
                             StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels..." : $"{statusPrefix} {count} levels for '{keyword}'...";
-                        }, System.Windows.Threading.DispatcherPriority.Background);
+                        });
                         sw.Restart();
                     }
                 }
                 if (buffer.Count > 0)
                 {
                     var chunk = buffer.ToList();
-                    await Application.Current.Dispatcher.InvokeAsync(() => { ResultsList.AddRange(chunk); });
+                    await _viewService.InvokeOnUIThreadAsync(() => { ResultsList.AddRange(chunk); });
                 }
             });
 

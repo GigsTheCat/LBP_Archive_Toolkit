@@ -138,7 +138,7 @@ namespace LbpArchiveToolkit.ViewModels
                 
                 if (!token.IsCancellationRequested && _suggestionBuffer.Count > 0)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    _viewService.InvokeOnUIThread(() =>
                     {
                         // Object Pooling: Update existing items instead of clearing/re-adding
                         for (int i = 0; i < _suggestionBuffer.Count; i++)
@@ -314,7 +314,7 @@ namespace LbpArchiveToolkit.ViewModels
         public async Task LoadDataAsync(bool isStartup = false)
         {
             var dbGenres = await _dbService.GetGenresAsync();
-            Application.Current.Dispatcher.Invoke(() =>
+            _viewService.InvokeOnUIThread(() =>
             {
                 var existing = Genres.ToHashSet();
                 var newGenres = dbGenres.OrderBy(x => x).Where(g => !existing.Contains(g)).ToList();

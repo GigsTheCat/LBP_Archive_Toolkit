@@ -449,6 +449,16 @@ namespace LbpArchiveToolkit
                 if (image is System.Windows.Media.Imaging.BitmapSource bmp) Clipboard.SetImage(bmp); 
             } catch { }
         }
+
+        public void InvokeOnUIThread(Action action)
+        {
+            Application.Current.Dispatcher.Invoke(action);
+        }
+
+        public Task InvokeOnUIThreadAsync(Action action)
+        {
+            return Application.Current.Dispatcher.InvokeAsync(action, System.Windows.Threading.DispatcherPriority.Background).Task;
+        }
         #endregion
     }
 }
