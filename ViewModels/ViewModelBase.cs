@@ -16,9 +16,10 @@ namespace LbpArchiveToolkit.ViewModels
             SaveImageCommand = new RelayCommand(ExecuteSaveImage);
         }
 
-        // Fetches ViewService statically to avoid refactoring constructor chains
-        private IViewService? GetViewService() => 
-            System.Windows.Application.Current?.MainWindow as IViewService;
+        // Expose a static locator to decouple from System.Windows
+        public static IViewService? GlobalViewService { get; set; }
+
+        private IViewService? GetViewService() => GlobalViewService;
 
         private void ExecuteCopyImage(object? parameter)
         {

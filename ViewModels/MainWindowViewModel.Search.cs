@@ -68,8 +68,7 @@ namespace LbpArchiveToolkit.ViewModels
                     bool searchByHash = SearchTypeIndex == 5;
                     await PerformLevelSearchAsync(keyword, ExactMatch, SearchDesc, GameIndex, genreFilter, limitFilter, _advancedCriteria, searchToken, "Found", searchContribs, searchObjects, searchById, searchByHash);
 
-                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
-                    SelectedLevel = view.Cast<LevelItem>().FirstOrDefault();
+                    SelectedLevel = ResultsList.FirstOrDefault();
 
                     _currentSearch = new SearchState
                     {
@@ -184,9 +183,6 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (IsLevelSearch)
                 {
-                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
-                    view.SortDescriptions.Clear();
-
                     var progressReporter = new Progress<string>(status => StatusText = status);
                     var candidates = new List<LevelItem>();
 
@@ -286,14 +282,6 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task PerformLevelSearchAsync(string keyword, bool exact, bool searchDesc, int gameFilter, string? genreFilter, string? limitFilter, AdvancedSearchCriteria criteria, CancellationToken token, string statusPrefix, bool searchContributions, bool searchObjects, bool searchById, bool searchByHash)
         {
-            var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
-            view.SortDescriptions.Clear();
-            
-            if (limitFilter == "All")
-            {
-                view.SortDescriptions.Add(new System.ComponentModel.SortDescription("Hearts", System.ComponentModel.ListSortDirection.Descending));
-            }
-
             int count = 0;
             var sw = Stopwatch.StartNew();
             var progressReporter = new Progress<string>(status => StatusText = status);
@@ -301,24 +289,54 @@ namespace LbpArchiveToolkit.ViewModels
             await Task.Run(async () =>
             {
                 var buffer = new List<LevelItem>();
+                bool isAllLimit = limitFilter == "All";
+                var allResults = isAllLimit ? new List<LevelItem>() : null;
+
                 await foreach (var lvl in _dbService.SearchLevelsAsync(keyword, exact, searchDesc, gameFilter, genreFilter, limitFilter, _savedLevels.ToHashSet(), HeartedLevelsManager.HeartedLevels.Select(x => x.Id).ToHashSet(), PlaylistsManager.Playlists.SelectMany(p => p.Levels).Select(x => x.Id).ToHashSet(), criteria, progressReporter, searchContributions, searchObjects, searchById, searchByHash, false, token).ConfigureAwait(false))
                 {
-                    buffer.Add(lvl);
-                    count++;
-
-                    if (sw.ElapsedMilliseconds > 500)
+                    if (isAllLimit)
                     {
-                        var chunk = buffer.ToList();
-                        buffer.Clear();
-                        await _viewService.InvokeOnUIThreadAsync(() =>
+                        allResults!.Add(lvl);
+                        count++;
+                        if (sw.ElapsedMilliseconds > 500)
                         {
-                            ResultsList.AddRange(chunk);
-                            StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels..." : $"{statusPrefix} {count} levels for '{keyword}'...";
-                        });
-                        sw.Restart();
+                            await _viewService.InvokeOnUIThreadAsync(() => StatusText = $"Gathering {count} levels...");
+                            sw.Restart();
+                        }
+                    }
+                    else
+                    {
+                        buffer.Add(lvl);
+                        count++;
+
+                        if (sw.ElapsedMilliseconds > 500)
+                        {
+                            var chunk = buffer.ToList();
+                            buffer.Clear();
+                            await _viewService.InvokeOnUIThreadAsync(() =>
+                            {
+                                ResultsList.AddRange(chunk);
+                                StatusText = string.IsNullOrEmpty(keyword) ? $"{statusPrefix} {count} levels..." : $"{statusPrefix} {count} levels for '{keyword}'...";
+                            });
+                            sw.Restart();
+                        }
                     }
                 }
-                if (buffer.Count > 0)
+
+                if (isAllLimit)
+                {
+                    await _viewService.InvokeOnUIThreadAsync(() => StatusText = $"Sorting {count} levels...");
+                    
+                    // MVVM-friendly: Lightning fast in-place C# background sort
+                    allResults!.Sort((a, b) => b.Hearts.CompareTo(a.Hearts));
+                    
+                    // Push all at once (BulkObservableCollection suppresses UI updates until done)
+                    await _viewService.InvokeOnUIThreadAsync(() =>
+                    {
+                        ResultsList.AddRange(allResults);
+                    });
+                }
+                else if (buffer.Count > 0)
                 {
                     var chunk = buffer.ToList();
                     await _viewService.InvokeOnUIThreadAsync(() => { ResultsList.AddRange(chunk); });
@@ -552,15 +570,13 @@ namespace LbpArchiveToolkit.ViewModels
                 else if (IsLevelSearch)
                 {
                     await PerformLevelSearchAsync(state.SearchText, state.Exact, state.SearchDesc, state.GameIndex, state.Genre, limitFilter, state.AdvancedCriteria, _searchCts.Token, "Restored", state.SearchTypeIndex == 2, state.SearchTypeIndex == 3, state.SearchTypeIndex == 4, state.SearchTypeIndex == 5);
-                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(ResultsList);
-                    var viewFirst = view.Cast<LevelItem>().FirstOrDefault();
+                    var viewFirst = ResultsList.FirstOrDefault();
                     SelectedLevel = state.SelectedItem != null ? ResultsList.FirstOrDefault(x => x.Id == state.SelectedItem.Id) ?? viewFirst : viewFirst;
                 }
                 else
                 {
                     await PerformUserSearchAsync(state.SearchText, state.Exact, limitFilter, _searchCts.Token, "Restored", false);
-                    var view = System.Windows.Data.CollectionViewSource.GetDefaultView(UserResultsList);
-                    var viewFirst = view.Cast<UserItem>().FirstOrDefault();
+                    var viewFirst = UserResultsList.FirstOrDefault();
                     SelectedUser = state.SelectedUser != null ? UserResultsList.FirstOrDefault(x => x.NpHandle == state.SelectedUser.NpHandle) ?? viewFirst : viewFirst;
                 }
             }

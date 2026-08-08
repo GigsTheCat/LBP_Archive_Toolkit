@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 
 namespace LbpArchiveToolkit.ViewModels
@@ -70,7 +69,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             try
             {
-                (Application.Current?.MainWindow as IViewService)?.SetClipboardText(Message);
+                ViewModelBase.GlobalViewService?.SetClipboardText(Message);
                 CopyButtonText = "COPIED!";
                 await Task.Delay(2000);
                 CopyButtonText = "COPY";

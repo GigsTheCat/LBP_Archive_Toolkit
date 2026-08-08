@@ -38,6 +38,8 @@ namespace LbpArchiveToolkit
         {
             InitializeComponent();
 
+            ViewModelBase.GlobalViewService = this;
+
             ConfigManager.LoadConfig();
             SavedLevelsManager.Load(ConfigManager.LegacySavedLevels);
             HeartedLevelsManager.Load();

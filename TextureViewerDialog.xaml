@@ -40,12 +40,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" x:Name="txtTitle" Text="LEVEL TEXTURES" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,5"/>
-            <TextBlock Grid.Row="1" x:Name="txtStatus" Text="Loading archive..." Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,0,15"/>
+            <TextBlock Grid.Row="0" Text="{Binding Title}" Foreground="{DynamicResource LbpOrange}" FontSize="20" FontWeight="Black" Margin="0,0,0,5"/>
+            <TextBlock Grid.Row="1" Text="{Binding StatusText}" Foreground="{DynamicResource FgSecondary}" FontWeight="SemiBold" Margin="0,0,0,15"/>
 
             <Border Grid.Row="2" Background="{DynamicResource BgCardDarker}" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="2" CornerRadius="12" Padding="12" Margin="0,0,0,15">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="itemsControl">
+                    <ItemsControl x:Name="itemsControl" ItemsSource="{Binding Textures}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
@@ -55,11 +55,12 @@
                             <DataTemplate>
                                 <Border Margin="10" Background="Transparent" Width="200">
                                     <StackPanel>
-                                        <Border Width="180" Height="180" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" ClipToBounds="True" Background="#111115">
-                                            <Image Source="{Binding ImageSource}" Stretch="Uniform" ToolTip="Right-click to export"/>
+                                        <Border Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" Width="180" Height="180" BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="1" CornerRadius="8" ClipToBounds="True" Background="#111115">
+                                            <Image Source="{Binding ImageSource}" Stretch="Uniform" ToolTip="Right-click to copy or export"/>
                                             <Border.ContextMenu>
                                                 <ContextMenu>
-                                                    <MenuItem Header="Export as PNG" Click="Export_Click" CommandParameter="{Binding}"/>
+                                                    <MenuItem Header="Copy Image" Command="{Binding PlacementTarget.Tag.CopyImageCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding ImageSource}"/>
+                                                    <MenuItem Header="Export as PNG" Command="{Binding PlacementTarget.Tag.ExportCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
                                                 </ContextMenu>
                                             </Border.ContextMenu>
                                         </Border>
@@ -74,8 +75,8 @@
             </Border>
 
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="EXPORT ALL..." Click="ExportAll_Click" Style="{StaticResource BtnPrimary}"/>
-                <Button Content="CLOSE" Click="Close_Click" Style="{DynamicResource BtnSecondary}"/>
+                <Button Content="EXPORT ALL..." Command="{Binding ExportAllCommand}" Style="{StaticResource BtnPrimary}"/>
+                <Button Content="CLOSE" Command="{Binding CloseCommand}" Style="{DynamicResource BtnSecondary}"/>
             </StackPanel>
         </Grid>
     </ContentControl>
