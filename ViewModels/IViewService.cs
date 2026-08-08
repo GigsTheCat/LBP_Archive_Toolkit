@@ -1,12 +1,19 @@
 using LbpArchiveToolkit.Models;
 using System.Collections.Generic;
-using System.Windows;
 
 namespace LbpArchiveToolkit.ViewModels
 {
     public interface IViewService
     {
-        Window GetMainWindow();
+        bool HasContributorsTable { get; }
+        bool HasObjectContributorsTable { get; }
+
+        void InitiateCreatorSearch(string npHandle);
+        void InitiateContributionsSearch(string npHandle);
+        void InitiateObjectsSearch(string npHandle);
+        System.Threading.Tasks.Task InitiateBatchDownloadAsync(UserItem user);
+        void ClearSavedLevels();
+        bool ShowInputDialog(string message, string title, string defaultText, out string inputText);
         bool ShowMissingDatabaseDialog();
         void ShowSettingsDialog();
         (AdvancedSearchCriteria Criteria, bool ShouldSearch)? ShowAdvancedSearchDialog(AdvancedSearchCriteria current, bool hasCommunityLabels, bool hasExtendedSlotProperties);
@@ -32,6 +39,8 @@ namespace LbpArchiveToolkit.ViewModels
         void ShowTextureViewerDialog(string backupPath, string levelName);
         void SetClipboardText(string text);
         void SetClipboardImage(object image);
+        void OpenUrl(string url);
+        void OpenDirectory(string path);
         void SaveImageToFile(object image, string filePath);
         void InvokeOnUIThread(System.Action action);
         System.Threading.Tasks.Task InvokeOnUIThreadAsync(System.Action action);

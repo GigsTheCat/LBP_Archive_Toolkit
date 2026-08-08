@@ -10,7 +10,7 @@ namespace LbpArchiveToolkit
 {
     public partial class ImageCropDialog : Window
     {
-        public string? CroppedImagePath { get; private set; }
+        public string? CroppedImagePath => _viewModel.CroppedImagePath;
 
         private readonly ImageCropDialogViewModel _viewModel;
         private Point _startPoint;
@@ -24,8 +24,7 @@ namespace LbpArchiveToolkit
             InitializeComponent();
             _viewModel = new ImageCropDialogViewModel();
             
-            _viewModel.RequestCancel += () => { DialogResult = false; Close(); };
-            _viewModel.RequestApply += BtnApply_Execute;
+            _viewModel.RequestClose += (result) => { DialogResult = result; Close(); };
             
             DataContext = _viewModel;
             LoadImage(imagePath);
@@ -141,10 +140,11 @@ namespace LbpArchiveToolkit
             scaleTransform.ScaleY = newScale;
         }
 
-        private void BtnApply_Execute()
+        private void BtnApply_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                // UI rasterization is strictly a View responsibility
                 DpiScale dpi = VisualTreeHelper.GetDpi(canvasWorkspace);
                 int rtbW = (int)Math.Round(480 * dpi.DpiScaleX);
                 int rtbH = (int)Math.Round(360 * dpi.DpiScaleY);
@@ -177,9 +177,8 @@ namespace LbpArchiveToolkit
                     encoder.Save(fs);
                 }
 
-                CroppedImagePath = tempFile;
-                DialogResult = true;
-                Close();
+                // Pass the platform-agnostic string to the ViewModel to handle the business state
+                _viewModel.ConfirmCrop(tempFile);
             }
             catch (Exception ex)
             {

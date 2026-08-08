@@ -216,7 +216,10 @@ namespace LbpArchiveToolkit
         #endregion
 
         #region IViewService Implementation
-        public Window GetMainWindow() => this;
+        public bool ShowInputDialog(string message, string title, string defaultText, out string inputText)
+        {
+            return CustomDialog.ShowInput(this, message, title, defaultText, out inputText);
+        }
 
         public bool ShowMissingDatabaseDialog()
         {
@@ -450,6 +453,16 @@ namespace LbpArchiveToolkit
             { 
                 if (image is System.Windows.Media.Imaging.BitmapSource bmp) Clipboard.SetImage(bmp); 
             } catch { }
+        }
+
+        public void OpenUrl(string url)
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+        }
+
+        public void OpenDirectory(string path)
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true, Verb = "open" }); } catch { }
         }
 
         public void SaveImageToFile(object image, string filePath)

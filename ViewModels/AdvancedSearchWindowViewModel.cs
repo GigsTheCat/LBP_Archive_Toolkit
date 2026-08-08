@@ -128,7 +128,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 try
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://archive.org/download/fullfastdry") { UseShellExecute = true });
+                    _viewService.OpenUrl("https://archive.org/download/fullfastdry");
                 }
                 catch (Exception ex)
                 {

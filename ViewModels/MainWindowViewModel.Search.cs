@@ -587,8 +587,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task ExtractLevelsAsync(IList<LevelItem> levels)
         {
-            var window = _viewService.GetMainWindow();
-            await LevelExtractionService.ExtractLevelsAsync(window, levels.ToList(), lvl =>
+            await LevelExtractionService.ExtractLevelsAsync(levels.ToList(), lvl =>
             {
                 _savedLevels.Add(lvl.Id);
                 var existingItem = ResultsList.FirstOrDefault(x => x.Id == lvl.Id);

@@ -176,7 +176,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteCreate()
         {
-            if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Enter a name for the new playlist:", "New Playlist", "New Playlist", out string newName))
+            if (_viewService.ShowInputDialog("Enter a name for the new playlist:", "New Playlist", "New Playlist", out string newName))
             {
                 if (!string.IsNullOrWhiteSpace(newName))
                 {
@@ -192,7 +192,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             if (SelectedPlaylist != null)
             {
-                if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Enter a new name for the playlist:", "Rename Playlist", SelectedPlaylist.Name, out string newName))
+                if (_viewService.ShowInputDialog("Enter a new name for the playlist:", "Rename Playlist", SelectedPlaylist.Name, out string newName))
                 {
                     if (!string.IsNullOrWhiteSpace(newName))
                     {
@@ -254,7 +254,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async void ExecuteImport()
         {
-            if (CustomDialog.ShowInput(_viewService.GetMainWindow(), "Paste a Playlist Share Code here:", "Import Playlist", "", out string code))
+            if (_viewService.ShowInputDialog("Paste a Playlist Share Code here:", "Import Playlist", "", out string code))
             {
                 try
                 {
@@ -324,7 +324,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (_viewService.Confirm($"Download all {SelectedPlaylist.Levels.Count} levels in '{SelectedPlaylist.Name}' to your backups folder?", "Download All"))
                 {
-                    await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), SelectedPlaylist.Levels.ToList());
+                    await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList());
                 }
             }
         }
@@ -345,7 +345,7 @@ namespace LbpArchiveToolkit.ViewModels
                         bool originalPrompt = ConfigManager.ShowExtractionSuccessPrompt;
                         ConfigManager.ShowExtractionSuccessPrompt = false;
 
-                        await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), SelectedPlaylist.Levels.ToList(), null, tempDir);
+                        await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList(), null, tempDir);
 
                         ConfigManager.ShowExtractionSuccessPrompt = originalPrompt;
 
@@ -404,7 +404,7 @@ namespace LbpArchiveToolkit.ViewModels
             if (parameter is IList items && items.Count > 0)
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
-                await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), selectedItems);
+                await LevelExtractionService.ExtractLevelsAsync(selectedItems);
             }
         }
     }

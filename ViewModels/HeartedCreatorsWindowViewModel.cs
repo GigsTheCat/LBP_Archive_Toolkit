@@ -55,12 +55,8 @@ namespace LbpArchiveToolkit.ViewModels
             ViewUserObjectsCommand = new RelayCommand(ExecuteViewUserObjects, CanExecuteAction);
             DownloadAllLevelsCommand = new RelayCommand(ExecuteDownloadAllLevels, CanExecuteAction);
 
-            // Access owner window to determine available database features
-            if (_viewService.GetMainWindow() is MainWindow mainWindow)
-            {
-                IsViewContributionsVisible = mainWindow.HasContributorsTable;
-                IsViewObjectsVisible = mainWindow.HasObjectContributorsTable;
-            }
+            IsViewContributionsVisible = _viewService.HasContributorsTable;
+            IsViewObjectsVisible = _viewService.HasObjectContributorsTable;
 
             LoadHeartedCreators();
         }
@@ -177,37 +173,37 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteViewUserLevels(object? parameter)
         {
-            if (SelectedUser != null && _viewService.GetMainWindow() is MainWindow mainWindow)
+            if (SelectedUser != null)
             {
                 RequestClose?.Invoke();
-                mainWindow.InitiateCreatorSearch(SelectedUser.NpHandle);
+                _viewService.InitiateCreatorSearch(SelectedUser.NpHandle);
             }
         }
 
         private void ExecuteViewUserContributions(object? parameter)
         {
-            if (SelectedUser != null && _viewService.GetMainWindow() is MainWindow mainWindow)
+            if (SelectedUser != null)
             {
                 RequestClose?.Invoke();
-                mainWindow.InitiateContributionsSearch(SelectedUser.NpHandle);
+                _viewService.InitiateContributionsSearch(SelectedUser.NpHandle);
             }
         }
 
         private void ExecuteViewUserObjects(object? parameter)
         {
-            if (SelectedUser != null && _viewService.GetMainWindow() is MainWindow mainWindow)
+            if (SelectedUser != null)
             {
                 RequestClose?.Invoke();
-                mainWindow.InitiateObjectsSearch(SelectedUser.NpHandle);
+                _viewService.InitiateObjectsSearch(SelectedUser.NpHandle);
             }
         }
 
         private async void ExecuteDownloadAllLevels(object? parameter)
         {
-            if (SelectedUser != null && _viewService.GetMainWindow() is MainWindow mainWindow)
+            if (SelectedUser != null)
             {
                 RequestClose?.Invoke();
-                await mainWindow.InitiateBatchDownloadAsync(SelectedUser);
+                await _viewService.InitiateBatchDownloadAsync(SelectedUser);
             }
         }
 

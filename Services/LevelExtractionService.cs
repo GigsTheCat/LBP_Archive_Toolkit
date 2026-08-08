@@ -8,11 +8,12 @@ namespace LbpArchiveToolkit.Services
 {
     public static class LevelExtractionService
     {
-        public static async Task ExtractLevelsAsync(Window owner, List<LevelItem> levelsToExtract, Action<LevelItem>? onLevelSaved = null, string? customBackupDir = null)
+        public static async Task ExtractLevelsAsync(List<LevelItem> levelsToExtract, Action<LevelItem>? onLevelSaved = null, string? customBackupDir = null)
         {
+            var owner = Application.Current.MainWindow;
             var progressWin = new ProgressWindow { Owner = owner };
             progressWin.Show();
-            owner.IsEnabled = false;
+            if (owner != null) owner.IsEnabled = false;
 
             int successCount = 0;
             int failureCount = 0;
@@ -87,7 +88,7 @@ namespace LbpArchiveToolkit.Services
             finally
             {
                 progressWin.Close();
-                owner.IsEnabled = true;
+                if (owner != null) owner.IsEnabled = true;
                 AssetDownloader.CleanupLocalArchives();
 
                 // Force a full garbage collection and compact the Large Object Heap - Probably unnecessary
@@ -99,7 +100,7 @@ namespace LbpArchiveToolkit.Services
             if (failureCount > 0)
             {
                 string errors = string.Join("\n\n", errorMessages);
-                CustomDialog.Show(owner, $"Failed to download/pack {failureCount} level(s).\n\nReasons:\n{errors}", "Extraction Failed", false);
+                CustomDialog.Show(owner!, $"Failed to download/pack {failureCount} level(s).\n\nReasons:\n{errors}", "Extraction Failed", false);
             }
 
             if (successCount > 0)
@@ -110,7 +111,7 @@ namespace LbpArchiveToolkit.Services
                                               : $"Successfully packed {successCount} level(s)!\n\nOpen backup folder?";
 
                     bool dontShowAgain = false;
-                    bool result = CustomDialog.ShowWithCheckbox(owner, msg, "Finished", "Don't show again", out dontShowAgain, true);
+                    bool result = CustomDialog.ShowWithCheckbox(owner!, msg, "Finished", "Don't show again", out dontShowAgain, true);
 
                     if (dontShowAgain)
                     {

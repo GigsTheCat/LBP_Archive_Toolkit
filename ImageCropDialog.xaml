@@ -172,7 +172,7 @@
 
             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource BtnSecondary}" />
-                <Button Content="APPLY" Command="{Binding ApplyCommand}" Style="{StaticResource BtnPrimary}" />
+                <Button Content="APPLY" Click="BtnApply_Click" Style="{StaticResource BtnPrimary}" />
             </StackPanel>
         </Grid>
     </ContentControl>

@@ -8,7 +8,8 @@ namespace LbpArchiveToolkit
         public DownloadsWindow()
         {
             InitializeComponent();
-            DataContext = new DownloadsWindowViewModel();
+            var viewService = (ViewModels.IViewService)Application.Current.MainWindow;
+            DataContext = new DownloadsWindowViewModel(viewService);
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }
 

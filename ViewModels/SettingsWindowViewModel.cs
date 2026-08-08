@@ -182,7 +182,7 @@ namespace LbpArchiveToolkit.ViewModels
                     bool download = _viewService.Confirm(msg, "Outdated Database");
                     if (download)
                     {
-                        Process.Start(new ProcessStartInfo("https://archive.org/download/ultimatefastdry") { UseShellExecute = true });
+                        _viewService.OpenUrl("https://archive.org/download/ultimatefastdry");
                     }
                 }
             }
@@ -296,11 +296,7 @@ namespace LbpArchiveToolkit.ViewModels
             bool result = _viewService.Confirm("Are you sure you want to forget all saved levels?\nThis takes effect immediately and cannot be undone.", "Forget Saved Levels");
             if (result)
             {
-                if (_viewService.GetMainWindow() is MainWindow main)
-                    main.ClearSavedLevels();
-                else
-                    SavedLevelsManager.Clear();
-
+                _viewService.ClearSavedLevels();
                 _viewService.Alert("All saved levels have been cleared.", "Success");
             }
         }

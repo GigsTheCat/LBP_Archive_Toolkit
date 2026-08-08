@@ -178,7 +178,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
                 
-                await LevelExtractionService.ExtractLevelsAsync(_viewService.GetMainWindow(), selectedItems, lvl =>
+                await LevelExtractionService.ExtractLevelsAsync(selectedItems, lvl =>
                 {
                     lvl.Saved = "✓";
                 });
