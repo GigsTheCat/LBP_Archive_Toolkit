@@ -121,7 +121,7 @@ namespace LbpArchiveToolkit.Services
                     if (result)
                     {
                         string fullPath = Path.GetFullPath(customBackupDir ?? ConfigManager.BackupDirectory);
-                        if (Directory.Exists(fullPath)) Process.Start("explorer.exe", $"\"{fullPath}\"");
+                        if (Directory.Exists(fullPath)) Process.Start(new ProcessStartInfo { FileName = fullPath, UseShellExecute = true, Verb = "open" });
                     }
                 }
                 else

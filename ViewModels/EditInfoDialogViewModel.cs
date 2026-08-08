@@ -1,9 +1,7 @@
 using LbpArchiveToolkit.Utils;
 using System;
 using System.IO;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -40,7 +38,7 @@ namespace LbpArchiveToolkit.ViewModels
         public bool IsSubLevel { get; set => SetProperty(ref field, value); }
         public bool IsShareable { get; set => SetProperty(ref field, value); }
         public string? NewIconPath { get; private set => SetProperty(ref field, value); }
-        public ImageSource? IconImage { get; private set => SetProperty(ref field, value); }
+        public object? IconImage { get; private set => SetProperty(ref field, value); }
 
         // Commands
         public ICommand ChangeIconCommand { get; }

@@ -32,6 +32,7 @@ namespace LbpArchiveToolkit.ViewModels
         void ShowTextureViewerDialog(string backupPath, string levelName);
         void SetClipboardText(string text);
         void SetClipboardImage(object image);
+        void SaveImageToFile(object image, string filePath);
         void InvokeOnUIThread(System.Action action);
         System.Threading.Tasks.Task InvokeOnUIThreadAsync(System.Action action);
     }

@@ -32,7 +32,7 @@ namespace LbpArchiveToolkit.ViewModels
         public string UserStats { get; set => SetProperty(ref field, value); } = "";
         public string UserSummary { get; set => SetProperty(ref field, value); } = "";
         public bool IsHeartOverlayVisible { get; set => SetProperty(ref field, value); }
-        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
+        public object? IconSource { get; set => SetProperty(ref field, value); }
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
         public bool IsViewContributionsVisible { get; set => SetProperty(ref field, value); }
         public bool IsViewObjectsVisible { get; set => SetProperty(ref field, value); }

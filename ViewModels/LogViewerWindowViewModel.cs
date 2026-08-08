@@ -85,7 +85,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (Directory.Exists(_logFolder))
                 {
-                    System.Diagnostics.Process.Start("explorer.exe", $"\"{_logFolder}\"");
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = _logFolder, UseShellExecute = true, Verb = "open" });
                 }
                 else
                 {

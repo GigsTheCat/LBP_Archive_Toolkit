@@ -1,11 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -20,16 +16,20 @@ namespace LbpArchiveToolkit.ViewModels
             SaveImageCommand = new RelayCommand(ExecuteSaveImage);
         }
 
+        // Fetches ViewService statically to avoid refactoring constructor chains
+        private IViewService? GetViewService() => 
+            System.Windows.Application.Current?.MainWindow as IViewService;
+
         private void ExecuteCopyImage(object? parameter)
         {
-            if (parameter is BitmapSource bmp)
+            if (parameter != null)
             {
                 try
                 {
-                    var viewService = Application.Current?.MainWindow as IViewService;
+                    var viewService = GetViewService();
                     if (viewService != null)
                     {
-                        viewService.SetClipboardImage(bmp);
+                        viewService.SetClipboardImage(parameter);
                         viewService.ShowToast("Image Copied!", "Mouse");
                     }
                 }
@@ -39,9 +39,9 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteSaveImage(object? parameter)
         {
-            if (parameter is BitmapSource bmp)
+            if (parameter != null)
             {
-                var viewService = Application.Current?.MainWindow as IViewService;
+                var viewService = GetViewService();
                 if (viewService == null) return;
 
                 string? fileName = viewService.ShowSaveFileDialog("PNG Image|*.png", "Save Image", "icon.png");
@@ -50,10 +50,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     try
                     {
-                        var encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bmp));
-                        using var fs = File.Create(fileName);
-                        encoder.Save(fs);
+                        viewService.SaveImageToFile(parameter, fileName);
                         viewService.ShowToast("Image Saved!", "ContextElement");
                     }
                     catch { }

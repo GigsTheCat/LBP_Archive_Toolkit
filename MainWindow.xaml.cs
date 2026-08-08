@@ -450,6 +450,17 @@ namespace LbpArchiveToolkit
             } catch { }
         }
 
+        public void SaveImageToFile(object image, string filePath)
+        {
+            if (image is System.Windows.Media.Imaging.BitmapSource bmp)
+            {
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                using var fs = System.IO.File.Create(filePath);
+                encoder.Save(fs);
+            }
+        }
+
         public void InvokeOnUIThread(Action action)
         {
             Application.Current.Dispatcher.Invoke(action);

@@ -543,7 +543,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <ContentControl Content="{Binding Text}" Visibility="{Binding Visibility}" Style="{DynamicResource DisplayTagStyle}">
+                                                <ContentControl Content="{Binding Text}" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}" Style="{DynamicResource DisplayTagStyle}">
                                                     <ContentControl.LayoutTransform>
                                                         <RotateTransform Angle="{Binding TiltAngle}"/>
                                                     </ContentControl.LayoutTransform>

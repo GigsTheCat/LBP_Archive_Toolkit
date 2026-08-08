@@ -42,7 +42,7 @@ namespace LbpArchiveToolkit.ViewModels
         public string? ToolTip { get; set => SetProperty(ref field, value); }
         public double TiltAngle { get; set => SetProperty(ref field, value); }
         public bool IsLbp1Tag { get; set => SetProperty(ref field, value); }
-        public Visibility Visibility { get; set => SetProperty(ref field, value); } = Visibility.Visible;
+        public bool IsVisible { get; set => SetProperty(ref field, value); } = true;
     }
 
     public class AutocompleteSuggestion : ViewModelBase
@@ -246,7 +246,7 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateLevelDetails(); }
         }
 
-        public System.Windows.Media.Imaging.BitmapSource? LevelIconSource { get; set => SetProperty(ref field, value); }
+        public object? LevelIconSource { get; set => SetProperty(ref field, value); }
 
         public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
@@ -267,7 +267,7 @@ namespace LbpArchiveToolkit.ViewModels
             set { if (SetProperty(ref field, value)) UpdateUserDetails(); }
         }
 
-        public System.Windows.Media.Imaging.BitmapSource? UserIconSource { get; set => SetProperty(ref field, value); }
+        public object? UserIconSource { get; set => SetProperty(ref field, value); }
         public bool IsUserHeartOverlayVisible { get; set => SetProperty(ref field, value); }
         public string UserIconStatusText { get; set => SetProperty(ref field, value); } = "Select a creator\nto view details";
         public string UserHeartButtonText { get; set => SetProperty(ref field, value); } = "♥ HEART CREATOR";

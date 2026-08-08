@@ -48,7 +48,7 @@ namespace LbpArchiveToolkit.ViewModels
         public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
         public string LevelTitle { get; set => SetProperty(ref field, value); } = "";
         public string LevelDescription { get; set => SetProperty(ref field, value); } = "";
-        public System.Windows.Media.Imaging.BitmapSource? IconSource { get; set => SetProperty(ref field, value); }
+        public object? IconSource { get; set => SetProperty(ref field, value); }
         public bool IsIconLockVisible { get; set => SetProperty(ref field, value); }
         public double IconScale { get; set => SetProperty(ref field, value); } = 1.0;
         public string IconStatusText { get; set => SetProperty(ref field, value); } = "Select a backup\nto view details";

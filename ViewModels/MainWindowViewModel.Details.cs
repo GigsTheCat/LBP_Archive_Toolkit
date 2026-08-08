@@ -62,7 +62,7 @@ namespace LbpArchiveToolkit.ViewModels
                 bool showAsterisk = HasCommunityLabels;
 
                 int tagIndex = 0;
-                void AddOrUpdateTag(string text, string? toolTip, Visibility vis, bool isLbp1)
+                void AddOrUpdateTag(string text, string? toolTip, bool isVisible, bool isLbp1)
                 {
                     if (tagIndex < LevelTags.Count)
                     {
@@ -70,12 +70,12 @@ namespace LbpArchiveToolkit.ViewModels
                         t.Text = text;
                         t.ToolTip = toolTip;
                         t.TiltAngle = GetDeterministicTilt(text);
-                        t.Visibility = vis;
+                        t.IsVisible = isVisible;
                         t.IsLbp1Tag = isLbp1;
                     }
                     else
                     {
-                        LevelTags.Add(new TagItem { Text = text, ToolTip = toolTip, TiltAngle = GetDeterministicTilt(text), Visibility = vis, IsLbp1Tag = isLbp1 });
+                        LevelTags.Add(new TagItem { Text = text, ToolTip = toolTip, TiltAngle = GetDeterministicTilt(text), IsVisible = isVisible, IsLbp1Tag = isLbp1 });
                     }
                     tagIndex++;
                 }
@@ -87,7 +87,7 @@ namespace LbpArchiveToolkit.ViewModels
                         addedLabels.Add(label);
                         string displayName = showAsterisk ? label + "*" : label;
                         string? tooltip = showAsterisk ? "*Labels chosen by the author" : null;
-                        AddOrUpdateTag(displayName, tooltip, Visibility.Visible, false);
+                        AddOrUpdateTag(displayName, tooltip, true, false);
                     }
                 }
 
@@ -97,7 +97,7 @@ namespace LbpArchiveToolkit.ViewModels
                     {
                         if (addedLabels.Add(label))
                         {
-                            AddOrUpdateTag(label, "Labels chosen by the community", Visibility.Visible, false);
+                            AddOrUpdateTag(label, "Labels chosen by the community", true, false);
                         }
                     }
                 }
@@ -105,7 +105,7 @@ namespace LbpArchiveToolkit.ViewModels
                 if (hasTags)
                 {
                     foreach (var tag in tags.OrderBy(t => t))
-                        AddOrUpdateTag(tag, null, Visibility.Collapsed, true);
+                        AddOrUpdateTag(tag, null, false, true);
 
                     IsToggleTagsButtonVisible = true;
                     ToggleTagsButtonText = "SHOW TAGS";
@@ -172,7 +172,7 @@ namespace LbpArchiveToolkit.ViewModels
             ToggleTagsButtonText = _showingLbp1Tags ? "HIDE TAGS" : "SHOW TAGS";
             foreach (var tag in LevelTags)
             {
-                if (tag.IsLbp1Tag) tag.Visibility = _showingLbp1Tags ? Visibility.Visible : Visibility.Collapsed;
+                if (tag.IsLbp1Tag) tag.IsVisible = _showingLbp1Tags;
             }
         }
 

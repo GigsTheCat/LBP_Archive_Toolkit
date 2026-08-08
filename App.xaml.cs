@@ -59,7 +59,8 @@ public partial class App : Application
 
             if (result == MessageBoxResult.Yes)
             {
-                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{crashLogPath}\"");
+                string folderPath = Path.GetDirectoryName(crashLogPath) ?? crashLogPath;
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = folderPath, UseShellExecute = true, Verb = "open" });
             }
         }
         catch
