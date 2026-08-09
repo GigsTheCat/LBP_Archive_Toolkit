@@ -210,9 +210,9 @@ namespace LbpArchiveToolkit.Utils
                     toolTip.Content = grid;
 
                     var bmp = await IconLoaderService.LoadIconSourceAsync(user.IconHash, MainWindow.SharedHttpClient, CancellationToken.None);
-                    if (bmp != null)
+                    if (bmp is System.Windows.Media.ImageSource imgSource)
                     {
-                        var brush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                        var brush = new ImageBrush(imgSource) { Stretch = Stretch.UniformToFill };
                         brush.Freeze();
                         iconRect.Fill = brush;
                     }

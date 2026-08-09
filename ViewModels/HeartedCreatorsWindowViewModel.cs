@@ -7,9 +7,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -24,7 +22,16 @@ namespace LbpArchiveToolkit.ViewModels
         public UserItem? SelectedUser
         {
             get;
-            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
+            set { if (SetProperty(ref field, value)) { UpdateSelectionDetails(); InvalidateCommands(); } }
+        }
+
+        private void InvalidateCommands()
+        {
+            (RemoveCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserLevelsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserContributionsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserObjectsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DownloadAllLevelsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";

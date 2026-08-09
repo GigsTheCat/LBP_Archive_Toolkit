@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 
 namespace LbpArchiveToolkit.ViewModels
@@ -45,7 +44,7 @@ namespace LbpArchiveToolkit.ViewModels
             ResultsList.Clear();
             UserResultsList = new List<UserItem>();
             _forwardHistory.Clear();
-            CommandManager.InvalidateRequerySuggested();
+            InvalidateCommands();
 
             if (_searchCts != null)
             {
@@ -165,7 +164,7 @@ namespace LbpArchiveToolkit.ViewModels
             ResultsList.Clear();
             UserResultsList = new List<UserItem>();
             _forwardHistory.Clear();
-            CommandManager.InvalidateRequerySuggested();
+            InvalidateCommands();
 
             if (_searchCts != null)
             {
@@ -471,7 +470,7 @@ namespace LbpArchiveToolkit.ViewModels
                 _searchHistory.RemoveAt(_searchHistory.Count - 1);
                 
                 ApplySearchState(previousState);
-                CommandManager.InvalidateRequerySuggested();
+                InvalidateCommands();
             }
         }
 
@@ -486,7 +485,7 @@ namespace LbpArchiveToolkit.ViewModels
                 _forwardHistory.RemoveAt(_forwardHistory.Count - 1);
                 
                 ApplySearchState(nextState);
-                CommandManager.InvalidateRequerySuggested();
+                InvalidateCommands();
             }
         }
 
@@ -587,7 +586,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         private async Task ExtractLevelsAsync(IList<LevelItem> levels)
         {
-            await LevelExtractionService.ExtractLevelsAsync(levels.ToList(), lvl =>
+            await LevelExtractionService.ExtractLevelsAsync(levels.ToList(), _viewService, lvl =>
             {
                 _savedLevels.Add(lvl.Id);
                 var existingItem = ResultsList.FirstOrDefault(x => x.Id == lvl.Id);

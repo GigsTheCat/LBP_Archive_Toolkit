@@ -14,7 +14,15 @@ namespace LbpArchiveToolkit.ViewModels
         public string SubStatusText { get; set => SetProperty(ref field, value); } = "Initializing...";
         public bool IsErrorState { get; set => SetProperty(ref field, value); } = false;
         public string CancelButtonText { get; set => SetProperty(ref field, value); } = "CANCEL";
-        public bool CanCancel { get; set => SetProperty(ref field, value); } = true;
+        public bool CanCancel 
+        { 
+            get => field; 
+            set 
+            {
+                if (SetProperty(ref field, value))
+                    (CancelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            } 
+        } = true;
 
         public ICommand CancelCommand { get; }
 

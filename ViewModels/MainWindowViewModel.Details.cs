@@ -5,8 +5,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -25,6 +23,7 @@ namespace LbpArchiveToolkit.ViewModels
                 IsObjectOriginVisible = false;
                 LevelIconSource = null;
                 IconStatusText = "Select a level\nto view details";
+                InvalidateCommands();
                 return;
             }
 
@@ -46,7 +45,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             OnPropertyChanged(nameof(SelectedLevelDescription));
             OnPropertyChanged(nameof(SelectedLevel));
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            InvalidateCommands();
 
             var labels = currentLevel.LabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.LabelsBlob) : new List<string>();
             var commLabels = currentLevel.CommunityLabelsBlob != null ? LbpArchiveToolkit.Utils.LabelParser.ParseLabelNames(currentLevel.CommunityLabelsBlob) : new List<string>();
@@ -153,6 +152,7 @@ namespace LbpArchiveToolkit.ViewModels
                 IsUserHeartOverlayVisible = false;
                 OnPropertyChanged(nameof(UserStatsText));
                 OnPropertyChanged(nameof(UserSummaryText));
+                InvalidateCommands();
                 return;
             }
 
@@ -162,6 +162,8 @@ namespace LbpArchiveToolkit.ViewModels
             UserHeartButtonText = HeartedCreatorsManager.IsHearted(SelectedUser.NpHandle) ? "♡ UNHEART CREATOR" : "♥ HEART CREATOR";
             OnPropertyChanged(nameof(UserStatsText));
             OnPropertyChanged(nameof(UserSummaryText));
+            
+            InvalidateCommands();
             
             _ = LoadUserIconAsync(SelectedUser.IconHash, SelectedUser.NpHandle, currentRequestId);
         }

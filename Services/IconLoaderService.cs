@@ -9,7 +9,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class IconLoaderService
     {
-        public static async Task<BitmapSource?> LoadIconSourceAsync(string? hash, HttpClient client, CancellationToken token)
+        public static async Task<object?> LoadIconSourceAsync(string? hash, HttpClient client, CancellationToken token)
         {
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {

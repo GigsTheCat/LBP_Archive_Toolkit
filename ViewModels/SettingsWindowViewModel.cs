@@ -1,5 +1,4 @@
 using LbpArchiveToolkit.Configuration;
-using LbpArchiveToolkit.Themes;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -47,7 +46,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (SetProperty(ref field, value) && _isInitialized)
                 {
-                    ThemeManager.ApplyTheme(value.Key);
+                    _viewService.ApplyTheme(value.Key);
                 }
             }
         }
@@ -106,7 +105,7 @@ namespace LbpArchiveToolkit.ViewModels
             EnableAutocomplete = ConfigManager.EnableAutocomplete;
 
             AvailableThemes.Clear();
-            foreach (var theme in ThemeManager.AvailableThemes)
+            foreach (var theme in _viewService.AvailableThemes)
             {
                 AvailableThemes.Add(theme);
                 if (theme.Key == ConfigManager.Theme)

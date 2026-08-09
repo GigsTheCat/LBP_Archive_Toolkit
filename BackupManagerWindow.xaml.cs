@@ -18,6 +18,14 @@ namespace LbpArchiveToolkit
             LbpArchiveToolkit.Utils.BorderlessWindowFix.Apply(this);
         }
 
+        private void LvBackups_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (DataContext is BackupManagerWindowViewModel vm)
+            {
+                vm.InvalidateCommands();
+            }
+        }
+
         private void TitleBar_Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
         
         private void TitleBar_Maximize_Click(object sender, RoutedEventArgs e) 

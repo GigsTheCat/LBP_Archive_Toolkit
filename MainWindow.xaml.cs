@@ -26,6 +26,7 @@ namespace LbpArchiveToolkit
         
         public bool HasContributorsTable => _viewModel.IsContributorsVisible;
         public bool HasObjectContributorsTable => _viewModel.IsObjectContributorsVisible;
+        public IReadOnlyDictionary<string, string> AvailableThemes => LbpArchiveToolkit.Themes.ThemeManager.AvailableThemes;
         
         public void InitiateCreatorSearch(string npHandle) => _viewModel.InitiateCreatorSearch(npHandle);
         public void InitiateContributionsSearch(string npHandle) => _viewModel.InitiateContributionsSearch(npHandle);
@@ -227,6 +228,8 @@ namespace LbpArchiveToolkit
             return dlg.ShowDialog() == true;
         }
 
+        public void ApplyTheme(string themeName) => LbpArchiveToolkit.Themes.ThemeManager.ApplyTheme(themeName);
+
         public void ShowSettingsDialog()
         {
             new SettingsWindow { Owner = this }.ShowDialog();
@@ -247,7 +250,41 @@ namespace LbpArchiveToolkit
         public void OpenLogViewer() => new LogViewerWindow { Owner = this }.ShowDialog();
         public void OpenAbout() => new AboutWindow { Owner = this }.ShowDialog();
 
+        private class ProgressDialogAdapter : IProgressDialog
+        {
+            private readonly ProgressWindow _window;
+            private readonly Window? _owner;
+            public System.Threading.CancellationToken Token => _window.CancellationTokenSource.Token;
+
+            public ProgressDialogAdapter(Window? owner, string title)
+            {
+                _owner = owner;
+                _window = new ProgressWindow { Owner = owner, Title = title };
+                _window.Show();
+                if (_owner != null) _owner.IsEnabled = false;
+            }
+
+            public void UpdateProgress(int current, int max, string mainMessage, string subMessage)
+            {
+                _window.UpdateProgress(current, max, mainMessage, subMessage);
+            }
+
+            public void Dispose()
+            {
+                _window.Close();
+                if (_owner != null) _owner.IsEnabled = true;
+            }
+        }
+
+        public IProgressDialog ShowProgressWindow(string title) => new ProgressDialogAdapter(this, title);
+
         public bool Confirm(string message, string title) => CustomDialog.Show(this, message, title, true);
+
+        public bool ConfirmWithCheckbox(string message, string title, string checkboxText, out bool isChecked)
+        {
+            return CustomDialog.ShowWithCheckbox(this, message, title, checkboxText, out isChecked, true);
+        }
+
         public void Alert(string message, string title) => CustomDialog.Show(this, message, title, false);
 
         public async void ShowToast(string message, string targetElementName)
@@ -463,6 +500,12 @@ namespace LbpArchiveToolkit
         public void OpenDirectory(string path)
         {
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true, Verb = "open" }); } catch { }
+        }
+
+        public object? LoadImage(string filePath)
+        {
+            try { return LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(filePath); }
+            catch { return null; }
         }
 
         public void SaveImageToFile(object image, string filePath)

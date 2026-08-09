@@ -6,9 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -23,7 +21,13 @@ namespace LbpArchiveToolkit.ViewModels
         public LevelItem? SelectedLevel
         {
             get;
-            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
+            set { if (SetProperty(ref field, value)) { UpdateSelectionDetails(); InvalidateCommands(); } }
+        }
+
+        private void InvalidateCommands()
+        {
+            (RemoveCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExtractCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
@@ -178,7 +182,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
                 
-                await LevelExtractionService.ExtractLevelsAsync(selectedItems, lvl =>
+                await LevelExtractionService.ExtractLevelsAsync(selectedItems, _viewService, lvl =>
                 {
                     lvl.Saved = "✓";
                 });
@@ -186,6 +190,5 @@ namespace LbpArchiveToolkit.ViewModels
                 StatusText = "Extraction finished.";
             }
         }
-
     }
 }

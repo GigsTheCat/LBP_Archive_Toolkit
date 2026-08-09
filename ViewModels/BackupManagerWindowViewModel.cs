@@ -7,9 +7,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -42,7 +40,15 @@ namespace LbpArchiveToolkit.ViewModels
         public BackupItemViewModel? SelectedBackup
         {
             get;
-            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
+            set { if (SetProperty(ref field, value)) { UpdateSelectionDetails(); InvalidateCommands(); } }
+        }
+
+        public void InvalidateCommands()
+        {
+            (ViewTexturesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (EditCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (MoveCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         public string StatusText { get; set => SetProperty(ref field, value); } = "Ready.";
@@ -218,7 +224,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 try
                 {
-                    IconSource = TextureDecoder.LoadBitmapImage(iconPath);
+                    IconSource = _viewService.LoadImage(iconPath!);
                     IconStatusText = "";
                 }
                 catch
@@ -248,7 +254,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     StatusText = "Reading slot data...";
                     _isBusy = true;
-                    CommandManager.InvalidateRequerySuggested();
+                    InvalidateCommands();
 
                     try
                     {
@@ -271,7 +277,7 @@ namespace LbpArchiveToolkit.ViewModels
                     }
 
                     _isBusy = false;
-                    CommandManager.InvalidateRequerySuggested();
+                    InvalidateCommands();
                 }
 
                 var editResult = _viewService.ShowEditInfoDialog(selected.LevelName ?? "", selected.Description ?? "", selected.IconPath, isLocked, isSubLevel, isShareable);
@@ -289,7 +295,7 @@ namespace LbpArchiveToolkit.ViewModels
 
                     StatusText = "Updating and re-encrypting backup...";
                     _isBusy = true;
-                    CommandManager.InvalidateRequerySuggested();
+                    InvalidateCommands();
 
                     try
                     {
@@ -316,7 +322,7 @@ namespace LbpArchiveToolkit.ViewModels
                     finally
                     {
                         _isBusy = false;
-                        CommandManager.InvalidateRequerySuggested();
+                        InvalidateCommands();
 
                         if (!string.IsNullOrEmpty(newIcon) && newIcon.Contains(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase))
                         {

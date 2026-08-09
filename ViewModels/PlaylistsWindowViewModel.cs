@@ -10,9 +10,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace LbpArchiveToolkit.ViewModels
 {
@@ -31,6 +29,7 @@ namespace LbpArchiveToolkit.ViewModels
                 {
                     RefreshLevelsList();
                     OnPropertyChanged(nameof(PlaylistTitle));
+                    InvalidateCommands();
                 }
             }
         }
@@ -42,7 +41,18 @@ namespace LbpArchiveToolkit.ViewModels
         public LevelItem? SelectedLevel
         {
             get;
-            set { if (SetProperty(ref field, value)) UpdateSelectionDetails(); }
+            set { if (SetProperty(ref field, value)) { UpdateSelectionDetails(); InvalidateCommands(); } }
+        }
+
+        private void InvalidateCommands()
+        {
+            (RenameCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DeleteCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExportCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (DownloadAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ZipAllCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RemoveLevelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExtractLevelCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
 
         private CancellationTokenSource? _iconCts;
@@ -324,7 +334,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 if (_viewService.Confirm($"Download all {SelectedPlaylist.Levels.Count} levels in '{SelectedPlaylist.Name}' to your backups folder?", "Download All"))
                 {
-                    await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList());
+                    await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList(), _viewService);
                 }
             }
         }
@@ -345,7 +355,7 @@ namespace LbpArchiveToolkit.ViewModels
                         bool originalPrompt = ConfigManager.ShowExtractionSuccessPrompt;
                         ConfigManager.ShowExtractionSuccessPrompt = false;
 
-                        await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList(), null, tempDir);
+                        await LevelExtractionService.ExtractLevelsAsync(SelectedPlaylist.Levels.ToList(), _viewService, null, tempDir);
 
                         ConfigManager.ShowExtractionSuccessPrompt = originalPrompt;
 
@@ -395,6 +405,8 @@ namespace LbpArchiveToolkit.ViewModels
                         SelectedLevel = LevelsInPlaylist[0];
                     else
                         SelectedLevel = null;
+                        
+                    InvalidateCommands();
                 }
             }
         }
@@ -404,7 +416,7 @@ namespace LbpArchiveToolkit.ViewModels
             if (parameter is IList items && items.Count > 0)
             {
                 var selectedItems = items.Cast<LevelItem>().ToList();
-                await LevelExtractionService.ExtractLevelsAsync(selectedItems);
+                await LevelExtractionService.ExtractLevelsAsync(selectedItems, _viewService);
             }
         }
     }

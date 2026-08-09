@@ -1,16 +1,15 @@
 using System;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using System.Windows;
 using LbpArchiveToolkit.Configuration;
+using LbpArchiveToolkit.ViewModels;
 
 namespace LbpArchiveToolkit.Services
 {
     public static class UpdateService
     {
-        public static async Task CheckForUpdatesAsync(Window ownerWindow, HttpClient httpClient)
+        public static async Task CheckForUpdatesAsync(IViewService viewService, HttpClient httpClient)
         {
             if ((DateTime.Now - ConfigManager.LastUpdateCheck).TotalHours < 12) return;
 
@@ -39,25 +38,23 @@ namespace LbpArchiveToolkit.Services
                         var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                         if (currentVersion != null && latestVersion > currentVersion)
                         {
-                            if (!ownerWindow.IsVisible) return;
-
                             // Format the update message to include the patch notes
                             string message = $"A new version ({tag}) of LBP Archive Toolkit is available.\n\n";
                             
                             if (!string.IsNullOrWhiteSpace(body))
                             {
-                                // Strip \r\n to standard \n for WPF consistency, and append the notes
+                                // Strip \r\n to standard \n for consistency, and append the notes
                                 string patchNotes = body.Replace("\r\n", "\n").Trim();
                                 message += $"Patch Notes:\n{patchNotes}\n\n";
                             }
                             
                             message += "Would you like to download it now?";
 
-                            // The CustomDialog already has a ScrollViewer, so long patch notes will scroll naturally
-                            bool update = CustomDialog.Show(ownerWindow, message, "Update Available", isYesNo: true);
+                            // Use the injected viewService to show the prompt
+                            bool update = viewService.Confirm(message, "Update Available");
                             if (update)
                             {
-                                Process.Start(new ProcessStartInfo("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases") { UseShellExecute = true });
+                                viewService.OpenUrl("https://github.com/GigsTheCat/LBP_Archive_Toolkit/releases");
                             }
                         }
                     }

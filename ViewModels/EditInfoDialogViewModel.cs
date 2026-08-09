@@ -1,4 +1,3 @@
-using LbpArchiveToolkit.Utils;
 using System;
 using System.IO;
 using System.Windows.Input;
@@ -64,7 +63,7 @@ namespace LbpArchiveToolkit.ViewModels
             {
                 try
                 {
-                    IconImage = TextureDecoder.LoadBitmapImage(currentIconPath);
+                    IconImage = _viewService.LoadImage(currentIconPath);
                 }
                 catch (Exception ex)
                 {
@@ -95,7 +94,7 @@ namespace LbpArchiveToolkit.ViewModels
                 NewIconPath = croppedPath;
                 try
                 {
-                    IconImage = TextureDecoder.LoadBitmapImage(NewIconPath!);
+                    IconImage = _viewService.LoadImage(NewIconPath!);
                 }
                 catch
                 {
@@ -124,7 +123,7 @@ namespace LbpArchiveToolkit.ViewModels
                     NewIconPath = croppedPath;
                     try
                     {
-                        IconImage = TextureDecoder.LoadBitmapImage(NewIconPath!);
+                        IconImage = _viewService.LoadImage(NewIconPath!);
                     }
                     catch
                     {

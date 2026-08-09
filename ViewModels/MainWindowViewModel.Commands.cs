@@ -1,6 +1,5 @@
 using LbpArchiveToolkit.Models;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
 
 namespace LbpArchiveToolkit.ViewModels
@@ -41,6 +40,24 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand OpenLogViewerCommand { get; private set; } = null!;
         public ICommand OpenAboutCommand { get; private set; } = null!;
         #endregion
+
+        public void InvalidateCommands()
+        {
+            (BackCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ForwardCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExtractSelectedCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (BatchDownloadCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (HeartLevelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (CopyHashCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ShowContributorsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ShowObjectUsagesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (SearchCreatorCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (HeartUserCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserLevelsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserContributionsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ViewUserObjectsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AddToPlaylistCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
 
         private void InitializeCommands()
         {

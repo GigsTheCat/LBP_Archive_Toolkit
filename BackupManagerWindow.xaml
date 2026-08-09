@@ -94,7 +94,8 @@
                                       EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                                       Background="Transparent" RowBackground="Transparent" AlternatingRowBackground="#15FFFFFF" 
                                       Foreground="{DynamicResource FgPrimary}" BorderThickness="0" GridLinesVisibility="None" 
-                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True">
+                                      HeadersVisibility="Column" AutoGenerateColumns="False" RowHeight="32" IsReadOnly="True"
+                                      SelectionChanged="LvBackups_SelectionChanged">
                                 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="LEVEL NAME" Width="*" Binding="{Binding LevelName}" ElementStyle="{DynamicResource DataGridTextCenterStyle}"/>
