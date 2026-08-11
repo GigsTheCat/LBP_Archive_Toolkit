@@ -9,7 +9,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class IconLoaderService
     {
-        public static async Task<object?> LoadIconSourceAsync(string? hash, HttpClient client, CancellationToken token)
+        public static async Task<object?> LoadIconSourceAsync(string? hash, HttpClient client, ViewModels.IViewService viewService, CancellationToken token)
         {
             if (string.IsNullOrEmpty(hash) || hash.Length <= 8)
             {
@@ -28,10 +28,10 @@ namespace LbpArchiveToolkit.Services
 
                         if (rawResource != null)
                         {
-                            var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(rawResource, -1, false), token).ConfigureAwait(false);
-                            if (token.IsCancellationRequested || bmp == null) return null;
+                            var result = await Task.Run(() => viewService.DecodeImage(rawResource, -1, false), token).ConfigureAwait(false);
+                            if (token.IsCancellationRequested || result.Image == null) return null;
 
-                            return bmp;
+                            return result.Image;
                         }
                     }
                     catch (Exception ex)
@@ -67,10 +67,10 @@ namespace LbpArchiveToolkit.Services
                     if (token.IsCancellationRequested) return null;
 
                     // scaleAndCenter: false avoids creating multiple heavy format-converted pixel arrays just to display it
-                    var webBmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(buffer, totalBytesRead, false), token).ConfigureAwait(false);
-                    if (webBmp == null) return null;
+                    var webResult = await Task.Run(() => viewService.DecodeImage(buffer, totalBytesRead, false), token).ConfigureAwait(false);
+                    if (webResult.Image == null) return null;
 
-                    return webBmp;
+                    return webResult.Image;
                 }
                 finally
                 {

@@ -44,7 +44,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand RemoveCommand { get; }
         public ICommand ExtractCommand { get; }
 
-        public HeartedLevelsWindowViewModel(IViewService viewService)
+        public HeartedLevelsWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
 
@@ -131,7 +131,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             IconStatusText = "Loading Icon...";
 
-            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, MainWindow.SharedHttpClient, token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, MainWindow.SharedHttpClient, _viewService, token);
 
             if (_currentIconRequestId != expectedRequestId || token.IsCancellationRequested) return;
 

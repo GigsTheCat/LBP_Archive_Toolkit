@@ -10,29 +10,23 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand CopyImageCommand { get; }
         public ICommand SaveImageCommand { get; }
 
-        public ViewModelBase()
+        protected readonly IViewService? BaseViewService;
+
+        public ViewModelBase(IViewService? viewService = null)
         {
+            BaseViewService = viewService;
             CopyImageCommand = new RelayCommand(ExecuteCopyImage);
             SaveImageCommand = new RelayCommand(ExecuteSaveImage);
         }
 
-        // Expose a static locator to decouple from System.Windows
-        public static IViewService? GlobalViewService { get; set; }
-
-        private IViewService? GetViewService() => GlobalViewService;
-
         private void ExecuteCopyImage(object? parameter)
         {
-            if (parameter != null)
+            if (parameter != null && BaseViewService != null)
             {
                 try
                 {
-                    var viewService = GetViewService();
-                    if (viewService != null)
-                    {
-                        viewService.SetClipboardImage(parameter);
-                        viewService.ShowToast("Image Copied!", "Mouse");
-                    }
+                    BaseViewService.SetClipboardImage(parameter);
+                    BaseViewService.ShowToast("Image Copied!", "Mouse");
                 }
                 catch { }
             }
@@ -40,19 +34,16 @@ namespace LbpArchiveToolkit.ViewModels
 
         private void ExecuteSaveImage(object? parameter)
         {
-            if (parameter != null)
+            if (parameter != null && BaseViewService != null)
             {
-                var viewService = GetViewService();
-                if (viewService == null) return;
-
-                string? fileName = viewService.ShowSaveFileDialog("PNG Image|*.png", "Save Image", "icon.png");
+                string? fileName = BaseViewService.ShowSaveFileDialog("PNG Image|*.png", "Save Image", "icon.png");
 
                 if (fileName != null)
                 {
                     try
                     {
-                        viewService.SaveImageToFile(parameter, fileName);
-                        viewService.ShowToast("Image Saved!", "ContextElement");
+                        BaseViewService.SaveImageToFile(parameter, fileName);
+                        BaseViewService.ShowToast("Image Saved!", "ContextElement");
                     }
                     catch { }
                 }

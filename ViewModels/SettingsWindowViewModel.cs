@@ -73,7 +73,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
 
-        public SettingsWindowViewModel(IViewService viewService)
+        public SettingsWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
 
@@ -224,20 +224,34 @@ namespace LbpArchiveToolkit.ViewModels
             }
             catch { /* Ignore access denied exceptions if running without admin privileges */ }
 
-            // 2. Fallback Strategy: Scan common installation drives/folders
+            // 2. Fallback Strategy: Scan common installation drives/folders (OS Agnostic)
             var basePaths = new List<string>();
-            foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady))
+            
+            try 
             {
-                basePaths.Add(d.RootDirectory.FullName);
-                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Games"));
-                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Emulators"));
-                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files"));
-                basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files (x86)"));
-            }
+                foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady))
+                {
+                    basePaths.Add(d.RootDirectory.FullName);
+                    basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Games"));
+                    basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Emulators"));
+                    basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files"));
+                    basePaths.Add(Path.Combine(d.RootDirectory.FullName, "Program Files (x86)"));
+                }
+            } 
+            catch { /* Unix systems may throw here depending on mount perms */ }
+
+            string homeFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
             basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
             basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             basePaths.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            
+            // Standard Linux Paths
+            if (!string.IsNullOrEmpty(homeFolder))
+            {
+                basePaths.Add(Path.Combine(homeFolder, ".config"));
+                basePaths.Add(Path.Combine(homeFolder, ".var", "app", "net.rpcs3.RPCS3", "config"));
+            }
 
             foreach (var basePath in basePaths)
             {

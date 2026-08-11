@@ -13,7 +13,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class SaveDataBuilder
     {
-        public static void UpdateLevelInfo(string bkpDir, string newName, string newDesc, string? newIconPath = null, bool isLocked = false, bool isSubLevel = false, bool isShareable = true)
+        public static void UpdateLevelInfo(string bkpDir, string newName, string newDesc, string? newIconPath, bool isLocked, bool isSubLevel, bool isShareable, ViewModels.IViewService viewService)
         {
             var (head, branchId, branchRev, sltHash, hashes) = Far4Archive.ReadSaveArchive(bkpDir);
 
@@ -23,7 +23,7 @@ namespace LbpArchiveToolkit.Services
             byte[]? newIconHash = null; byte[]? newIconBytes = null;
             if (!string.IsNullOrEmpty(newIconPath))
             {
-                newIconBytes = TextureDecoder.CreateIconFromImage(newIconPath);
+                newIconBytes = viewService.CreateIconFromImage(newIconPath);
                 if (newIconBytes.Length == 0) throw new Exception("Failed to process the new icon image.");
                 newIconHash = SHA1.HashData(newIconBytes);
             }

@@ -29,7 +29,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand CopyCommand { get; }
         public ICommand EraseCommand { get; }
 
-        public LogViewerWindowViewModel(IViewService viewService)
+        public LogViewerWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
             _logFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LbpArchiveToolkit");

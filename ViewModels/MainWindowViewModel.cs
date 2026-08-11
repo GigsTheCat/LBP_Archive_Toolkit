@@ -293,7 +293,7 @@ namespace LbpArchiveToolkit.ViewModels
         private AdvancedSearchCriteria _advancedCriteria = new();
         private bool _isApplyingState = false;
 
-        public MainWindowViewModel(IViewService viewService)
+        public MainWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
             _dbService = new DatabaseService(ConfigManager.DatabasePath);

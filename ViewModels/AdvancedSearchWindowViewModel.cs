@@ -174,7 +174,7 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly bool _hasExtendedSlotProperties;
         private readonly IViewService _viewService;
 
-        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, bool hasExtendedSlotProperties, IViewService viewService)
+        public AdvancedSearchWindowViewModel(AdvancedSearchCriteria existingCriteria, bool hasCommunityLabels, bool hasExtendedSlotProperties, IViewService viewService) : base(viewService)
         {
             _hasCommunityLabels = hasCommunityLabels;
             _hasExtendedSlotProperties = hasExtendedSlotProperties;

@@ -14,7 +14,7 @@ namespace LbpArchiveToolkit.ViewModels
         public Action<bool>? RequestClose { get; set; }
         public Action? RequestHide { get; set; }
 
-        public MissingDatabaseDialogViewModel(IViewService viewService)
+        public MissingDatabaseDialogViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
 

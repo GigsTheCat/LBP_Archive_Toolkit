@@ -11,7 +11,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand DownloadFullFastDbCommand { get; }
         public ICommand DownloadUltimateDbCommand { get; }
 
-        public DownloadsWindowViewModel(IViewService viewService)
+        public DownloadsWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
             DownloadBasicDbCommand = new RelayCommand(_ => ExecuteDownload("https://archive.org/download/dry23db"));

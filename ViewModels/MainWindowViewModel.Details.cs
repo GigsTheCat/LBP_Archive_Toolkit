@@ -130,6 +130,23 @@ namespace LbpArchiveToolkit.ViewModels
             OnPropertyChanged(nameof(LevelStatsText));
         }
 
+        public async Task<(UserItem? user, object? icon)> GetCreatorPreviewAsync(string creatorName)
+        {
+            UserItem? user = null;
+            object? icon = null;
+            try
+            {
+                var users = await _dbService.SearchUsersAsync(creatorName, true, "1");
+                if (users.Count > 0)
+                {
+                    user = users[0];
+                    icon = await IconLoaderService.LoadIconSourceAsync(user.IconHash, SharedHttpClient, _viewService, CancellationToken.None);
+                }
+            }
+            catch { }
+            return (user, icon);
+        }
+
         private async Task CheckIfObjectOriginAsync(long slotId, long expectedRequestId)
         {
             try
@@ -254,7 +271,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
             _iconCts = new CancellationTokenSource();
 
-            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _iconCts.Token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _viewService, _iconCts.Token);
             if (_currentIconRequestId != expectedRequestId || _iconCts.Token.IsCancellationRequested) return;
 
             if (bmp != null) { 
@@ -277,7 +294,7 @@ namespace LbpArchiveToolkit.ViewModels
             }
             _iconCts = new CancellationTokenSource();
 
-            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _iconCts.Token);
+            var bmp = await IconLoaderService.LoadIconSourceAsync(hash, SharedHttpClient, _viewService, _iconCts.Token);
             if (_currentIconRequestId != expectedRequestId || _iconCts.Token.IsCancellationRequested) return;
 
             if (bmp != null) { UserIconSource = bmp; UserIconStatusText = ""; }

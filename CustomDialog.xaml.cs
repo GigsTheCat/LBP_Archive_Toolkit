@@ -15,7 +15,8 @@ namespace LbpArchiveToolkit
         public CustomDialog(string message, string title, bool isYesNo, string? checkboxText = null, bool isInput = false, string defaultInput = "")
         {
             InitializeComponent();
-            _viewModel = new CustomDialogViewModel(message, title, isYesNo, checkboxText, isInput, defaultInput);
+            var viewService = Application.Current.MainWindow as IViewService;
+            _viewModel = new CustomDialogViewModel(viewService, message, title, isYesNo, checkboxText, isInput, defaultInput);
             _viewModel.RequestClose += (result) => { DialogResult = result; Close(); };
             DataContext = _viewModel;
 

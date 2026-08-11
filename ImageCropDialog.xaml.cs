@@ -35,7 +35,7 @@ namespace LbpArchiveToolkit
             _isInitializing = true;
             try
             {
-                var bmp = LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(imagePath);
+                var bmp = LbpArchiveToolkit.Utils.WpfImageHelper.LoadBitmapImage(imagePath);
                 _viewModel.ImageSource = bmp;
 
                 double imgW = bmp.PixelWidth;

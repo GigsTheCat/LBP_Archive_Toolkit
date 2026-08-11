@@ -67,7 +67,7 @@ namespace LbpArchiveToolkit.ViewModels
         public ICommand MoveCommand { get; }
         public ICommand ChangeDirCommand { get; }
 
-        public BackupManagerWindowViewModel(IViewService viewService)
+        public BackupManagerWindowViewModel(IViewService viewService) : base(viewService)
         {
             _viewService = viewService;
             _backupDir = ConfigManager.BackupDirectory;
@@ -300,7 +300,7 @@ namespace LbpArchiveToolkit.ViewModels
                     try
                     {
                         var backupToUpdate = selected; // capture instance for thread
-                        await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(backupToUpdate.FullPath, newName, newDesc, newIcon, newLocked, newSubLevel, newShareable));
+                        await Task.Run(() => SaveDataBuilder.UpdateLevelInfo(backupToUpdate.FullPath, newName, newDesc, newIcon, newLocked, newSubLevel, newShareable, _viewService));
 
                         backupToUpdate.LevelName = newName;
                         backupToUpdate.Description = newDesc;

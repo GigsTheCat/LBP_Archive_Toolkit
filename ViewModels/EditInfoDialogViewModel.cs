@@ -49,7 +49,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public EditInfoDialogViewModel(IViewService viewService, string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable)
+        public EditInfoDialogViewModel(IViewService viewService, string currentName, string currentDesc, string? currentIconPath, bool isLocked, bool isSubLevel, bool isShareable) : base(viewService)
         {
             _viewService = viewService;
             _originalIconPath = currentIconPath;

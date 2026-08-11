@@ -52,6 +52,9 @@ namespace LbpArchiveToolkit.ViewModels
         void OpenUrl(string url);
         void OpenDirectory(string path);
         object? LoadImage(string filePath);
+        (object? Image, int Width, int Height) DecodeImage(byte[] data, int length = -1, bool scaleAndCenter = true);
+        System.Threading.Tasks.Task<(UserItem? user, object? icon)> LoadCreatorPreviewAsync(string creatorName);
+        byte[] CreateIconFromImage(string filePath);
         void SaveImageToFile(object image, string filePath);
         void InvokeOnUIThread(System.Action action);
         System.Threading.Tasks.Task InvokeOnUIThreadAsync(System.Action action);

@@ -81,18 +81,20 @@ namespace LbpArchiveToolkit.Services
                 LbpArchiveToolkit.LogManager.Log("IconSaveHelper.CreatePlaceholderIcon", ex);
             }
 
-            int width = 320; int height = 176; int stride = width * 4;
-            byte[] pixels = new byte[height * stride];
+            int width = 320; 
+            int height = 176;
+            byte[] pixels = new byte[width * height * 4];
 
-            for (int i = 0; i < pixels.Length; i += 4) { pixels[i] = 169; pixels[i + 1] = 169; pixels[i + 2] = 169; pixels[i + 3] = 255; }
+            for (int i = 0; i < pixels.Length; i += 4) 
+            { 
+                pixels[i + 0] = 169; // B
+                pixels[i + 1] = 169; // G
+                pixels[i + 2] = 169; // R
+                pixels[i + 3] = 255; // A
+            }
 
-            var source = System.Windows.Media.Imaging.BitmapSource.Create(width, height, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null, pixels, stride);
-            source.Freeze();
-            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
-
-            using var fileStream = File.Create(path);
-            encoder.Save(fileStream);
+            byte[] pngBytes = TextureDecoder.EncodeBgraToPng(pixels, width, height);
+            File.WriteAllBytes(path, pngBytes);
         }
     }
 }

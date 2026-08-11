@@ -39,8 +39,6 @@ namespace LbpArchiveToolkit
         {
             InitializeComponent();
 
-            ViewModelBase.GlobalViewService = this;
-
             ConfigManager.LoadConfig();
             SavedLevelsManager.Load(ConfigManager.LegacySavedLevels);
             HeartedLevelsManager.Load();
@@ -504,8 +502,23 @@ namespace LbpArchiveToolkit
 
         public object? LoadImage(string filePath)
         {
-            try { return LbpArchiveToolkit.Utils.TextureDecoder.LoadBitmapImage(filePath); }
+            try { return LbpArchiveToolkit.Utils.WpfImageHelper.LoadBitmapImage(filePath); }
             catch { return null; }
+        }
+
+        public (object? Image, int Width, int Height) DecodeImage(byte[] data, int length = -1, bool scaleAndCenter = true)
+        {
+            return LbpArchiveToolkit.Utils.WpfImageHelper.DecodeToBitmapSourceCentered(data, length, scaleAndCenter);
+        }
+
+        public Task<(UserItem? user, object? icon)> LoadCreatorPreviewAsync(string creatorName)
+        {
+            return _viewModel.GetCreatorPreviewAsync(creatorName);
+        }
+
+        public byte[] CreateIconFromImage(string filePath)
+        {
+            return LbpArchiveToolkit.Utils.WpfImageHelper.CreateIconFromImage(filePath);
         }
 
         public void SaveImageToFile(object image, string filePath)

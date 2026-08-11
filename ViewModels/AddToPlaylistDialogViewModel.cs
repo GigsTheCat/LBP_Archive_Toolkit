@@ -22,7 +22,7 @@ namespace LbpArchiveToolkit.ViewModels
         private readonly LevelItem _level;
         private readonly IViewService _viewService;
 
-        public AddToPlaylistDialogViewModel(LevelItem level, IViewService viewService)
+        public AddToPlaylistDialogViewModel(LevelItem level, IViewService viewService) : base(viewService)
         {
             _level = level;
             _viewService = viewService;

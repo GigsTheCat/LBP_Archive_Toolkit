@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using LbpArchiveToolkit.Configuration;
 using LbpArchiveToolkit.Services;
+using LbpArchiveToolkit.ViewModels;
 
 namespace LbpArchiveToolkit.Utils
 {
@@ -147,12 +148,13 @@ namespace LbpArchiveToolkit.Utils
 
             try
             {
-                var dbService = new DatabaseService(ConfigManager.DatabasePath);
-                var users = await dbService.SearchUsersAsync(creatorName, true, "1");
+                var viewService = Application.Current.MainWindow as IViewService;
+                if (viewService == null) return;
+                
+                var (user, iconObj) = await viewService.LoadCreatorPreviewAsync(creatorName);
 
-                if (users.Count > 0)
+                if (user != null)
                 {
-                    var user = users[0];
                     var grid = new Grid { Margin = new Thickness(5) };
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -209,8 +211,7 @@ namespace LbpArchiveToolkit.Utils
 
                     toolTip.Content = grid;
 
-                    var bmp = await IconLoaderService.LoadIconSourceAsync(user.IconHash, MainWindow.SharedHttpClient, CancellationToken.None);
-                    if (bmp is System.Windows.Media.ImageSource imgSource)
+                    if (iconObj is System.Windows.Media.ImageSource imgSource)
                     {
                         var brush = new ImageBrush(imgSource) { Stretch = Stretch.UniformToFill };
                         brush.Freeze();

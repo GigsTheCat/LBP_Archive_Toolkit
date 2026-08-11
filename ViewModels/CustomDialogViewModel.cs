@@ -25,7 +25,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action<bool>? RequestClose { get; set; }
 
-        public CustomDialogViewModel(string message, string title, bool isYesNo, string? checkboxText = null, bool isInput = false, string defaultInput = "")
+        public CustomDialogViewModel(IViewService? viewService, string message, string title, bool isYesNo, string? checkboxText = null, bool isInput = false, string defaultInput = "") : base(viewService)
         {
             Title = title;
             Message = message;
@@ -69,7 +69,7 @@ namespace LbpArchiveToolkit.ViewModels
         {
             try
             {
-                ViewModelBase.GlobalViewService?.SetClipboardText(Message);
+                BaseViewService?.SetClipboardText(Message);
                 CopyButtonText = "COPIED!";
                 await Task.Delay(2000);
                 CopyButtonText = "COPY";

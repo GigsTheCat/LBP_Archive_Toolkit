@@ -31,7 +31,7 @@ namespace LbpArchiveToolkit.ViewModels
 
         public Action? RequestClose { get; set; }
 
-        public TextureViewerDialogViewModel(IViewService viewService, string backupPath, string levelName)
+        public TextureViewerDialogViewModel(IViewService viewService, string backupPath, string levelName) : base(viewService)
         {
             _viewService = viewService;
             _backupPath = backupPath;
@@ -72,23 +72,14 @@ namespace LbpArchiveToolkit.ViewModels
                 int loaded = 0;
                 foreach (var kvp in textureCandidates)
                 {
-                    var bmp = await Task.Run(() => TextureDecoder.DecodeToBitmapSourceCentered(kvp.Value, -1, false));
-                    if (bmp != null)
+                    var result = await Task.Run(() => _viewService.DecodeImage(kvp.Value, -1, false));
+                    if (result.Image != null)
                     {
-                        string dims = "";
-                        try 
-                        { 
-                            // Use dynamic dispatch to fetch dimensions without coupling to System.Windows
-                            dynamic dynBmp = bmp;
-                            dims = $"{dynBmp.PixelWidth}x{dynBmp.PixelHeight}";
-                        } 
-                        catch { }
-
                         Textures.Add(new TextureItem 
                         { 
-                            ImageSource = bmp, 
+                            ImageSource = result.Image, 
                             Hash = kvp.Key,
-                            Dimensions = dims
+                            Dimensions = $"{result.Width}x{result.Height}"
                         });
                         loaded++;
                     }
