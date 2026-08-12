@@ -238,15 +238,15 @@ namespace LbpArchiveToolkit.ViewModels
                 try
                 {
                     using var ms = new MemoryStream();
-                    using (var deflate = new DeflateStream(ms, CompressionLevel.Optimal, true))
-                    using (var writer = new BinaryWriter(deflate, System.Text.Encoding.UTF8))
+                    using (var brotli = new BrotliStream(ms, CompressionLevel.SmallestSize, true))
+                    using (var writer = new BinaryWriter(brotli, System.Text.Encoding.UTF8))
                     {
                         writer.Write((byte)1); // Version Header
                         writer.Write(SelectedPlaylist.Name ?? "My Playlist");
                         writer.Write(SelectedPlaylist.Levels.Count);
                         foreach (var lvl in SelectedPlaylist.Levels)
                         {
-                            writer.Write(lvl.Id);
+                            writer.Write7BitEncodedInt64(lvl.Id);
                         }
                     }
                     
@@ -280,8 +280,8 @@ namespace LbpArchiveToolkit.ViewModels
                     byte[] bytes = Convert.FromBase64String(code);
                     
                     using var ms = new MemoryStream(bytes);
-                    using var deflate = new DeflateStream(ms, CompressionMode.Decompress);
-                    using var reader = new BinaryReader(deflate, System.Text.Encoding.UTF8);
+                    using var brotli = new BrotliStream(ms, CompressionMode.Decompress);
+                    using var reader = new BinaryReader(brotli, System.Text.Encoding.UTF8);
 
                     byte version = reader.ReadByte();
                     if (version != 1) throw new Exception("Unsupported share code version.");
@@ -295,7 +295,7 @@ namespace LbpArchiveToolkit.ViewModels
                     var fetchedLevels = new List<LevelItem>();
                     for (int i = 0; i < count; i++)
                     {
-                        long id = reader.ReadInt64();
+                        long id = reader.Read7BitEncodedInt64();
                         var results = new List<LevelItem>();
                         await foreach (var lvl in dbService.SearchLevelsAsync(id.ToString(), false, false, 0, "All Genres", "1", new HashSet<long>(), new HashSet<long>(), new HashSet<long>(), new AdvancedSearchCriteria(), null, false, false, true, false, false, CancellationToken.None))
                         {
