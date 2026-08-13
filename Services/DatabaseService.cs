@@ -26,6 +26,7 @@ namespace LbpArchiveToolkit.Services
         private bool _hasObjectContribsTable = false;
         private bool _hasObjectContribFtsTable = false;
         private bool _hasObjectOriginsTable = false;
+        private bool _hasHashIndex = false;
 
         public bool HasContributorsTable
         {
@@ -286,6 +287,24 @@ namespace LbpArchiveToolkit.Services
             long searchIdVal = 0;
             bool isIdSearch = searchById && hasKeyword && long.TryParse(keyword.Trim(), out searchIdVal);
             bool isHashSearch = searchByHash && hasKeyword;
+
+            if (isHashSearch && _colHash != "NULL" && !_hasHashIndex)
+            {
+                try
+                {
+                    progress?.Report("Building hash index (this will take a few seconds for the first time)...");
+                    using var cmdIndex = new SqliteCommand($"CREATE INDEX IF NOT EXISTS idx_slot_hash ON slot({_colHash})", conn);
+                    await cmdIndex.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    _hasHashIndex = true;
+                    progress?.Report("Hash index built successfully. Searching...");
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Fall back gracefully if the DB file is restricted (read-only)
+                    LbpArchiveToolkit.LogManager.Log("DatabaseService.SearchLevelsAsync (Build Hash Index)", ex);
+                    progress?.Report("Failed to build hash index. Falling back to slow scan...");
+                }
+            }
 
             bool hasTagsFilter = advanced.RequiredLabels.Count > 0 || advanced.RequiredTags.Count > 0 || advanced.IsTeamPick;
             bool useFtsForTags = hasTagsFilter && _hasTagsFtsTable && !hasKeyword;
@@ -1437,6 +1456,11 @@ namespace LbpArchiveToolkit.Services
                 _colInitiallyLocked = GetDbColumn(columns, "initiallyLocked", "locked");
                 _colIsSubLevel = GetDbColumn(columns, "isSubLevel", "subLevel");
                 _colShareable = GetDbColumn(columns, "shareable");
+
+                using (var cmdIndex = new SqliteCommand("SELECT count(*) FROM sqlite_master WHERE type='index' AND name='idx_slot_hash'", conn))
+                {
+                    _hasHashIndex = Convert.ToInt32(cmdIndex.ExecuteScalar()) > 0;
+                }
 
                 _isSchemaResolved = true;
             }
