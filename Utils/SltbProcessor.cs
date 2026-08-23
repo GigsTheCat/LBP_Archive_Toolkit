@@ -48,7 +48,9 @@ namespace LbpArchiveToolkit.Utils
 
         // Default heads
         public const uint HEAD_LBP2_BETA_FALLBACK = 0x3b6;
-        public const uint HEAD_LBP3_BASE = 0x010503e2;
+        public const uint HEAD_LBP3_BASE = 0x021803f9;
+        // public const uint HEAD_LBP3_PS4_BASE = 0x021803f9;
+        public const uint HEAD_LBP3_PS4_BASE = 0x01ae03f9;
 
         // Resource Types
         public const uint RES_TYPE_TEXTURE = 1;
@@ -243,7 +245,7 @@ namespace LbpArchiveToolkit.Utils
 
          public static byte[] ReplaceHash(byte[] source, byte[] oldHash, byte[] newHash)
         {
-            if (source.AsSpan().IndexOf(oldHash) == -1) return source; // NO-OP Check
+            if (source.AsSpan().IndexOf(oldHash) == -1) return source; 
 
             byte[] result = new byte[source.Length];
             Array.Copy(source, result, source.Length);
@@ -429,18 +431,6 @@ namespace LbpArchiveToolkit.Utils
                 return (int)BinaryPrimitives.ReadUInt32BigEndian(br.ReadBytes(4));
             }
 
-            void WriteUleb128(MemoryStream outStream, long value)
-            {
-                ulong v = (ulong)value;
-                do { byte b = (byte)(v & 0x7F); v >>= 7; if (v != 0) b |= 0x80; outStream.WriteByte(b); } while (v != 0);
-            }
-
-            void WriteS32(MemoryStream outStream, int value)
-            {
-                if (useCompressedInts) { WriteUleb128(outStream, (uint)((value << 1) ^ (value >> 31))); }
-                else { Span<byte> buf = stackalloc byte[4]; BinaryPrimitives.WriteInt32BigEndian(buf, value); outStream.Write(buf); }
-            }
-
             int slotCount = ReadI32();
             int slotType = ReadI32();
             long slotNumber = ReadU32();
@@ -511,7 +501,7 @@ namespace LbpArchiveToolkit.Utils
 
             if (isLocked.HasValue || isSubLevel.HasValue || isShareable.HasValue) {
                 try {
-                    SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); // 0, 0
+                    SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); 
                     if (version >= LbpConstants.REV_SLOT_GROUPS) { SkipI32Bytes(ref currentOffset); SkipI32Bytes(ref currentOffset); }
                     
                     if (isLocked.HasValue) sltData[currentOffset] = (byte)(isLocked.Value ? 1 : 0);
@@ -520,7 +510,7 @@ namespace LbpArchiveToolkit.Utils
                     if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) {
                         if (isShareable.HasValue) sltData[currentOffset] = (byte)(isShareable.Value ? 1 : 0);
                         currentOffset += 1;
-                        SkipI32Bytes(ref currentOffset); // bg guid
+                        SkipI32Bytes(ref currentOffset);
                     }
                     
                     if (isSubLevel.HasValue) {
@@ -602,6 +592,15 @@ namespace LbpArchiveToolkit.Utils
                 BinaryPrimitives.WriteUInt32BigEndian(patched.AsSpan(depOffsetPos, 4), (uint)((int)oldDepOffset + depDelta));
             }
 
+            void WriteS32(MemoryStream outStream, int value)
+            {
+                if (useCompressedInts) { 
+                    ulong v = (ulong)((value << 1) ^ (value >> 31));
+                    do { byte b = (byte)(v & 0x7F); v >>= 7; if (v != 0) b |= 0x80; outStream.WriteByte(b); } while (v != 0);
+                }
+                else { Span<byte> buf = stackalloc byte[4]; BinaryPrimitives.WriteInt32BigEndian(buf, value); outStream.Write(buf); }
+            }
+
             return (patched, npHandle, gameVersion);
         }
 
@@ -632,22 +631,174 @@ namespace LbpArchiveToolkit.Utils
         {
             using var ms = new MemoryStream();
             using var w = new BinaryWriter(ms);
+            
             w.Write(Encoding.ASCII.GetBytes("SLTb"));
             w.WriteUInt32BE(head);
+
+            uint version = head & 0xFFFF;
+            uint subversion = (head >> 16) & 0xFFFF;
+            byte compFlags = 0;
+
             if (head >= LbpConstants.REV_DEPENDENCIES)
             {
-                w.WriteUInt32BE(0);
+                w.WriteUInt32BE(0); // placeholder dep table offset
                 if (head >= LbpConstants.REV_COMPRESSED_RESOURCES)
                 {
                     if (head >= LbpConstants.REV_BRANCHES) { w.WriteUInt16BE(branchId); w.WriteUInt16BE(branchRev); }
-                    if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && branchId == LbpConstants.BRANCH_LD_ID && branchRev >= LbpConstants.REV_LD_RESOURCES)) w.Write((byte)0);
-                    w.Write((byte)0);
+                    
+                    if (version >= 0x297 || (version == LbpConstants.REV_LBP1_MAX && branchId == LbpConstants.BRANCH_LD_ID && branchRev > 1))
+                        compFlags = 7; // USE_ALL_COMPRESSION
+                        
+                    if (head >= LbpConstants.REV_SWITCHINPUT_VISIBILITY || (head == LbpConstants.REV_LBP1_MAX && branchId == LbpConstants.BRANCH_LD_ID && branchRev >= LbpConstants.REV_LD_RESOURCES)) 
+                        w.Write(compFlags);
+                    w.Write((byte)0); // isCompressed = false
                 }
             }
-            w.WriteUInt32BE(1);
 
+            bool useCompressedInts = (compFlags & 1) != 0;
+
+            void WriteU32(uint val)
+            {
+                if (useCompressedInts) {
+                    uint v = val;
+                    do { byte b = (byte)(v & 0x7F); v >>= 7; if (v != 0) b |= 0x80; w.Write(b); } while (v != 0);
+                } else w.WriteUInt32BE(val);
+            }
+
+            void WriteS32(int val)
+            {
+                if (useCompressedInts) {
+                    uint v = (uint)((val << 1) ^ (val >> 31));
+                    do { byte b = (byte)(v & 0x7F); v >>= 7; if (v != 0) b |= 0x80; w.Write(b); } while (v != 0);
+                } else w.WriteUInt32BE((uint)val);
+            }
+            
             var deps = new List<Tuple<string, uint>>();
-            WriteSlotStruct(w, head & 0xFFFF, (head >> 16) & 0xFFFF, info, deps);
+            
+            void WriteResDescriptor(string? hashOrGuid, uint resrcType, bool isGuid)
+            {
+                if (string.IsNullOrEmpty(hashOrGuid)) w.Write((byte)0);
+                else if (!isGuid) {
+                    w.Write(version < 0x191 ? (byte)2 : (byte)1);
+                    w.Write(Convert.FromHexString(hashOrGuid));
+                    deps.Add(Tuple.Create(hashOrGuid.ToLowerInvariant(), resrcType));
+                } else {
+                    w.Write(version < 0x191 ? (byte)1 : (byte)2);
+                    WriteU32(uint.Parse(hashOrGuid, System.Globalization.NumberStyles.HexNumber));
+                    deps.Add(Tuple.Create(hashOrGuid, resrcType));
+                }
+            }
+
+            void WriteWStr(string str)
+            {
+                byte[] utf16 = Encoding.BigEndianUnicode.GetBytes(str);
+                WriteS32(utf16.Length / 2); w.Write(utf16);
+            }
+
+            void WriteStr(string str)
+            {
+                byte[] ascii = Encoding.ASCII.GetBytes(str);
+                WriteS32(ascii.Length); w.Write(ascii);
+            }
+
+            void WriteOnlineId(string npHandle)
+            {
+                bool lengthPrefixed = version < 0x234;
+                if (lengthPrefixed) WriteU32(16);
+                byte[] data = new byte[16];
+                if (!string.IsNullOrEmpty(npHandle)) Array.Copy(Encoding.ASCII.GetBytes(npHandle), data, Math.Min(Encoding.ASCII.GetBytes(npHandle).Length, 16));
+                w.Write(data); w.Write((byte)0);
+                if (lengthPrefixed) WriteU32(3);
+                w.Write(new byte[] { 0, 0, 0 });
+            }
+
+            WriteU32(1); // Slot List size = 1
+            
+            // --- WriteSlotStruct ---
+            WriteU32(2); // SlotType USER_CREATED_STORED_LOCAL
+            WriteU32(0); // SlotNumber
+
+            bool isRootGuid = !string.IsNullOrEmpty(info.RootLevelHash) && info.RootLevelHash.Length <= 8;
+            WriteResDescriptor(info.IsAdventurePlanet ? null : info.RootLevelHash, LbpConstants.RES_TYPE_LEVEL, isRootGuid);
+            if (subversion >= LbpConstants.SUBREV_ADVENTURE) WriteResDescriptor(info.IsAdventurePlanet ? info.RootLevelHash : null, LbpConstants.RES_TYPE_ADVENTURE, isRootGuid);
+            
+            bool isIconGuid = !string.IsNullOrEmpty(info.IconHash) && info.IconHash.Length <= 8;
+            WriteResDescriptor(info.IconHash, LbpConstants.RES_TYPE_TEXTURE, isIconGuid);
+
+            for (int i = 0; i < 4; i++) w.WriteUInt32BE(0); // Location V4
+
+            WriteOnlineId(info.NpHandle);
+            if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) WriteWStr(info.NpHandle);
+            
+            WriteStr(""); // translationTag
+            WriteWStr(info.Name);
+            WriteWStr(info.Description);
+
+            WriteU32(0); WriteU32(0); // primaryLinkLevel
+            if (version >= LbpConstants.REV_SLOT_GROUPS) { WriteU32(0); WriteU32(0); } // group
+            
+            w.Write((byte)(info.InitiallyLocked ? 1 : 0));
+
+            if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) { 
+                w.Write((byte)(info.Shareable ? 1 : 0)); 
+                WriteU32(info.BackgroundGuid); 
+            }
+            
+            if (version > LbpConstants.REV_PLANET_DECORATIONS) WriteResDescriptor(null, LbpConstants.RES_TYPE_PLAN, false);
+            if (version < 0x188) w.Write((byte)0); // Unknown removed field
+            
+            if (version > 0x1de) WriteU32(info.LevelType == 6 ? 6u : (info.LevelType == 7 ? 7u : 0u)); 
+            else w.Write((byte)0);
+
+            if (version > 0x1ad && version < 0x1b9) w.Write((byte)0); // unknown
+            if (version > 0x1b8 && version < 0x36c) WriteU32(0); // gameProgressionState
+            
+            if (version >= LbpConstants.REV_SWITCH_BEHAVIOR) {
+                if (version >= LbpConstants.REV_SLOT_LABELS) {
+                    var labelsToWrite = info.Labels;
+                    if (info.GameVersion == 2) {
+                        labelsToWrite = new List<uint>();
+                        foreach (var l in info.Labels) if (LabelParser.IsLbp2Label(l)) labelsToWrite.Add(l);
+                    }
+                    WriteU32((uint)labelsToWrite.Count);
+                    for (int i = 0; i < labelsToWrite.Count; i++) { WriteU32(labelsToWrite[i]); WriteU32((uint)i); }
+                }
+
+                if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_REQUIRED) {
+                    WriteU32(3);
+                    for (int i = 0; i < 3; i++) { WriteResDescriptor(null, LbpConstants.RES_TYPE_PLAN, false); WriteU32(0); }
+                }
+
+                if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) WriteU32(0);
+                if (version >= LbpConstants.REV_SLOT_SUBLEVEL) w.Write((byte)(info.IsSubLevel ? 1 : 0));
+                
+                if (version >= LbpConstants.REV_SLOT_EXTRA_METADATA) {
+                    w.Write((byte)info.MinPlayers);
+                    w.Write((byte)info.MaxPlayers);
+                    
+                    if (subversion >= LbpConstants.SUBREV_SLOT_ENFORCE_MINMAX) w.Write((byte)0);
+                    
+                    if (version >= LbpConstants.REV_SLOT_EXTRA_METADATA) w.Write((byte)0); // moveRecommended
+                    if (version >= LbpConstants.REV_SLOT_CROSS_COMPATIBLE) w.Write((byte)0);
+                    if (version >= 0x3d1) w.Write((byte)1); // showOnPlanet
+                    if (version >= 0x3d2) w.Write((byte)0); // livesOverride
+
+                    if (info.GameVersion == 3) {
+                        if (subversion >= LbpConstants.SUBREV_SLOT_GAME_MODE) w.Write((byte)(info.LevelType == 6 ? 1 : (info.LevelType == 7 ? 2 : 0)));
+                        if (subversion >= LbpConstants.SUBREV_SLOT_GAME_KIT) w.Write((byte)0);
+                        if (subversion >= LbpConstants.SUBREV_SLOT_ENTRANCE_DATA) { 
+                            WriteWStr("");
+                            WriteU32(0); WriteU32(0); 
+                        }
+                        if (subversion >= LbpConstants.SUBREV_SLOT_BADGE_SIZE) w.Write((byte)1);
+                        if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_PATH) { 
+                            WriteStr(""); 
+                            if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_THUMBNAIL) WriteStr(""); 
+                        }
+                    }
+                }
+            }
+            // --- End WriteSlotStruct ---
 
             if ((head & 0xFFFF) >= LbpConstants.REV_PRODUCTION_BUILD) w.Write((byte)1);
 
@@ -659,6 +810,7 @@ namespace LbpArchiveToolkit.Utils
                 w.WriteUInt32BE((uint)depOffset);
                 ms.Position = curr;
 
+                // Dependencies use raw big endian, never ULEB128
                 w.WriteUInt32BE((uint)deps.Count);
                 foreach (var dep in deps)
                 {
@@ -679,117 +831,5 @@ namespace LbpArchiveToolkit.Utils
             return ms.ToArray();
         }
 
-        private static void WriteSlotStruct(BinaryWriter writer, uint version, uint subversion, SlotInfo info, List<Tuple<string, uint>> deps)
-        {
-            writer.WriteUInt32BE(6);
-            writer.WriteUInt32BE(0);
-
-            bool isRootGuid = !string.IsNullOrEmpty(info.RootLevelHash) && info.RootLevelHash.Length <= 8;
-            WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? null : info.RootLevelHash, LbpConstants.RES_TYPE_LEVEL, isRootGuid);
-            if (subversion >= LbpConstants.SUBREV_ADVENTURE) WriteResDescriptor(writer, version, deps, info.IsAdventurePlanet ? info.RootLevelHash : null, LbpConstants.RES_TYPE_ADVENTURE, isRootGuid);
-            
-            bool isIconGuid = !string.IsNullOrEmpty(info.IconHash) && info.IconHash.Length <= 8;
-            WriteResDescriptor(writer, version, deps, info.IconHash, LbpConstants.RES_TYPE_TEXTURE, isIconGuid);
-
-            for (int i = 0; i < 4; i++) writer.WriteUInt32BE(0);
-
-            WriteOnlineId(writer, version, info.NpHandle);
-            if (version >= LbpConstants.REV_SLOT_AUTHOR_NAME) WriteWStr(writer, info.NpHandle);
-            WriteStr(writer, "");
-            WriteWStr(writer, info.Name);
-            WriteWStr(writer, info.Description);
-
-            writer.WriteUInt32BE(0); writer.WriteUInt32BE(0);
-            if (version >= LbpConstants.REV_SLOT_GROUPS) { writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
-            writer.Write((byte)(info.InitiallyLocked ? 1 : 0));
-
-            if (version >= LbpConstants.REV_SLOT_DESCRIPTOR) { writer.Write((byte)(info.Shareable ? 1 : 0)); writer.WriteUInt32BE(info.BackgroundGuid); }
-            if (version > LbpConstants.REV_PLANET_DECORATIONS) WriteResDescriptor(writer, version, deps, null, LbpConstants.RES_TYPE_PLAN, false);
-            if (version < 0x188) writer.Write((byte)0); // Unknown removed field
-            
-            if (version > 0x1de) writer.WriteUInt32BE(info.LevelType == 6 ? 6u : (info.LevelType == 7 ? 7u : 0u)); // WORLD_TUTORIAL_LEVEL = 0x1de
-            else writer.Write((byte)0);
-
-            if (version > 0x1ad && version < 0x1b9) writer.Write((byte)0);
-            if (version > 0x1b8 && version < 0x36c) writer.WriteUInt32BE(0);
-            if (version < LbpConstants.REV_SWITCH_BEHAVIOR) return;
-
-            if (version >= LbpConstants.REV_SLOT_LABELS)
-            {
-                var labelsToWrite = info.Labels;
-                if (info.GameVersion == 2)
-                {
-                    labelsToWrite = new List<uint>();
-                    foreach (var l in info.Labels) if (LabelParser.IsLbp2Label(l)) labelsToWrite.Add(l);
-                }
-                writer.WriteUInt32BE((uint)labelsToWrite.Count);
-                for (int i = 0; i < labelsToWrite.Count; i++) { writer.WriteUInt32BE(labelsToWrite[i]); writer.WriteUInt32BE((uint)i); }
-            }
-
-            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_REQUIRED)
-            {
-                writer.WriteUInt32BE(3);
-                for (int i = 0; i < 3; i++) { WriteResDescriptor(writer, version, deps, null, LbpConstants.RES_TYPE_PLAN, false); writer.WriteUInt32BE(0); }
-            }
-
-            if (version >= LbpConstants.REV_SLOT_COLLECTABUBBLES_CONTAINED) writer.WriteUInt32BE(0);
-            if (version >= LbpConstants.REV_SLOT_SUBLEVEL) writer.Write((byte)(info.IsSubLevel ? 1 : 0));
-            if (version < LbpConstants.REV_SLOT_EXTRA_METADATA) return;
-
-            writer.Write((byte)info.MinPlayers);
-            writer.Write((byte)info.MaxPlayers);
-            if (subversion >= LbpConstants.SUBREV_SLOT_ENFORCE_MINMAX) writer.Write((byte)0);
-            if (version >= LbpConstants.REV_SLOT_EXTRA_METADATA) writer.Write((byte)0);
-            if (version >= LbpConstants.REV_SLOT_CROSS_COMPATIBLE) writer.Write((byte)0);
-            if (version >= 0x3d1) writer.Write((byte)1);
-            if (version >= 0x3d2) writer.Write((byte)0);
-
-            if (info.GameVersion != 3) return;
-            if (subversion >= LbpConstants.SUBREV_SLOT_GAME_MODE) writer.Write((byte)(info.LevelType == 6 ? 1 : (info.LevelType == 7 ? 2 : 0)));
-            if (subversion >= LbpConstants.SUBREV_SLOT_GAME_KIT) writer.Write((byte)0);
-            if (subversion >= LbpConstants.SUBREV_SLOT_ENTRANCE_DATA) { WriteWStr(writer, ""); writer.WriteUInt32BE(0); writer.WriteUInt32BE(0); }
-            if (subversion >= LbpConstants.SUBREV_SLOT_BADGE_SIZE) writer.Write((byte)1);
-            if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_PATH) { WriteStr(writer, ""); if (subversion >= LbpConstants.SUBREV_SLOT_TRAILER_THUMBNAIL) WriteStr(writer, ""); }
-        }
-
-        private static void WriteResDescriptor(BinaryWriter writer, uint revVersion, List<Tuple<string, uint>> deps, string? hashOrGuid, uint resrcType, bool isGuid = false)
-        {
-            if (string.IsNullOrEmpty(hashOrGuid)) writer.Write((byte)0);
-            else if (!isGuid)
-            {
-                writer.Write(revVersion < 0x191 ? (byte)2 : (byte)1);
-                writer.Write(Convert.FromHexString(hashOrGuid));
-                deps.Add(Tuple.Create(hashOrGuid.ToLowerInvariant(), resrcType));
-            }
-            else
-            {
-                writer.Write(revVersion < 0x191 ? (byte)1 : (byte)2);
-                writer.WriteUInt32BE(uint.Parse(hashOrGuid, System.Globalization.NumberStyles.HexNumber));
-                deps.Add(Tuple.Create(hashOrGuid, resrcType));
-            }
-        }
-
-        private static void WriteOnlineId(BinaryWriter writer, uint revVersion, string npHandle)
-        {
-            bool lengthPrefixed = revVersion < 0x234;
-            if (lengthPrefixed) writer.WriteUInt32BE(16);
-            byte[] data = new byte[16];
-            if (!string.IsNullOrEmpty(npHandle)) Array.Copy(Encoding.UTF8.GetBytes(npHandle), data, Math.Min(Encoding.UTF8.GetBytes(npHandle).Length, 16));
-            writer.Write(data); writer.Write((byte)0);
-            if (lengthPrefixed) writer.WriteUInt32BE(3);
-            writer.Write(new byte[] { 0, 0, 0 });
-        }
-
-        private static void WriteWStr(BinaryWriter writer, string str)
-        {
-            byte[] utf16 = Encoding.BigEndianUnicode.GetBytes(str);
-            writer.WriteUInt32BE((uint)(utf16.Length / 2)); writer.Write(utf16);
-        }
-
-        private static void WriteStr(BinaryWriter writer, string str)
-        {
-            byte[] utf8 = Encoding.UTF8.GetBytes(str);
-            writer.WriteUInt32BE((uint)utf8.Length); writer.Write(utf8);
-        }
     }
 }

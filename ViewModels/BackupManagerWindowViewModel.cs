@@ -121,7 +121,10 @@ namespace LbpArchiveToolkit.ViewModels
         private BackupItemViewModel ParseBackupFolder(string folderPath, string folderName)
         {
             string sfoPath = Path.Combine(folderPath, "PARAM.SFO");
+            if (!File.Exists(sfoPath)) sfoPath = Path.Combine(folderPath, "sce_sys", "param.sfo");
+
             string iconPath = Path.Combine(folderPath, "ICON0.PNG");
+            if (!File.Exists(iconPath)) iconPath = Path.Combine(folderPath, "sce_sys", "icon0.png");
 
             string levelName = "Unknown Level";
             string creator = "Unknown";
@@ -130,7 +133,7 @@ namespace LbpArchiveToolkit.ViewModels
 
             if (folderName.Contains("00141") || folderName.Contains("98148") || folderName.Contains("30018")) game = "LBP1";
             else if (folderName.Contains("00850") || folderName.Contains("98245") || folderName.Contains("30058")) game = "LBP2";
-            else if (folderName.Contains("01663") || folderName.Contains("98362") || folderName.Contains("30095")) game = "LBP3";
+            else if (folderName.Contains("01663") || folderName.Contains("98362") || folderName.Contains("30095") || folderName.Contains("CUSA")) game = "LBP3";
 
             if (File.Exists(sfoPath))
             {

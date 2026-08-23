@@ -23,6 +23,7 @@ namespace LbpArchiveToolkit.Configuration
         public static string GameRegion { get; set; } = "EU";
         public static int MaxParallelDownloads { get; set; } = 10;
         public static bool ForceLbp3Backups { get; set; } = false;
+        public static bool ForceLbp3Ps4Backups { get; set; } = false;
         public static bool Lbp2BetaToRetail { get; set; } = true;
         public static bool UseMemoryMappedIO { get; set; } = false;
         public static bool LoadDbIntoRam { get; set; } = false;
@@ -78,6 +79,7 @@ namespace LbpArchiveToolkit.Configuration
             public string? GameRegion { get; set; }
             public int MaxParallelDownloads { get; set; }
             public bool ForceLbp3Backups { get; set; }
+            public bool ForceLbp3Ps4Backups { get; set; }
             public bool? Lbp2BetaToRetail { get; set; }
             public bool UseMemoryMappedIO { get; set; }
             public bool LoadDbIntoRam { get; set; }
@@ -131,6 +133,7 @@ namespace LbpArchiveToolkit.Configuration
                     GameRegion = data.GameRegion ?? GameRegion;
                     MaxParallelDownloads = data.MaxParallelDownloads;
                     ForceLbp3Backups = data.ForceLbp3Backups;
+                    ForceLbp3Ps4Backups = data.ForceLbp3Ps4Backups;
                     Lbp2BetaToRetail = data.Lbp2BetaToRetail ?? Lbp2BetaToRetail;
                     UseMemoryMappedIO = data.UseMemoryMappedIO;
                     LoadDbIntoRam = data.LoadDbIntoRam;
@@ -166,6 +169,7 @@ namespace LbpArchiveToolkit.Configuration
                     GameRegion = GameRegion,
                     MaxParallelDownloads = MaxParallelDownloads,
                     ForceLbp3Backups = ForceLbp3Backups,
+                    ForceLbp3Ps4Backups = ForceLbp3Ps4Backups,
                     Lbp2BetaToRetail = Lbp2BetaToRetail,
                     UseMemoryMappedIO = UseMemoryMappedIO,
                     LoadDbIntoRam = LoadDbIntoRam,

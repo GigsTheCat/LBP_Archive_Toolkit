@@ -11,7 +11,7 @@ namespace LbpArchiveToolkit.Services
 {
     public static class IconSaveHelper
     {
-        public static async Task SaveLevelIconAsync(string? iconHash, SortedDictionary<string, byte[]> resources, string bkpPath, HttpClient client, CancellationToken token)
+        public static async Task SaveLevelIconAsync(string? iconHash, SortedDictionary<string, byte[]> resources, string bkpPath, HttpClient client, CancellationToken token, string iconFileName = "ICON0.PNG")
         {
             bool iconSaved = false;
             bool isIconGuid = !string.IsNullOrEmpty(iconHash) && iconHash.Length <= 8;
@@ -26,7 +26,7 @@ namespace LbpArchiveToolkit.Services
                         await Task.Run(() =>
                         {
                             byte[] pngBytes = TextureDecoder.DecodeToPngCentered(iconResrc);
-                            File.WriteAllBytes(Path.Combine(bkpPath, "ICON0.PNG"), pngBytes);
+                            File.WriteAllBytes(Path.Combine(bkpPath, iconFileName), pngBytes);
                         }).ConfigureAwait(false);
                         iconSaved = true;
                     }
@@ -47,7 +47,7 @@ namespace LbpArchiveToolkit.Services
                                 byte[] rawBytes = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
 
                                 byte[] pngData = await Task.Run(() => TextureDecoder.DecodeToPngCentered(rawBytes), token).ConfigureAwait(false);
-                                await File.WriteAllBytesAsync(Path.Combine(bkpPath, "ICON0.PNG"), pngData, token).ConfigureAwait(false);
+                                await File.WriteAllBytesAsync(Path.Combine(bkpPath, iconFileName), pngData, token).ConfigureAwait(false);
                                 iconSaved = true;
                             }
                         }
@@ -59,7 +59,7 @@ namespace LbpArchiveToolkit.Services
                 }
             }
 
-            if (!iconSaved) CreatePlaceholderIcon(Path.Combine(bkpPath, "ICON0.PNG"));
+            if (!iconSaved) CreatePlaceholderIcon(Path.Combine(bkpPath, iconFileName));
         }
 
         public static void CreatePlaceholderIcon(string path)

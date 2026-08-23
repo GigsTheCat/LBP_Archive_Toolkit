@@ -55,6 +55,7 @@ namespace LbpArchiveToolkit.ViewModels
         
         public string SelectedRegion { get; set => SetProperty(ref field, value); } = "EU (PAL)";
         public bool ForceLbp3Backups { get; set => SetProperty(ref field, value); }
+        public bool ForceLbp3Ps4Backups { get; set => SetProperty(ref field, value); }
         public bool Lbp2BetaToRetail { get; set => SetProperty(ref field, value); }
         public bool UseMemoryMappedIO { get; set => SetProperty(ref field, value); }
         public bool LoadDbIntoRam { get; set => SetProperty(ref field, value); }
@@ -98,6 +99,7 @@ namespace LbpArchiveToolkit.ViewModels
             DownloadServer = ConfigManager.DownloadServer;
             MaxParallelDownloads = ConfigManager.MaxParallelDownloads.ToString();
             ForceLbp3Backups = ConfigManager.ForceLbp3Backups;
+            ForceLbp3Ps4Backups = ConfigManager.ForceLbp3Ps4Backups;
             Lbp2BetaToRetail = ConfigManager.Lbp2BetaToRetail;
             UseMemoryMappedIO = ConfigManager.UseMemoryMappedIO;
             LoadDbIntoRam = ConfigManager.LoadDbIntoRam;
@@ -325,6 +327,7 @@ namespace LbpArchiveToolkit.ViewModels
                 DownloadServer = "bonsai";
                 MaxParallelDownloads = "10";
                 ForceLbp3Backups = false;
+                ForceLbp3Ps4Backups = false;
                 Lbp2BetaToRetail = true;
                 UseMemoryMappedIO = false;
                 LoadDbIntoRam = false;
@@ -348,6 +351,7 @@ namespace LbpArchiveToolkit.ViewModels
             ConfigManager.DownloadServer = DownloadServer;
             ConfigManager.MaxParallelDownloads = threads;
             ConfigManager.ForceLbp3Backups = ForceLbp3Backups;
+            ConfigManager.ForceLbp3Ps4Backups = ForceLbp3Ps4Backups;
             ConfigManager.Lbp2BetaToRetail = Lbp2BetaToRetail;
             ConfigManager.UseMemoryMappedIO = UseMemoryMappedIO;
             ConfigManager.LoadDbIntoRam = LoadDbIntoRam;

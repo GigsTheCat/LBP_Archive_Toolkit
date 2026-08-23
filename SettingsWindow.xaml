@@ -240,6 +240,7 @@
                                         <ComboBox HorizontalAlignment="Left" Width="200" ItemsSource="{Binding AvailableRegions}" SelectedItem="{Binding SelectedRegion}" />
                                     </DockPanel>
                                     <CheckBox Content="Force LBP3 Backups (Useful if playing on retail LBP3)" IsChecked="{Binding ForceLbp3Backups}"/>
+                                    <CheckBox Content="Force LBP3 PS4 Backups (For shadPS4 - builds a PS4-style sce_sys save, no PARAM.PFD)" IsChecked="{Binding ForceLbp3Ps4Backups}"/>
                                     <CheckBox Content="LBP2 Beta to Retail (Enable if importing corrupt errors)" IsChecked="{Binding Lbp2BetaToRetail}"/>
                                     <CheckBox Content="Enable search autocomplete suggestions" IsChecked="{Binding EnableAutocomplete}"/>
                                     <CheckBox Content="Use mmap for database (faster search, uses slightly more RAM)" IsChecked="{Binding UseMemoryMappedIO}"/>
