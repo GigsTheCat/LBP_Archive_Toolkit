@@ -108,7 +108,7 @@ namespace LbpArchiveToolkit.ViewModels
                 if (result != null)
                 {
                     _advancedCriteria = result.Value.Criteria;
-                    if (result.Value.ShouldSearch && !string.IsNullOrWhiteSpace(SearchText)) SearchCommand.Execute(null);
+                    if (result.Value.ShouldSearch) SearchCommand.Execute(null);
                 }
             });
 

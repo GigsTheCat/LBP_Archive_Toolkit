@@ -527,7 +527,7 @@ namespace LbpArchiveToolkit.Services
                 }
             }
 
-            bool needsCSharpExclusionFiltering = exL0 != 0 || exL1 != 0 || exT0 != 0 || exT1 != 0 || advanced.PublishedAfter.HasValue || advanced.PublishedBefore.HasValue;
+            bool needsCSharpExclusionFiltering = exL0 != 0 || exL1 != 0 || exT0 != 0 || exT1 != 0 || advanced.PublishedAfter.HasValue || advanced.PublishedBefore.HasValue || advanced.ExcludeTeamPick;
 
             bool isAllLimit = (limitFilter == "All" || string.IsNullOrEmpty(limitFilter));
             bool needsCSharpFiltering = (!useFtsForTags && (reqL0 != 0 || reqL1 != 0 || reqT0 != 0 || reqT1 != 0)) || needsCSharpExclusionFiltering;
@@ -722,6 +722,11 @@ namespace LbpArchiveToolkit.Services
                                     if (advanced.PublishedBefore.HasValue && parsedDate > advanced.PublishedBefore.Value) continue;
                                 }
                             }
+                        }
+
+                        if (advanced.ExcludeTeamPick && !reader.IsDBNull(11) && reader.GetBoolean(11))
+                        {
+                            continue;
                         }
                     }
 
@@ -1374,9 +1379,16 @@ namespace LbpArchiveToolkit.Services
                 query.Append($" AND {pfx}{_colShareable} = 1");
             }
 
-            if (advanced.ExcludeTeamPick && !useFtsForTags && _colMmPick != "NULL")
+            if (advanced.ExcludeTeamPick)
             {
-                query.Append($" AND {pfx}{_colMmPick} = 0");
+                if (_colMmPick != "NULL")
+                {
+                    query.Append($" AND ({pfx}{_colMmPick} = 0 OR {pfx}{_colMmPick} IS NULL)");
+                }
+                else if (_hasTagsFtsTable)
+                {
+                    query.Append($" AND {pfx}id NOT IN (SELECT rowid FROM slot_tags_fts WHERE slot_tags_fts MATCH '\"MM_PICK\"')");
+                }
             }
 
             if (advanced.ExcludeLocked && _colInitiallyLocked != "NULL")
@@ -1452,7 +1464,7 @@ namespace LbpArchiveToolkit.Services
                 _colLabels = GetDbColumn(columns, "authorLabels");
                 _colCommunityLabels = GetDbColumn(columns, "labels", "communityLabels");
                 _colTags = GetDbColumn(columns, "tags");
-                _colMmPick = GetDbColumn(columns, "mmpick", "mmPick");
+                _colMmPick = GetDbColumn(columns, "mmpick", "mmPick", "mm_pick", "teamPick", "teampick", "isMmPick");
                 _colInitiallyLocked = GetDbColumn(columns, "initiallyLocked", "locked");
                 _colIsSubLevel = GetDbColumn(columns, "isSubLevel", "subLevel");
                 _colShareable = GetDbColumn(columns, "shareable");
